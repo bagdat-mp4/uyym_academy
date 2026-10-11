@@ -16,7 +16,7 @@ export async function context(req:FastifyRequest,db:pg.Pool|pg.PoolClient=pool):
  for(const kind of ['ticket','session'] as const) {
   const token=req.cookies[cookieName(kind)];if(!token)continue;
   const table=kind==='session'?'app_sessions':'login_tickets';
-  const {rows}=await db.query(`SELECT s.*,to_jsonb(u) AS profile,to_jsonb(d) AS binding FROM private.${table} s JOIN private.app_users u ON u.id=s.user_id JOIN private.device_bindings d ON d.id=s.device_id AND d.user_id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.active AND s.auth_epoch=u.auth_epoch`,[hash(token)]);
+  const {rows}=await db.query(`SELECT s.*,to_jsonb(u) AS profile,to_jsonb(d) AS binding FROM private.${table} s JOIN private.app_users u ON u.id=s.user_id JOIN private.device_bindings d ON d.id=s.device_id AND d.user_id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND u.active AND u.auth_operation_id IS NULL AND s.auth_epoch=u.auth_epoch`,[hash(token)]);
   const row=rows[0];if(!row)continue;
   return {...row,kind,user:row.profile,device:row.binding};
  }
@@ -51,7 +51,7 @@ export async function proof(req:FastifyRequest,purpose='api'):Promise<Context> {
 }
 export async function lessonAllowed(ctx:Context,lessonId:string) {
  requireLearning(ctx);
- const {rows}=await pool.query(`SELECT l.* FROM private.lessons l JOIN private.courses c ON c.id=l.course_id LEFT JOIN private.groups g ON g.id=l.group_id WHERE l.id=$1 AND l.published AND c.active AND c.published AND (l.group_id IS NULL OR g.active) AND ($3='ADMIN' OR ($3='STUDENT' AND EXISTS(SELECT 1 FROM private.enrollments e WHERE e.user_id=$2 AND e.course_id=l.course_id AND (l.group_id IS NULL OR e.group_id=l.group_id) AND e.status='active' AND e.starts_at<=now() AND e.expires_at>now() AND (e.group_id IS NULL OR EXISTS(SELECT 1 FROM private.groups eg WHERE eg.id=e.group_id AND eg.active)))) OR ($3='TEACHER' AND EXISTS(SELECT 1 FROM private.teacher_assignments t WHERE t.teacher_id=$2 AND t.course_id=l.course_id AND (t.group_id IS NULL OR t.group_id=l.group_id))))`,[lessonId,ctx.user_id,ctx.user.role]);
+ const {rows}=await pool.query(`SELECT l.* FROM private.lessons l JOIN private.courses c ON c.id=l.course_id LEFT JOIN private.groups g ON g.id=l.group_id WHERE l.id=$1 AND l.published AND c.active AND c.published AND (l.group_id IS NULL OR (g.active AND (g.starts_at IS NULL OR g.starts_at<=now()) AND (g.ends_at IS NULL OR g.ends_at>now()))) AND ($3='ADMIN' OR ($3='STUDENT' AND EXISTS(SELECT 1 FROM private.enrollments e WHERE e.user_id=$2 AND e.course_id=l.course_id AND (l.group_id IS NULL OR e.group_id=l.group_id) AND e.status='active' AND e.starts_at<=now() AND e.expires_at>now() AND (e.group_id IS NULL OR EXISTS(SELECT 1 FROM private.groups eg WHERE eg.id=e.group_id AND eg.active AND (eg.starts_at IS NULL OR eg.starts_at<=now()) AND (eg.ends_at IS NULL OR eg.ends_at>now()))))) OR ($3='TEACHER' AND EXISTS(SELECT 1 FROM private.teacher_assignments t WHERE t.teacher_id=$2 AND t.course_id=l.course_id AND (t.group_id IS NULL OR t.group_id=l.group_id))))`,[lessonId,ctx.user_id,ctx.user.role]);
  if(!rows[0])throw new HttpError(404,'Сабақ қолжетімсіз');return rows[0];
 }
 export async function admin(req:FastifyRequest) {const ctx=await proof(req);requireLearning(ctx);if(ctx.user.role!=='ADMIN')throw new HttpError(403,'Рұқсат жоқ');return ctx;}

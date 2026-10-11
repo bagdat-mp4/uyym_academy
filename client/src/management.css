@@ -1,0 +1,72 @@
+.management-shell { display: grid; grid-template-columns: 183px minmax(0, 1fr); gap: 22px; align-items: start; }
+.manage-tabs { display: flex; flex-direction: column; gap: 5px; position: sticky; top: 110px; border: 1px solid #dbe3ec; background: #fff; border-radius: 11px; padding: 10px; }
+.manage-tabs button { padding: 13px 12px; min-height: 44px; text-align: left; border-radius: 6px; font-size: 11px; color: #6b80a0; background: transparent; font-weight: 600; }
+.manage-tabs button.selected { color: #234b84; background: #fff4c7; }
+.manage-tabs button:hover { background: #edf2fa; }
+.manage-mobile-nav { display: none; }
+.manage-panel { min-width: 0; }
+.manage-heading-actions { display: flex; gap: 9px; flex-wrap: wrap; justify-content: flex-end; }
+.manage-heading-actions .button { font-size: 10px; min-height: 40px; padding: 10px 14px; }
+.manage-toolbar { display: flex; align-items: flex-end; gap: 15px; margin: 8px 0 24px; }
+.manage-toolbar label { flex: 1; max-width: 390px; margin-top: 20px; font-size: 10px; }
+.manage-toolbar label + label { max-width: 155px; }
+.manage-toolbar input { min-height: 43px; font-size: 12px; }
+.management-shell select, .manage-dialog select { display: block; width: 100%; min-height: 44px; padding: 10px 12px; margin-top: 8px; border: 1px solid #cbd5e3; background: #fcfcfb; color: #213c67; border-radius: 7px; font-size: 12px; }
+.manage-form textarea { width: 100%; display: block; border: 1px solid #cbd5e3; background: #fcfcfb; color: #213c67; border-radius: 7px; padding: 12px 14px; margin-top: 8px; font: inherit; font-size: 12px; resize: vertical; }
+.manage-records { display: flex; flex-direction: column; }
+.manage-record { display: flex; align-items: flex-start; gap: 18px; border-top: 1px solid #e3e9f0; padding: 21px 0; }
+.manage-record-info { flex: 1; min-width: 0; }
+.manage-record-title { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.manage-record-title h3 { font-size: 13px; line-height: 1.5; font-weight: 650; color: #355984; overflow-wrap: anywhere; }
+.manage-status { border-radius: 20px; display: inline-block; padding: 4px 8px; font-size: 8px; font-weight: 600; line-height: 1.5; color: #7d8da2; background: #eff2f6; }
+.status-active, .status-approved, .status-paid, .status-posted { color: #537854; background: #eaf3e8; }
+.status-pending, .status-partial { color: #9c7b24; background: #fff5d5; }
+.status-paused, .status-expired, .status-revoked, .status-rejected, .status-voided { color: #a16865; background: #faeeee; }
+.status-admin, .status-teacher { color: #637fad; background: #eef2fa; }
+.manage-record-info dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 22px; row-gap: 9px; margin: 13px 0 0; }
+.manage-record-info dt { font-size: 8px; color: #8b9bb1; margin: 0 0 4px; }
+.manage-record-info dd { font-size: 10px; color: #7186a4; line-height: 1.65; margin: 0; overflow-wrap: anywhere; }
+.manage-record-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; flex-shrink: 0; width: 135px; }
+.manage-record-actions .button { min-height: 38px; font-size: 9px; padding: 9px 12px; max-width: 100%; white-space: normal; }
+.manage-text-action { background: transparent; padding: 9px 0; font-size: 9px; line-height: 1.6; text-align: right; color: #7487a4; }
+.manage-text-action.danger { color: #a27370; }
+.manage-pagination { display: flex; justify-content: space-between; align-items: center; gap: 15px; border-top: 1px solid #e1e7ed; padding-top: 20px; margin-top: 8px; font-size: 9px; color: #8c9db5; }
+.manage-pagination > div { display: flex; gap: 8px; }
+.manage-pagination .button { font-size: 9px; padding: 9px 12px; min-height: 37px; }
+.manage-retry { padding: 35px 0; text-align: center; }
+.manage-dialog { width: 620px; padding: 38px 30px 30px; }
+.manage-dialog h2 { font-size: 23px; padding-right: 20px; line-height: 1.35; }
+.manage-dialog-description { font-size: 11px; color: #7a8da9; line-height: 1.85; margin-top: 15px; }
+.manage-form { margin-top: 20px; }
+.manage-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.manage-form-grid .full-field { grid-column: 1 / -1; }
+.manage-form label { font-size: 10px; }
+.manage-form input { font-size: 12px; }
+.manage-form input:read-only { background: #eef1f5; color: #8a9bb1; cursor: default; }
+.manage-form .checkbox-field { display: flex; align-items: flex-start; gap: 10px; line-height: 1.75; padding: 9px 0; grid-column: 1 / -1; }
+.checkbox-field input[type="checkbox"] { display: inline-block; width: 17px; height: 17px; min-height: 0; margin: 0; padding: 0; flex-shrink: 0; accent-color: #1d3e87; }
+.manage-dialog-actions { display: flex; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-top: 23px; }
+.manage-dialog-actions .button { margin-top: 0; }
+.entity-field { margin-top: 12px; padding-bottom: 7px; }
+.entity-field label { margin-top: 10px; }
+.entity-field label input { background: #f6f8fc; min-height: 38px; font-size: 10px; }
+.field-hint, .field-error { display: block; font-size: 8px; line-height: 1.8; margin-top: 8px; color: #94a4ba; }
+.field-error { color: #a36965; }
+.temporary-password { display: block; padding: 18px; margin-top: 20px; border: 1px solid #dce5f0; background: #f3f7fc; color: #345e99; border-radius: 7px; font: 15px Consolas, monospace; overflow-wrap: anywhere; user-select: all; }
+.manage-detail-section { padding-top: 25px; }
+.manage-detail-section h3, .manage-subheading h3 { font-size: 15px; color: #456893; font-weight: 650; }
+.manage-detail-item { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; font-size: 11px; margin-top: 13px; padding-top: 12px; border-top: 1px solid #e1e7ef; color: #7a8faa; }
+.manage-detail-item strong { font-weight: 500; }
+.manage-detail-item small { color: #9aabc0; font-size: 9px; }
+.settings-repeat { border-top: 1px solid #e1e7ef; margin-top: 27px; padding-top: 26px; }
+.manage-subheading { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.manage-subheading .button { min-height: 36px; font-size: 9px; margin-top: 0; padding: 9px 12px; }
+.settings-repeat-row { border: 1px solid #e0e7f0; border-radius: 8px; padding: 5px 17px 15px; margin-top: 17px; background: #f9fbfc; }
+.settings-repeat-row .manage-text-action { margin-top: 8px; }
+.auth-operations { border-top: 1px solid #e1e7ef; margin-top: 30px; padding-top: 25px; }
+.auth-operations h3 { font-size: 15px; font-weight: 650; color: #4a6b94; }
+.auth-operations .manage-record { margin-top: 12px; }
+.public-teacher-list { display: flex; flex-direction: column; gap: 14px; }
+.public-teacher-list .teacher-empty small { display: block; color: #8797af; font-size: 10px; margin-top: 7px; }
+@media (max-width: 1100px) { .management-shell { grid-template-columns: 160px minmax(0, 1fr); gap: 16px; } .manage-tabs { padding: 8px; } .manage-tabs button { font-size: 10px; padding-inline: 10px; } .manage-record { flex-direction: column; gap: 13px; } .manage-record-actions { width: 100%; flex-direction: row; justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: 12px; } .manage-panel { padding: 25px; } .manage-record-info { width: 100%; } }
+@media (max-width: 740px) { .management-shell { display: block; } .management-shell > .manage-tabs { display: none; } .manage-mobile-nav { display: block; font-size: 10px; margin: 0 0 22px; color: #6c83a6; } .manage-mobile-nav select { background: #fff; font-size: 14px; min-height: 47px; } .teacher-management > .manage-tabs { display: flex; flex-direction: row; position: static; margin-bottom: 20px; } .teacher-management > .manage-tabs button { flex: 1; text-align: center; font-size: 11px; } .manage-panel { padding: 23px 19px; } .manage-panel .panel-heading { flex-wrap: wrap; } .manage-heading-actions { justify-content: flex-start; } .manage-heading-actions .button { min-height: 39px; font-size: 10px; padding: 9px 13px; } .manage-toolbar { flex-direction: column; gap: 0; align-items: stretch; margin-bottom: 20px; } .manage-toolbar label, .manage-toolbar label + label { max-width: none; font-size: 11px; margin-top: 17px; } .manage-toolbar input, .management-shell select, .manage-dialog select { font-size: 16px; min-height: 46px; } .manage-record { padding-block: 20px; } .manage-record-title h3 { font-size: 13px; } .manage-record-info dl { gap: 12px 16px; } .manage-record-info dt { font-size: 9px; } .manage-record-info dd { font-size: 11px; } .manage-status { font-size: 9px; } .manage-record-actions .button { min-height: 42px; font-size: 10px; padding: 10px 13px; } .manage-text-action { font-size: 10px; min-height: 40px; } .manage-pagination { flex-wrap: wrap; gap: 17px; font-size: 10px; } .manage-pagination > div { margin-left: auto; } .manage-pagination .button { min-height: 40px; font-size: 10px; } .manage-dialog { padding: 38px 22px 27px; } .manage-dialog h2 { font-size: 22px; } .manage-form-grid { grid-template-columns: 1fr; } .manage-form label { font-size: 11px; } .manage-form input, .manage-form textarea { font-size: 16px; } .entity-field label input { font-size: 16px; min-height: 44px; } .field-hint, .field-error { font-size: 9px; } .manage-dialog-actions { gap: 10px; } .manage-dialog-actions .button { min-height: 44px; font-size: 11px; padding-inline: 16px; } .temporary-password { font-size: 14px; } .manage-dialog-description { font-size: 11px; } }

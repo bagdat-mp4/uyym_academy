@@ -11,6 +11,9 @@ import {HttpError,hash,opaque,publicJwk,normalizePhone,challengePayload,decrypt,
 import {authenticate,setPassword} from './supabase.js';
 import {context,csrf,setCookie,clearCookie,proof,requireLearning,lessonAllowed,admin,deniedBrowser} from './auth.js';
 import {validateDriveFile,streamPart} from './drive.js';
+import {registerAccountRoutes} from './accounts.js';
+import {registerAcademicRoutes} from './academic.js';
+import {freshManagement} from './management.js';
 const uuid=z.string().uuid();
 export const app=Fastify({logger:false,bodyLimit:100000,trustProxy:config.trustProxy?['127.0.0.1','::1']:false});
 await app.register(cookie);
@@ -25,14 +28,18 @@ app.addHook('onRequest',async(req,reply)=>{
 });
 app.setErrorHandler((error,req,reply)=>{
  const status=error instanceof HttpError?error.statusCode:error instanceof z.ZodError?400:((error as any)?.statusCode===429?429:500);
- reply.code(status).send({error:status===500?'Сервис уақытша қолжетімсіз':error instanceof z.ZodError?'Деректерді тексеріңіз':status===429?'Көп әрекет жасалды. Кейін қайталаңыз':(error as Error).message});
+ const ru=String(req.headers['accept-language']||'').startsWith('ru');
+ const kkMessage=status===500?'Сервис уақытша қолжетімсіз':error instanceof z.ZodError?'Деректерді тексеріңіз':status===429?'Көп әрекет жасалды. Кейін қайталаңыз':(error as Error).message;
+ const ruMessage=status===500?'Сервис временно недоступен':error instanceof z.ZodError?'Проверьте данные':status===429?'Слишком много попыток. Повторите позже':(error as any).message_ru||({401:'Сессия завершилась. Войдите снова',403:'Нет разрешения на действие',404:'Запись недоступна',400:'Проверьте данные',409:'Запись изменилась. Обновите список',503:'Внешние сервисы ещё не подключены. Обратитесь к администратору'} as Record<number,string>)[status]||'Запрос не выполнен';
+ reply.code(status).send({error:ru?ruMessage:kkMessage,code:(error as any).code|| (error instanceof z.ZodError?'INVALID_DATA':undefined)});
 });
-app.get('/api/health',async()=>({ok:true,stage:'poc',configured:ready(),drive_configured:Boolean(config.folders.length&&config.permissionEmails.length&&process.env.GOOGLE_APPLICATION_CREDENTIALS)}));
+app.get('/api/health',async()=>({ok:true,stage:'management',configured:ready(),drive_configured:Boolean(config.folders.length&&config.permissionEmails.length&&process.env.GOOGLE_APPLICATION_CREDENTIALS)}));
 const defaultCourses=[['calculus-i','Calculus I','Туындылар, интегралдар және есептер.'],['linear-algebra','Linear Algebra','Матрицалар, векторлар және сызықтық жүйелер.'],['pp1','PP1 / Principles of Programming I','C++ тіліндегі бағдарламалау негіздері.']].map(([id,title,summary])=>({id,title,summary,price_kzt:60000,weeks:6,lessons:12,hours:18,group_capacity:5}));
 app.get('/api/public',async()=>{
  if(!ready())return {courses:defaultCourses,settings:{whatsapp:'',contact_email:''},configured:false};
  const {rows}=await pool.query('SELECT id,title,description AS summary,price_kzt,weeks,weeks*lessons_per_week AS lessons,weeks*lessons_per_week*lesson_minutes/60.0 AS hours,default_group_size AS group_capacity FROM private.courses WHERE active AND published ORDER BY created_at');
- const settings=(await pool.query('SELECT contacts FROM private.site_settings WHERE id=true')).rows[0]?.contacts||{};
+ const row=(await pool.query('SELECT title,contacts,teachers_public,faq FROM private.site_settings WHERE id=true')).rows[0];
+ const settings={...row?.contacts,title:row?.title,teachers_public:row?.teachers_public||[],faq:row?.faq||[]};
  return {courses:rows,settings,configured:true};
 });
 async function status(req:any) {
@@ -52,7 +59,7 @@ app.post('/api/auth/login',{config:{rateLimit:{max:50,timeWindow:'15 minutes'}}}
  const userId=await authenticate(phone,data.password);
  const token=opaque(),csrfToken=opaque();
  await transaction(async db=>{
-  const {rows}=await db.query('SELECT * FROM private.app_users WHERE id=$1 AND phone=$2 FOR UPDATE',[userId,phone]);const u=rows[0];if(!u?.active)throw new HttpError(401,'Кіру деректерін тексеріңіз немесе әкімшіге хабарласыңыз');
+  const {rows}=await db.query('SELECT * FROM private.app_users WHERE id=$1 AND phone=$2 FOR UPDATE',[userId,phone]);const u=rows[0];if(!u?.active||u.auth_operation_id)throw new HttpError(401,'Кіру деректерін тексеріңіз немесе әкімшіге хабарласыңыз');
   let d=(await db.query("SELECT * FROM private.device_bindings WHERE user_id=$1 AND public_key=$2::jsonb AND status IN ('approved','pending') ORDER BY requested_at DESC LIMIT 1",[userId,JSON.stringify(key)])).rows[0];
   if(!d) {d=(await db.query('INSERT INTO private.device_bindings(user_id,public_key,label) VALUES($1,$2,$3) RETURNING *',[userId,JSON.stringify(key),data.label])).rows[0];await audit(db,userId,'device.requested','device',d.id);}
   await db.query('INSERT INTO private.login_tickets(user_id,device_id,token_hash,csrf_token,auth_epoch,expires_at) VALUES($1,$2,$3,$4,$5,now()+interval \'15 minutes\')',[userId,d.id,hash(token),csrfToken,u.auth_epoch]);
@@ -131,7 +138,14 @@ app.post('/api/auth/refresh',async(req,reply)=>{
 });
 app.post('/api/auth/logout',async(req,reply)=>{
  const ctx=await context(req);csrf(req,ctx);
- await transaction(async db=>{await db.query(`UPDATE private.${ctx.kind==='session'?'app_sessions':'login_tickets'} SET revoked_at=now() WHERE id=$1`,[ctx.id]);if(ctx.kind==='session')await db.query('UPDATE private.playback_grants SET revoked_at=now() WHERE session_id=$1',[ctx.id]);await audit(db,ctx.user_id,'session.logout','user',ctx.user_id);});
+ await transaction(async db=>{
+  // All per-user security mutations lock the user before sessions/grants. This
+  // prevents logout racing an owner block/reset from locking those in reverse.
+  await db.query('SELECT id FROM private.app_users WHERE id=$1 FOR UPDATE',[ctx.user_id]);
+  await db.query(`UPDATE private.${ctx.kind==='session'?'app_sessions':'login_tickets'} SET revoked_at=now() WHERE id=$1`,[ctx.id]);
+  if(ctx.kind==='session')await db.query('UPDATE private.playback_grants SET revoked_at=now() WHERE session_id=$1',[ctx.id]);
+  await audit(db,ctx.user_id,'session.logout','user',ctx.user_id);
+ });
  clearCookie(reply,'session');clearCookie(reply,'ticket');return {ok:true};
 });
 app.get('/api/lessons',async(req)=>{
@@ -171,10 +185,12 @@ app.get('/api/admin/device-requests',async(req)=>{
 });
 async function adminMutation(req:any,fn:(db:import('pg').PoolClient,ctx:any)=>Promise<void>) {
  const ctx=await admin(req);
- await transaction(async db=>{await db.query('SELECT id FROM private.app_users WHERE id=$1 FOR UPDATE',[ctx.user_id]);const fresh=await context(req,db);requireLearning(fresh);if(fresh.user.role!=='ADMIN'||fresh.id!==ctx.id)throw new HttpError(403,'Рұқсат жоқ');await fn(db,fresh);});
+ await transaction(async db=>{const fresh=await freshManagement(db,req,ctx);await fn(db,fresh);});
 }
 app.post('/api/admin/devices/:id/approve',async(req)=>{await adminMutation(req,async(db,ctx)=>{await db.query('SELECT * FROM private.approve_device($1,$2)',[ctx.user_id,uuid.parse((req.params as any).id)]);});return {ok:true,relogin_required:true};});
 app.post('/api/admin/users/:id/revoke-device',async(req)=>{await adminMutation(req,async(db,ctx)=>{await db.query('SELECT private.revoke_device($1,$2)',[ctx.user_id,uuid.parse((req.params as any).id)]);});return {ok:true};});
+registerAccountRoutes(app);
+registerAcademicRoutes(app);
 // Only exact build filenames are registered, never filesystem paths from an HTTP request.
 // No directory listings, arbitrary paths, private files, or SPA fallback for unknown URLs.
 const dist=resolve('dist/client');if(existsSync(dist)) {

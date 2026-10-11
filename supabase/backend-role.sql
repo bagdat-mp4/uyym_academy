@@ -11,6 +11,23 @@ grant select,insert,update,delete on all tables in schema private to uyym_backen
 grant usage,select on all sequences in schema private to uyym_backend;
 grant execute on all functions in schema private to uyym_backend;
 revoke update,delete on private.audit_log from uyym_backend;
+revoke update,delete on private.payments from uyym_backend;
+-- Compatible both with a fresh stage-2 install and a stage-1 role that is
+-- provisioned before management migration004. Append-only triggers are a
+-- separate safeguard; these revokes keep the runtime grants minimal as well.
+do $$
+begin
+  if to_regclass('private.payment_corrections') is not null then
+    revoke update,delete on private.payment_corrections from uyym_backend;
+  end if;
+  if to_regclass('private.mutation_receipts') is not null then
+    revoke update,delete on private.mutation_receipts from uyym_backend;
+  end if;
+  if to_regclass('private.auth_operations') is not null then
+    revoke delete on private.auth_operations from uyym_backend;
+  end if;
+end;
+$$;
 alter default privileges in schema private grant select,insert,update,delete on tables to uyym_backend;
 alter default privileges in schema private grant usage,select on sequences to uyym_backend;
 alter default privileges in schema private grant execute on functions to uyym_backend;

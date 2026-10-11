@@ -5,7 +5,7 @@ export type AuthStatus = { authenticated: boolean; user?: User; session_id?: str
 export type BrowserRequest = { id: string; user_id: string; name?: string; phone?: string; user_name?: string; user_phone?: string; label: string; created_at: string; status?: string; fingerprint?: string; key_fingerprint?: string };
 export type Lesson = { id: string; title: string; description: string; starts_at: string; course_title: string };
 export type Course = { id: string; title: string; summary: string; price_kzt: number; weeks: number; lessons: number; hours: number; group_capacity: number };
-export type PublicData = { courses: Course[]; settings: { whatsapp?: string | null; contact_email?: string | null } };
+export type PublicData = { courses: Course[]; settings: { whatsapp?: string | null; contact_email?: string | null; email?: string | null; instagram?: string | null; title?: string; teachers_public?: { name: string; subject: string; bio: string }[]; faq?: { question: string; answer: string }[] } };
 let csrfToken = '';
 export function setCsrfToken(token?: string) { csrfToken = token ?? ''; }
 export class ApiError extends Error {
@@ -16,7 +16,7 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   const method = options.method ?? 'GET';
   // All mutations carry JSON; challenge hashes the exact bytes subsequently sent.
   const body = options.body === undefined ? (method === 'GET' || method === 'HEAD' ? undefined : '{}') : JSON.stringify(options.body);
-  const headers: Record<string, string> = { accept: options.binary ? '*/*' : 'application/json' };
+  const headers: Record<string, string> = { accept: options.binary ? '*/*' : 'application/json', 'accept-language': document.documentElement.lang === 'ru' ? 'ru' : 'kk' };
   if (body !== undefined) headers['content-type'] = 'application/json';
   if (csrfToken && method !== 'GET') headers['x-csrf-token'] = csrfToken;
   if (options.proof) {
@@ -44,7 +44,7 @@ export async function api<T>(path: string, options: { method?: string; body?: un
     if (response.status === 204) return undefined as T;
     return await response.json() as T;
   } catch (error) {
-    if (timedOut) throw new ApiError('Сұрау уақыты аяқталды. Интернет байланысын тексеріп, қайта көріңіз.', 408, 'REQUEST_TIMEOUT');
+    if (timedOut) throw new ApiError(document.documentElement.lang === 'ru' ? 'Время ожидания истекло. Проверьте соединение и повторите попытку.' : 'Сұрау уақыты аяқталды. Интернет байланысын тексеріп, қайта көріңіз.', 408, 'REQUEST_TIMEOUT');
     throw error;
   } finally {
     clearTimeout(timeout);

@@ -12,10 +12,14 @@ let db: PGlite, app: FastifyInstance;
 let restoreFetch: typeof fetch;
 let originalPoolEnd: (() => Promise<void>) | undefined;
 const origin = 'https://uyym-test.example';
-const accounts = new Map<string, { id: string; password: string }>();
+const accounts = new Map<string, { id: string; password: string; app_metadata?:Record<string,string> }>();
+let authFailure: 'create-before' | 'create-after' | 'reset-before' | 'reset-after' | undefined;
+const createAttempts=new Map<string,number>();
+let createGate:{entered:()=>void;wait:Promise<void>}|undefined;
 let phoneCounter = 1;
 const sha = (value: string) => createHash('sha256').update(value).digest('hex');
-type Browser = { key: CryptoKeyPair; jwk: JsonWebKey; cookies: Map<string, string>; csrf: string; sessionId?: string };
+type Browser = { key: CryptoKeyPair; jwk: JsonWebKey; cookies: Map<string, string>; csrf: string; sessionId?: string;ip:string };
+let browserCounter=1;
 
 before(async () => {
   process.env.NODE_ENV = 'test';
@@ -55,11 +59,28 @@ before(async () => {
       if (!account || account.password !== body.password) return new Response(JSON.stringify({ error: 'invalid_credentials' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
       return new Response(JSON.stringify({ user: { id: account.id }, access_token: 'SIMULATED_SUPABASE_JWT_MUST_NOT_ESCAPE', refresh_token: 'SIMULATED_REFRESH_MUST_NOT_ESCAPE' }), { headers: { 'Content-Type': 'application/json' } });
     }
+    if(url==='https://supabase-test.example/auth/v1/admin/users'&&init?.method==='POST'){
+      createAttempts.set(body.phone,(createAttempts.get(body.phone)||0)+1);
+      if(authFailure==='create-before'){authFailure=undefined;throw new Error('Simulated Auth create unavailable before commit');}
+      if(createGate){const gate=createGate;createGate=undefined;gate.entered();await gate.wait;}
+      if(accounts.has(body.phone))return new Response('{}',{status:422});
+      await db.query('insert into auth.users(id,phone) values($1,$2)',[body.id,body.phone]);
+      accounts.set(body.phone,{id:body.id,password:body.password,app_metadata:body.app_metadata});
+      if(authFailure==='create-after'){authFailure=undefined;throw new Error('Simulated response loss after Auth commit');}
+      return Response.json({id:body.id,phone:body.phone,app_metadata:body.app_metadata});
+    }
     const adminPassword = /^https:\/\/supabase-test\.example\/auth\/v1\/admin\/users\/([0-9a-f-]+)$/.exec(url);
+    if(adminPassword&&init?.method==='GET'){
+      const entry=[...accounts.entries()].find(([,v])=>v.id===adminPassword[1]);
+      return entry?Response.json({id:entry[1].id,phone:entry[0],app_metadata:entry[1].app_metadata||{}}):new Response('{}',{status:404});
+    }
     if (adminPassword && init?.method === 'PUT') {
       const account = [...accounts.values()].find(x => x.id === adminPassword[1]);
       assert.ok(account, 'password reset must target a fixture account');
+      if(authFailure==='reset-before'){authFailure=undefined;throw new Error('Simulated Auth unavailable');}
       account.password = body.password;
+      if(body.app_metadata)account.app_metadata={...account.app_metadata,...body.app_metadata};
+      if(authFailure==='reset-after'){authFailure=undefined;throw new Error('Simulated response loss after reset');}
       return new Response('{}', { headers: { 'Content-Type': 'application/json' } });
     }
     throw new Error(`Unexpected external HTTP request in API test: ${url}`);
@@ -79,7 +100,7 @@ async function browser(): Promise<Browser> {
   const key = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign', 'verify']) as CryptoKeyPair;
   assert.equal(key.privateKey.extractable, false);
   const jwk = await webcrypto.subtle.exportKey('jwk', key.publicKey);
-  return { key, jwk, cookies: new Map(), csrf: '' };
+  return { key, jwk, cookies: new Map(), csrf: '',ip:`127.0.1.${browserCounter++}` };
 }
 
 function remember(result: LightMyRequestResponse, b: Browser) {
@@ -99,7 +120,7 @@ function remember(result: LightMyRequestResponse, b: Browser) {
 async function request(b: Browser, method: HTTPMethods, url: string, body?: unknown, extra: Record<string, string> = {}) {
   const headers: Record<string, string> = { cookie: [...b.cookies].map(([k, v]) => `${k}=${v}`).join('; '), ...extra };
   if (method !== 'GET' && method !== 'HEAD') { headers.origin = origin; headers['content-type'] = 'application/json'; headers['x-csrf-token'] = b.csrf; }
-  const result = await app.inject({ method, url, headers, ...(body !== undefined ? { payload: body as any } : {}) });
+  const result = await app.inject({ method, url, headers,remoteAddress:b.ip, ...(body !== undefined ? { payload: body as any } : {}) });
   remember(result, b);
   return result;
 }
@@ -369,4 +390,108 @@ test('playback manifest hides Drive IDs; grants cannot transfer accounts and pau
   assert.equal((await request(first.b, 'GET', `/api/media/${lesson}?grant=${grant}&part=0`)).statusCode, 401);
   // No successful binary request was made here: remote Drive and actual video
   // playback remain outside the explicitly simulated Auth + local SQL suite.
+});
+
+test('account creation is idempotent; password is one-response only and ADMIN role injection is rejected',async()=>{
+ const owner=await administrator();const body={operation_id:randomUUID(),name:'Provisioned test student',phone:`+7707${String(phoneCounter++).padStart(7,'0')}`,role:'STUDENT',identity_verified:true};
+ const response=await signed(owner.b,'POST','/api/admin/users','api',body);assert.equal(response.statusCode,201,response.body);
+ const result=response.json();assert.equal(result.status,'completed');assert.ok(result.temporary_password.length>=32);assert.ok(result.user.must_change_password);
+ const replay=await signed(owner.b,'POST','/api/admin/users','api',body);assert.equal(replay.statusCode,200,replay.body);assert.equal(replay.json().user.id,result.user.id);assert.equal(replay.json().temporary_password,undefined);
+ const ledger=(await db.query('select row_to_json(o) as data from private.auth_operations o where id=$1',[body.operation_id])).rows[0];assert.ok(!JSON.stringify(ledger).includes(result.temporary_password));
+ const audit=(await db.query('select metadata from private.audit_log where target_id=$1',[result.user.id])).rows;assert.ok(!JSON.stringify(audit).includes(result.temporary_password));
+ assert.equal((await signed(owner.b,'POST','/api/admin/users','api',{...body,name:'Changed replay'})).statusCode,409);
+ assert.equal((await signed(owner.b,'POST','/api/admin/users','api',{...body,operation_id:randomUUID(),role:'ADMIN'})).statusCode,400);
+ const b=await browser();assert.equal((await login(b,{...result.user,password:result.temporary_password},result.temporary_password)).statusCode,200);
+ assert.equal((await request(b,'POST','/api/proof/challenge',{method:'GET',path:'/api/admin/users',purpose:'api'})).statusCode,403);
+ const student=await approvedStudent();assert.equal((await signed(student.b,'GET','/api/admin/users')).statusCode,403);
+});
+
+test('lost Auth create response reconciles the preallocated identity without duplicates or password replay',async()=>{
+ const owner=await administrator(),body={operation_id:randomUUID(),name:'Lost response fixture',phone:`+7707${String(phoneCounter++).padStart(7,'0')}`,role:'TEACHER',identity_verified:true};
+ authFailure='create-after';const pending=await signed(owner.b,'POST','/api/admin/users','api',body);assert.equal(pending.statusCode,202,pending.body);assert.equal(pending.json().status,'reconcile_required');
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from private.app_users where phone=$1',[body.phone])).rows[0].n,0);
+ const retry=await signed(owner.b,'POST','/api/admin/users','api',body);assert.equal(retry.statusCode,200,retry.body);assert.equal(retry.json().status,'completed');assert.equal(retry.json().temporary_password,undefined);
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from auth.users where phone=$1',[body.phone])).rows[0].n,1);
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from private.app_users where phone=$1',[body.phone])).rows[0].n,1);
+});
+
+test('block and password reset revoke sessions/tickets/grants while preserving approved browser',async()=>{
+ const owner=await administrator(),student=await approvedStudent(),id=student.a.id;
+ const block={operation_id:randomUUID(),name:'Blocked fixture',phone:student.a.phone,active:false};
+ assert.equal((await signed(owner.b,'PATCH',`/api/admin/users/${id}`,'api',block)).statusCode,200);
+ assert.equal((await request(student.b,'GET','/api/lessons')).statusCode,401);
+ assert.equal((await db.query<{status:string}>('select status from private.device_bindings where id=$1',[student.deviceId])).rows[0].status,'approved');
+ assert.equal((await signed(owner.b,'PATCH',`/api/admin/users/${id}`,'api',{...block,operation_id:randomUUID(),active:true})).statusCode,200);
+ assert.equal((await login(student.b,student.a)).statusCode,200);assert.equal((await activate(student.b)).statusCode,200);
+ const reset={operation_id:randomUUID(),identity_verified:true};const response=await signed(owner.b,'POST',`/api/admin/users/${id}/password-reset`,'api',reset);assert.equal(response.statusCode,200,response.body);assert.ok(response.json().temporary_password);
+ assert.equal((await request(student.b,'GET','/api/lessons')).statusCode,401);
+ assert.equal((await db.query<{status:string}>('select status from private.device_bindings where id=$1',[student.deviceId])).rows[0].status,'approved');
+ assert.equal((await login(student.b,student.a,response.json().temporary_password)).statusCode,200);assert.equal((await request(student.b,'GET','/api/auth/status')).json().user.must_change_password,true);
+ const replay=await signed(owner.b,'POST',`/api/admin/users/${id}/password-reset`,'api',reset);assert.equal(replay.json().temporary_password,undefined);
+ assert.equal((await signed(owner.b,'PATCH',`/api/admin/users/${owner.a.id}`,'api',{operation_id:randomUUID(),name:'Owner',active:false})).statusCode,403);
+ assert.equal((await signed(owner.b,'POST',`/api/admin/users/${owner.a.id}/password-reset`,'api',{operation_id:randomUUID(),identity_verified:true})).statusCode,403);
+});
+
+test('uncertain reset fails closed and reconciles by Auth marker without silently changing password again',async()=>{
+ const owner=await administrator(),student=await approvedStudent(),body={operation_id:randomUUID(),identity_verified:true};authFailure='reset-after';
+ const response=await signed(owner.b,'POST',`/api/admin/users/${student.a.id}/password-reset`,'api',body);assert.equal(response.statusCode,202,response.body);
+ assert.equal((await request(student.b,'GET','/api/lessons')).statusCode,401);
+ assert.equal((await login(student.b,student.a)).statusCode,401);
+ const password=accounts.get(student.a.phone)!.password;
+ const replay=await signed(owner.b,'POST',`/api/admin/users/${student.a.id}/password-reset`,'api',body);assert.equal(replay.statusCode,200,replay.body);assert.equal(replay.json().temporary_password,undefined);assert.equal(accounts.get(student.a.phone)!.password,password);
+ assert.equal((await login(student.b,student.a,password)).statusCode,200);assert.equal((await db.query<{status:string}>('select status from private.device_bindings where id=$1',[student.deviceId])).rows[0].status,'approved');
+});
+
+test('reset unavailable before Auth commit supports deliberate delayed retry, with one-response password and preserved browser',async()=>{
+ const owner=await administrator(),student=await approvedStudent(),body={operation_id:randomUUID(),identity_verified:true};const initialPassword=accounts.get(student.a.phone)!.password;authFailure='reset-before';
+ const failed=await signed(owner.b,'POST',`/api/admin/users/${student.a.id}/password-reset`,'api',body);assert.equal(failed.statusCode,202,failed.body);assert.equal(failed.json().status,'reconcile_required');assert.equal(accounts.get(student.a.phone)!.password,initialPassword);
+ const check=await signed(owner.b,'POST',`/api/admin/auth-operations/${body.operation_id}/reconcile`,'api',{});assert.equal(check.statusCode,202,check.body);assert.equal(check.json().status,'reconcile_required');assert.equal((await login(student.b,student.a,initialPassword)).statusCode,401);
+ const retry={operation_id:randomUUID(),identity_verified:true},path=`/api/admin/auth-operations/${body.operation_id}/retry`;
+ assert.equal((await signed(owner.b,'POST',path,'api',retry)).statusCode,409);
+ await db.query("update private.auth_operations set created_at=now()-interval '61 seconds',updated_at=now()-interval '61 seconds',lease_until=NULL where id=$1",[body.operation_id]);
+ const completed=await signed(owner.b,'POST',path,'api',retry);assert.equal(completed.statusCode,200,completed.body);assert.equal(completed.json().status,'completed');const password=completed.json().temporary_password;assert.ok(password&&password!==initialPassword);assert.equal(accounts.get(student.a.phone)!.password,password);
+ const again=await signed(owner.b,'POST',path,'api',retry);assert.equal(again.statusCode,200,again.body);assert.equal(again.json().operation_id,retry.operation_id);assert.equal(again.json().temporary_password,undefined);assert.equal(accounts.get(student.a.phone)!.password,password);
+ const older=(await db.query<{state:string;last_error_code:string}>('select state,last_error_code from private.auth_operations where id=$1',[body.operation_id])).rows[0];assert.equal(older.state,'failed');assert.equal(older.last_error_code,'OPERATION_SUPERSEDED');
+ assert.equal((await db.query<{status:string}>('select status from private.device_bindings where id=$1',[student.deviceId])).rows[0].status,'approved');assert.equal((await login(student.b,student.a,password)).statusCode,200);
+ const ledger=(await db.query('select row_to_json(o) as data from private.auth_operations o where id in ($1,$2)',[body.operation_id,retry.operation_id])).rows;assert.ok(!JSON.stringify(ledger).includes(password));
+});
+
+test('superseded reset marker cannot unblock or resurrect a newer pending reset',async()=>{
+ const owner=await administrator(),student=await approvedStudent(),previous={operation_id:randomUUID(),identity_verified:true};authFailure='reset-before';
+ assert.equal((await signed(owner.b,'POST',`/api/admin/users/${student.a.id}/password-reset`,'api',previous)).statusCode,202);
+ await db.query("update private.auth_operations set created_at=now()-interval '61 seconds',updated_at=now()-interval '61 seconds',lease_until=NULL where id=$1",[previous.operation_id]);
+ const retry={operation_id:randomUUID(),identity_verified:true};authFailure='reset-before';const newer=await signed(owner.b,'POST',`/api/admin/auth-operations/${previous.operation_id}/retry`,'api',retry);assert.equal(newer.statusCode,202,newer.body);
+ const remote=accounts.get(student.a.phone)!;remote.app_metadata={...remote.app_metadata,uyym_password_operation:previous.operation_id};
+ const stale=await signed(owner.b,'POST',`/api/admin/auth-operations/${previous.operation_id}/reconcile`,'api',{});assert.equal(stale.statusCode,202,stale.body);assert.equal(stale.json().status,'failed');
+ const gate=(await db.query<{auth_operation_id:string}>('select auth_operation_id from private.app_users where id=$1',[student.a.id])).rows[0];assert.equal(gate.auth_operation_id,retry.operation_id);assert.equal((await login(student.b,student.a)).statusCode,401);
+ const older=(await db.query<{state:string;last_error_code:string}>('select state,last_error_code from private.auth_operations where id=$1',[previous.operation_id])).rows[0];assert.equal(older.state,'failed');assert.equal(older.last_error_code,'OPERATION_SUPERSEDED');
+ const pending=(await db.query<{state:string}>('select state from private.auth_operations where id=$1',[retry.operation_id])).rows[0];assert.equal(pending.state,'reconcile_required');
+ const tooSoon={operation_id:randomUUID(),identity_verified:true};assert.equal((await signed(owner.b,'POST',`/api/admin/auth-operations/${retry.operation_id}/retry`,'api',tooSoon)).statusCode,409);
+});
+
+test('create unavailable before commit resumes fixed identity after 60 seconds; lease, replay and receipts never duplicate or archive passwords',async()=>{
+ const owner=await administrator(),body={operation_id:randomUUID(),name:'Resumable student fixture',phone:`+7707${String(phoneCounter++).padStart(7,'0')}`,role:'STUDENT',identity_verified:true};authFailure='create-before';
+ const initial=await signed(owner.b,'POST','/api/admin/users','api',body);assert.equal(initial.statusCode,202,initial.body);assert.equal(initial.json().status,'reconcile_required');assert.equal(accounts.has(body.phone),false);
+ const old=(await db.query<{auth_user_id:string}>('select auth_user_id from private.auth_operations where id=$1',[body.operation_id])).rows[0];
+ const path=`/api/admin/auth-operations/${body.operation_id}/resume-create`,resume={identity_verified:true};assert.equal((await signed(owner.b,'POST',path,'api',resume)).statusCode,409);
+ assert.equal((await signed(owner.b,'POST',path,'api',{identity_verified:true,phone:body.phone})).statusCode,400);
+ await db.query("update private.auth_operations set created_at=now()-interval '61 seconds',updated_at=now()-interval '61 seconds',lease_until=NULL where id=$1",[body.operation_id]);
+ let entered!:()=>void,release!:()=>void;const ready=new Promise<void>(resolve=>{entered=resolve;}),wait=new Promise<void>(resolve=>{release=resolve;});createGate={entered,wait};
+ const pending=signed(owner.b,'POST',path,'api',resume);await ready;
+ const concurrent=await signed(owner.b,'POST',path,'api',resume);assert.equal(concurrent.statusCode,202,concurrent.body);assert.equal(concurrent.json().status,'inflight');assert.equal(concurrent.json().temporary_password,undefined);release();
+ const completed=await pending;assert.equal(completed.statusCode,201,completed.body);assert.equal(completed.json().status,'completed');assert.equal(completed.json().user.id,old.auth_user_id);const password=completed.json().temporary_password;assert.ok(password&&password===accounts.get(body.phone)!.password);
+ const again=await signed(owner.b,'POST',path,'api',resume);assert.equal(again.statusCode,200,again.body);assert.equal(again.json().temporary_password,undefined);assert.equal(createAttempts.get(body.phone),2);
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from auth.users where phone=$1',[body.phone])).rows[0].n,1);assert.equal((await db.query<{n:number}>('select count(*)::int as n from private.app_users where phone=$1',[body.phone])).rows[0].n,1);
+ const operation=(await db.query<{attempts:number;data:unknown}>('select attempts,row_to_json(o) as data from private.auth_operations o where id=$1',[body.operation_id])).rows[0];assert.equal(operation.attempts,2);assert.ok(!JSON.stringify(operation.data).includes(password));
+ const history=(await db.query('select metadata from private.audit_log where target_id in ($1,$2)',[body.operation_id,old.auth_user_id])).rows;assert.ok(!JSON.stringify(history).includes(password));
+});
+
+test('resume-create reconciles an existing own marker without POST and rejects an unrelated marker without overwrite or deletion',async()=>{
+ const owner=await administrator(),own={operation_id:randomUUID(),name:'Existing marker fixture',phone:`+7707${String(phoneCounter++).padStart(7,'0')}`,role:'TEACHER',identity_verified:true};authFailure='create-after';assert.equal((await signed(owner.b,'POST','/api/admin/users','api',own)).statusCode,202);
+ await db.query("update private.auth_operations set created_at=now()-interval '61 seconds',updated_at=now()-interval '61 seconds',lease_until=NULL where id=$1",[own.operation_id]);const reconciled=await signed(owner.b,'POST',`/api/admin/auth-operations/${own.operation_id}/resume-create`,'api',{identity_verified:true});assert.equal(reconciled.statusCode,200,reconciled.body);assert.equal(reconciled.json().status,'completed');assert.equal(reconciled.json().temporary_password,undefined);assert.equal(createAttempts.get(own.phone),1);
+ const foreign={operation_id:randomUUID(),name:'Wrong marker fixture',phone:`+7707${String(phoneCounter++).padStart(7,'0')}`,role:'STUDENT',identity_verified:true};authFailure='create-before';assert.equal((await signed(owner.b,'POST','/api/admin/users','api',foreign)).statusCode,202);
+ const op=(await db.query<{auth_user_id:string}>('select auth_user_id from private.auth_operations where id=$1',[foreign.operation_id])).rows[0],password='Unrelated-fixture-password';await db.query('insert into auth.users(id,phone) values($1,$2)',[op.auth_user_id,foreign.phone]);accounts.set(foreign.phone,{id:op.auth_user_id,password,app_metadata:{uyym_operation:randomUUID()}});
+ await db.query("update private.auth_operations set created_at=now()-interval '61 seconds',updated_at=now()-interval '61 seconds',lease_until=NULL where id=$1",[foreign.operation_id]);const denied=await signed(owner.b,'POST',`/api/admin/auth-operations/${foreign.operation_id}/resume-create`,'api',{identity_verified:true});assert.equal(denied.statusCode,202,denied.body);assert.equal(denied.json().status,'failed');assert.equal(denied.json().temporary_password,undefined);assert.equal(createAttempts.get(foreign.phone),1);assert.equal(accounts.get(foreign.phone)!.password,password);
+ assert.equal((await signed(owner.b,'POST',`/api/admin/auth-operations/${foreign.operation_id}/resume-create`,'api',{identity_verified:true})).statusCode,409);
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from private.app_users where id=$1',[op.auth_user_id])).rows[0].n,0);assert.equal((await db.query<{n:number}>('select count(*)::int as n from auth.users where id=$1',[op.auth_user_id])).rows[0].n,1);
 });

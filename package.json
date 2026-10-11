@@ -15,6 +15,7 @@
     "test": "tsx --test tests/*.test.ts",
     "bootstrap": "tsx scripts/bootstrap.ts",
     "owner": "tsx scripts/owner.ts",
+    "cleanup": "tsx scripts/cleanup.ts",
     "prepare-video": "tsx scripts/prepare-video.ts",
     "register-video": "tsx scripts/register-video.ts"
   },
