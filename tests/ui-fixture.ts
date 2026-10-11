@@ -18,6 +18,11 @@ const users=new Map<string,any>();const id=randomUUID(),phone='+77070000001',pas
 const {encrypt,totp}=await import('../server/security.js');const secret='JBSWY3DPEHPK3PXP';
 await query('INSERT INTO auth.users(id,phone) VALUES($1,$2)',[id,phone]);
 await query("INSERT INTO private.app_users(id,phone,name,role,must_change_password,admin_totp_secret_encrypted) VALUES($1,$2,'LOCAL TEST OWNER','ADMIN',false,$3)",[id,phone,encrypt(secret,process.env.ADMIN_ENCRYPTION_KEY!)]);
+const courseId=String(((await query("SELECT id FROM private.courses WHERE slug='calculus-i'")).rows[0] as any).id),groupId=randomUUID();
+await query("INSERT INTO private.groups(id,course_id,title,active,capacity,starts_at,ends_at) VALUES($1,$2,'LOCAL UI FIXTURE · CALC A',true,5,now()-interval '1 day',now()+interval '30 days')",[groupId,courseId]);
+await query("INSERT INTO private.lessons(course_id,group_id,title,description,scheduled_at,published,created_by) VALUES($1,$2,'LOCAL FIXTURE · Derivatives','Черновик без Drive-видео для проверки интерфейса.',now()+interval '1 day',false,$3)",[courseId,groupId,id]);
+await query("INSERT INTO private.assignments(course_id,group_id,title,instructions,due_at,published,created_by) VALUES($1,$2,'LOCAL FIXTURE · Homework 1','Решите задания 1–5. В этой fixture сдача ответа не включена.',now()+interval '7 days',true,$3)",[courseId,groupId,id]);
+await query("INSERT INTO private.archive_entries(course_id,group_id,category,exam_year,semester,topic,title,published,created_by) VALUES($1,$2,'Midterm',2025,'Fall','Limits','LOCAL FIXTURE · Midterm archive',true,$3)",[courseId,groupId,id]);
 users.set(id,{id,phone,password,app_metadata:{}});
 globalThis.fetch=async(input:any,init?:RequestInit)=>{
  const url=String(input),body=init?.body?JSON.parse(String(init.body)):{};

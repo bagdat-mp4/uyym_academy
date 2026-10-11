@@ -14,4 +14,4 @@ const lines=readFileSync(join(output,'playlist.m3u8'),'utf8').split(/\r?\n/);let
 const parts:any[]=[{index:-1,file:'init.mp4',bytes:init.byteLength,start:0,duration:0}];
 for(const line of lines){if(line.startsWith('#EXTINF:'))duration=Number(line.slice(8).split(',')[0]);else if(line&&!line.startsWith('#')){if(!/^part\d{5}\.m4s$/.test(line)||!Number.isFinite(duration)||duration<=0||duration>4.2)throw new Error('Invalid fragment timeline');const bytes=statSync(join(output,line)).size;assertPartSize(bytes);parts.push({index:index++,file:line,bytes,start,duration});start+=duration;}}
 writeFileSync(join(output,'manifest.json'),JSON.stringify({version:1,codec,duration_seconds:start,parts},null,2));
-console.info(`Prepared ${index} bounded fMP4 parts. Upload init + parts into the SAME Restricted folder as source. Populate drive_file_id for each manifest part; do not share manifest with learners.`);
+console.info(`Prepared ${index} bounded fMP4 parts. Upload init + parts into the SAME Restricted folder as source. Keep their generated filenames: ADMIN UI and register-video can resolve all IDs from the private folder in one batch. Do not share manifest with learners.`);

@@ -26,6 +26,31 @@ export async function validateDriveFile(fileId:string,folderId:string,kind:'sour
  if(expectedSize!==undefined&&size!==expectedSize)throw new HttpError(403,'Видео өзгерген. Қайта тексеріңіз');
  if(kind==='part')assertPartSize(size);return {size,mime:file.mimeType};
 }
+export async function listDriveFolder(folderId:string) {
+ safeId(folderId);
+ if(!config.folders.includes(folderId)||!config.permissionEmails.length)throw new HttpError(403,'Drive папкасы рұқсат етілмеген');
+ const folder=await (await request(`files/${folderId}?fields=id,mimeType,trashed&supportsAllDrives=true`)).json() as any;
+ if(folder.trashed||folder.mimeType!=='application/vnd.google-apps.folder')throw new HttpError(403,'Drive папкасы жарамсыз');
+ const permissions=await(await request(`files/${folderId}/permissions?fields=permissions(type,emailAddress,role,allowFileDiscovery),nextPageToken&pageSize=100&supportsAllDrives=true`)).json() as any;
+ if(permissions.nextPageToken)throw new HttpError(403,'Drive рұқсаттары тексерілмеді');
+ validatePermissions(permissions.permissions);
+ const q=encodeURIComponent(`'${folderId}' in parents and trashed=false`),byName=new Map<string,any>(),seenTokens=new Set<string>();
+ let pageToken='';
+ do{
+  const suffix=pageToken?`&pageToken=${encodeURIComponent(pageToken)}`:'';
+  const result=await(await request(`files?q=${q}&fields=files(id,name,mimeType,size,parents,trashed,permissions(type,emailAddress,role,allowFileDiscovery)),nextPageToken&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true${suffix}`)).json() as any;
+  for(const file of result.files||[]){if(byName.has(file.name))throw new HttpError(409,'Drive папкасында атауы бірдей файлдар бар');byName.set(file.name,file);if(byName.size>5000)throw new HttpError(409,'Drive папкасында файл тым көп. Арнайы папка қолданыңыз');}
+  pageToken=String(result.nextPageToken||'');if(pageToken&&seenTokens.has(pageToken))throw new HttpError(503,'Drive тізімі аяқталмады');if(pageToken)seenTokens.add(pageToken);
+ }while(pageToken);
+ return byName;
+}
+export function validateListedDrivePart(file:any,folderId:string,expectedSize:number){
+ if(!file||safeId(String(file.id))!==file.id||file.trashed||!file.parents?.includes(folderId))throw new HttpError(403,'Видео рұқсат етілген папкада емес');
+ validatePermissions(file.permissions);
+ if(!['video/mp4','video/iso.segment','application/octet-stream'].includes(file.mimeType))throw new HttpError(403,'fMP4 бөлігі қажет');
+ const size=Number(file.size);if(!Number.isSafeInteger(size)||size!==expectedSize)throw new HttpError(403,'Видео өзгерген. Қайта тексеріңіз');assertPartSize(size);
+ return {id:file.id,size,mime:file.mimeType};
+}
 export async function streamPart(fileId:string,size:number) {
  assertPartSize(size);
  const response=await request(`files/${safeId(fileId)}?alt=media&supportsAllDrives=true`,{Range:`bytes=0-${size-1}`});

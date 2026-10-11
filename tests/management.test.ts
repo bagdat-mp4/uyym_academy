@@ -38,8 +38,8 @@ async function actor(role='TEACHER'):Promise<Actor>{
 async function raw(a:Actor,method:HTTPMethods,path:string,body?:unknown,extra:Record<string,string>={}){
  const headers={cookie:a.cookie,...(method!=='GET'?{origin,'content-type':'application/json','x-csrf-token':a.csrf}:{}),...extra};return app.inject({method,url:path,headers,...(body!==undefined?{payload:body as any}:{})});
 }
-async function signed(a:Actor,method:HTTPMethods,path:string,body?:unknown){
- const challenge=await raw(a,'POST','/api/proof/challenge',{method,path,purpose:'api',body_hash:sha(body===undefined?'':JSON.stringify(body))});assert.equal(challenge.statusCode,200,challenge.body);
+async function signed(a:Actor,method:HTTPMethods,path:string,body?:unknown,purpose='api'){
+ const challenge=await raw(a,'POST','/api/proof/challenge',{method,path,purpose,body_hash:sha(body===undefined?'':JSON.stringify(body))});assert.equal(challenge.statusCode,200,challenge.body);
  const c=challenge.json(),signature=await webcrypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},a.key.privateKey,new TextEncoder().encode(c.payload));return raw(a,method,path,body,{'x-proof-id':c.id,'x-device-proof':Buffer.from(signature).toString('base64url')});
 }
 async function create(path:string,body:Record<string,unknown>){const r=await signed(owner,'POST',path,{operation_id:randomUUID(),...body});assert.equal(r.statusCode,200,r.body);return r.json();}
@@ -140,4 +140,35 @@ test('audit resolves named objects and preserves safe changes without exposing j
  for(const secret of ['admin_totp_secret','recovery_hashes','token_hash','csrf_token','public_key','temporary_password'])assert.ok(!result.body.includes(secret));
  await db.query("INSERT INTO private.audit_log(actor_id,action,target_type,target_id,metadata) VALUES($1,'legacy.fixture','course','historical non-UUID target','{}')",[owner.id]);
  const historical=await signed(owner,'GET','/api/admin/audit?q=legacy.fixture');assert.equal(historical.statusCode,200,historical.body);assert.equal(historical.json().items[0].object_label,null);
+});
+
+test('learning content is scoped by course/group; private files close immediately after access revocation',async()=>{
+ const c=await course(),own=await group(c.id),foreign=await group(c.id),student=await actor('STUDENT'),outsider=await actor('STUDENT'),teacher=await actor();
+ const access=await enrollment(student.id,c.id,own.id);await create('/api/admin/teacher-assignments',{teacher_id:teacher.id,course_id:c.id,group_id:own.id});
+ const originalFetch=globalThis.fetch,stored=new Map<string,Uint8Array>();
+ globalThis.fetch=async(input:any,init?:RequestInit)=>{
+  const url=String(input);if(!url.includes('/storage/v1/object/uyym-private/'))throw new Error(`Unexpected external request: ${url}`);
+  const path=decodeURIComponent(url.split('/storage/v1/object/uyym-private/')[1]);
+  if(init?.method==='POST'){stored.set(path,new Uint8Array(init.body as ArrayBuffer));return Response.json({Key:path});}
+  if(init?.method==='DELETE'){stored.delete(path);return Response.json({});}
+  const bytes=stored.get(path);return bytes?new Response(bytes as unknown as BodyInit,{status:200,headers:{'content-type':'application/pdf'}}):new Response('{}',{status:404});
+ };
+ try{
+  const attachment=Buffer.from('%PDF-1.4 fixture').toString('base64');
+  const fakeImage=Buffer.from('not really a png').toString('base64');
+  const rejectedType=await signed(owner,'POST','/api/content/archive',{operation_id:randomUUID(),course_id:c.id,group_id:own.id,title:'Invalid image',published:false,category:'Quiz',exam_year:2025,semester:'',topic:'',files:[{name:'fake.png',mime:'image/png',base64:fakeImage}]});assert.equal(rejectedType.statusCode,400,rejectedType.body);
+  const homework=await signed(owner,'POST','/api/content/assignments',{operation_id:randomUUID(),course_id:c.id,group_id:own.id,title:'Scoped homework',published:true,lesson_id:null,instructions:'Read the attached private PDF',due_at:null,files:[{name:'task.pdf',mime:'application/pdf',base64:attachment}]});assert.equal(homework.statusCode,200,homework.body);
+  const archive=await signed(owner,'POST','/api/content/archive',{operation_id:randomUUID(),course_id:c.id,group_id:own.id,title:'Past Midterm',published:true,category:'Midterm',exam_year:2025,semester:'Fall',topic:'Vectors',files:[{name:'midterm.pdf',mime:'application/pdf',base64:attachment}]});assert.equal(archive.statusCode,200,archive.body);
+  const teacherOwn=await signed(teacher,'POST','/api/content/assignments',{operation_id:randomUUID(),course_id:c.id,group_id:own.id,title:'Teacher homework',published:false,lesson_id:null,instructions:'Teacher scope',due_at:null,files:[]});assert.equal(teacherOwn.statusCode,200,teacherOwn.body);
+  assert.equal((await signed(teacher,'POST','/api/content/assignments',{operation_id:randomUUID(),course_id:c.id,group_id:foreign.id,title:'Foreign homework',published:false,lesson_id:null,instructions:'Must fail',due_at:null,files:[]})).statusCode,403);
+  const available=await signed(student,'GET','/api/courses');assert.equal(available.statusCode,200,available.body);assert.ok(available.json().courses.some((x:any)=>x.id===c.id));
+  const view=await signed(student,'GET',`/api/courses/${c.id}/content`);assert.equal(view.statusCode,200,view.body);assert.equal(view.json().assignments.length,1);assert.equal(view.json().archive.length,1);assert.ok(!view.body.includes('storage_path'));
+  await assert.rejects(db.query("INSERT INTO private.learning_files(course_id,group_id,assignment_id,storage_path,original_name,mime,file_size,sha256,created_by) VALUES($1,$2,$3,$4,'scope.pdf','application/pdf',1,$5,$6)",[c.id,foreign.id,homework.json().id,`learning/${homework.json().id}/${randomUUID()}`,'a'.repeat(64),owner.id]),/LEARNING_FILE_SCOPE_MISMATCH/);
+  const fileId=view.json().assignments[0].files[0].id;const download=await signed(student,'GET',`/api/files/${fileId}`,undefined,'file');assert.equal(download.statusCode,200,download.body);assert.match(download.headers['content-disposition']??'',/task\.pdf/);
+  assert.equal((await signed(outsider,'GET',`/api/courses/${c.id}/content`)).statusCode,404);
+  assert.equal((await signed(outsider,'GET',`/api/files/${fileId}`,undefined,'file')).statusCode,404);
+  const revoked=await signed(owner,'PATCH',`/api/admin/enrollments/${access.id}`,{operation_id:randomUUID(),revision:Number(access.revision),status:'revoked',revocation_reason:'Fixture content revocation'});assert.equal(revoked.statusCode,200,revoked.body);
+  assert.equal((await signed(student,'GET',`/api/courses/${c.id}/content`)).statusCode,404);
+  assert.equal((await signed(student,'GET',`/api/files/${fileId}`,undefined,'file')).statusCode,404);
+ }finally{globalThis.fetch=originalFetch;}
 });
