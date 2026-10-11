@@ -4,7 +4,9 @@ import {HttpError} from './security.js';
 
 const bucket='uyym-private';
 function safePath(path:string){
- if(!/^learning\/[0-9a-f-]{36}\/[0-9a-f-]{36}$/i.test(path))throw new HttpError(400,'Файл жолы жарамсыз');
+ const learning=/^learning\/[0-9a-f-]{36}\/[0-9a-f-]{36}$/i.test(path);
+ const submission=/^submissions\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}$/i.test(path);
+ if(!learning&&!submission)throw new HttpError(400,'Файл жолы жарамсыз');
  return path.split('/').map(encodeURIComponent).join('/');
 }
 function headers(extra:Record<string,string>={}){

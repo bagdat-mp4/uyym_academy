@@ -172,3 +172,47 @@ test('learning content is scoped by course/group; private files close immediatel
   assert.equal((await signed(student,'GET',`/api/files/${fileId}`,undefined,'file')).statusCode,404);
  }finally{globalThis.fetch=originalFetch;}
 });
+
+test('homework versions, private files, grading and late permission stay inside the assigned group',async()=>{
+ const c=await course(),own=await group(c.id),foreign=await group(c.id),student=await actor('STUDENT'),outsider=await actor('STUDENT'),teacher=await actor(),courseOnly=await actor();
+ await enrollment(student.id,c.id,own.id);await enrollment(outsider.id,c.id,foreign.id);
+ await create('/api/admin/teacher-assignments',{teacher_id:teacher.id,course_id:c.id,group_id:own.id});
+ await create('/api/admin/teacher-assignments',{teacher_id:courseOnly.id,course_id:c.id,group_id:null});
+ const originalFetch=globalThis.fetch,stored=new Map<string,Uint8Array>();
+ globalThis.fetch=async(input:any,init?:RequestInit)=>{
+  const url=String(input);if(!url.includes('/storage/v1/object/uyym-private/'))throw new Error(`Unexpected external request: ${url}`);
+  const path=decodeURIComponent(url.split('/storage/v1/object/uyym-private/')[1]);
+  if(init?.method==='POST'){stored.set(path,new Uint8Array(init.body as ArrayBuffer));return Response.json({Key:path});}
+  if(init?.method==='DELETE'){stored.delete(path);return Response.json({});}
+  const bytes=stored.get(path);return bytes?new Response(bytes as unknown as BodyInit,{status:200,headers:{'content-type':'application/pdf'}}):new Response('{}',{status:404});
+ };
+ try{
+  const pdf={name:'solution.pdf',mime:'application/pdf',base64:Buffer.from('%PDF-1.4 student answer').toString('base64')};
+  const homework=await signed(owner,'POST','/api/content/assignments',{operation_id:randomUUID(),course_id:c.id,group_id:own.id,title:'Versioned homework',published:true,lesson_id:null,instructions:'Show every step',due_at:new Date(Date.now()+3600000).toISOString(),max_grade:20,files:[]});assert.equal(homework.statusCode,200,homework.body);
+  const assignmentId=homework.json().id;
+  const tooMany=await signed(student,'POST',`/api/assignments/${assignmentId}/submission`,{operation_id:randomUUID(),expected_revision:null,answer:'',files:[pdf,pdf,pdf]});assert.equal(tooMany.statusCode,400,tooMany.body);
+  const first=await signed(student,'POST',`/api/assignments/${assignmentId}/submission`,{operation_id:randomUUID(),expected_revision:null,answer:'First answer',files:[pdf]});assert.equal(first.statusCode,200,first.body);assert.equal(first.json().current_version,1);
+  const replayBody={operation_id:randomUUID(),expected_revision:Number(first.json().revision),answer:'Corrected answer',files:[]};
+  const second=await signed(student,'POST',`/api/assignments/${assignmentId}/submission`,replayBody);assert.equal(second.statusCode,200,second.body);assert.equal(second.json().current_version,2);
+  const replay=await signed(student,'POST',`/api/assignments/${assignmentId}/submission`,replayBody);assert.equal(replay.statusCode,200,replay.body);assert.equal(replay.json().replayed,true);
+  assert.equal((await signed(outsider,'POST',`/api/assignments/${assignmentId}/submission`,{operation_id:randomUUID(),expected_revision:null,answer:'Foreign',files:[]})).statusCode,404);
+  assert.equal((await signed(courseOnly,'GET',`/api/assignments/${assignmentId}/submissions`)).statusCode,404);
+  const roster=await signed(teacher,'GET',`/api/assignments/${assignmentId}/submissions`);assert.equal(roster.statusCode,200,roster.body);assert.equal(roster.json().items.length,1);assert.equal(roster.json().items[0].user_id,student.id);assert.equal(roster.json().items[0].current_version,2);
+  const detail=await signed(teacher,'GET',`/api/assignments/${assignmentId}/students/${student.id}/submission`);assert.equal(detail.statusCode,200,detail.body);assert.equal(detail.json().versions.length,2);assert.equal(detail.json().versions[0].answer,'Corrected answer');assert.equal(detail.json().versions[1].files.length,1);assert.ok(!detail.body.includes('storage_path'));
+  const excessive=await signed(teacher,'PATCH',`/api/assignments/${assignmentId}/students/${student.id}/review`,{operation_id:randomUUID(),expected_revision:Number(second.json().revision),status:'reviewed',grade:21,feedback:'Too high',late_allowed_until:null});assert.equal(excessive.statusCode,400,excessive.body);
+  const reviewed=await signed(teacher,'PATCH',`/api/assignments/${assignmentId}/students/${student.id}/review`,{operation_id:randomUUID(),expected_revision:Number(second.json().revision),status:'reviewed',grade:18,feedback:'Clear reasoning',late_allowed_until:null});assert.equal(reviewed.statusCode,200,reviewed.body);
+  await assert.rejects(db.query('UPDATE private.submissions SET grade=21 WHERE id=$1',[reviewed.json().id]));
+  await assert.rejects(db.query('UPDATE private.assignments SET max_grade=17 WHERE id=$1',[assignmentId]));
+  const studentView=await signed(student,'GET',`/api/courses/${c.id}/content`);assert.equal(studentView.statusCode,200,studentView.body);const ownAssignment=studentView.json().assignments.find((x:any)=>x.id===assignmentId);assert.equal(ownAssignment.submission.grade,18);assert.equal(ownAssignment.submission.feedback,'Clear reasoning');assert.equal(ownAssignment.submission.answer,'Corrected answer');assert.ok(!studentView.body.includes('First answer'));
+  const oldFile=detail.json().versions[1].files[0].id;assert.equal((await signed(student,'GET',`/api/submission-files/${oldFile}`,undefined,'file')).statusCode,200);assert.equal((await signed(outsider,'GET',`/api/submission-files/${oldFile}`,undefined,'file')).statusCode,404);assert.equal((await signed(teacher,'GET',`/api/submission-files/${oldFile}`,undefined,'file')).statusCode,200);
+
+  const lateHomework=await signed(owner,'POST','/api/content/assignments',{operation_id:randomUUID(),course_id:c.id,group_id:own.id,title:'Late homework',published:true,lesson_id:null,instructions:'Late permission required',due_at:new Date(Date.now()-3600000).toISOString(),max_grade:10,files:[]});assert.equal(lateHomework.statusCode,200,lateHomework.body);
+  const lateId=lateHomework.json().id;assert.equal((await signed(student,'POST',`/api/assignments/${lateId}/submission`,{operation_id:randomUUID(),expected_revision:null,answer:'Late attempt',files:[]})).statusCode,403);
+  const allowed=await signed(teacher,'PATCH',`/api/assignments/${lateId}/students/${student.id}/review`,{operation_id:randomUUID(),expected_revision:null,status:'not_submitted',grade:null,feedback:'One extra hour',late_allowed_until:new Date(Date.now()+3600000).toISOString()});assert.equal(allowed.statusCode,200,allowed.body);assert.equal(allowed.json().current_version,0);
+  const lateSubmit=await signed(student,'POST',`/api/assignments/${lateId}/submission`,{operation_id:randomUUID(),expected_revision:Number(allowed.json().revision),answer:'Late but allowed',files:[]});assert.equal(lateSubmit.statusCode,200,lateSubmit.body);assert.equal(lateSubmit.json().is_late,true);
+  await db.query('UPDATE private.enrollments SET group_id=$1 WHERE user_id=$2 AND course_id=$3',[foreign.id,student.id,c.id]);
+  assert.equal((await signed(teacher,'GET',`/api/submission-files/${oldFile}`,undefined,'file')).statusCode,404);
+  assert.equal((await signed(teacher,'GET',`/api/assignments/${assignmentId}/students/${student.id}/submission`)).statusCode,404);
+  const audit=(await db.query("SELECT metadata FROM private.audit_log WHERE target_type='submission' AND subject_id=$1 ORDER BY created_at",[student.id])).rows;assert.ok(audit.length>=4);assert.ok(!JSON.stringify(audit).includes('Corrected answer')&&!JSON.stringify(audit).includes('Clear reasoning'));
+ }finally{globalThis.fetch=originalFetch;}
+});

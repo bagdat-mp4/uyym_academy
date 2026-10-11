@@ -15,15 +15,21 @@ async function lease(){let release!:()=>void;const previous=queue;queue=new Prom
 (pool as any).query=async(sql:string,params:unknown[]=[])=>{const release=await lease();try{return await query(sql,params);}finally{release();}};
 (pool as any).connect=async()=>{const release=await lease();return {query,release};};
 const users=new Map<string,any>();const id=randomUUID(),phone='+77070000001',password='UiFixture-Only-Password-2026';
+const studentId=randomUUID(),studentPhone='+77070000002',studentPassword='UiFixture-Student-Password-2026';
 const {encrypt,totp}=await import('../server/security.js');const secret='JBSWY3DPEHPK3PXP';
-await query('INSERT INTO auth.users(id,phone) VALUES($1,$2)',[id,phone]);
+await query('INSERT INTO auth.users(id,phone) VALUES($1,$2),($3,$4)',[id,phone,studentId,studentPhone]);
 await query("INSERT INTO private.app_users(id,phone,name,role,must_change_password,admin_totp_secret_encrypted) VALUES($1,$2,'LOCAL TEST OWNER','ADMIN',false,$3)",[id,phone,encrypt(secret,process.env.ADMIN_ENCRYPTION_KEY!)]);
+await query("INSERT INTO private.app_users(id,phone,name,role,must_change_password) VALUES($1,$2,'LOCAL FIXTURE STUDENT','STUDENT',false)",[studentId,studentPhone]);
 const courseId=String(((await query("SELECT id FROM private.courses WHERE slug='calculus-i'")).rows[0] as any).id),groupId=randomUUID();
 await query("INSERT INTO private.groups(id,course_id,title,active,capacity,starts_at,ends_at) VALUES($1,$2,'LOCAL UI FIXTURE · CALC A',true,5,now()-interval '1 day',now()+interval '30 days')",[groupId,courseId]);
+await query("INSERT INTO private.enrollments(user_id,course_id,group_id,status,starts_at,expires_at,payment_status,created_by) VALUES($1,$2,$3,'active',now()-interval '1 day',now()+interval '30 days','paid',$4)",[studentId,courseId,groupId,id]);
 await query("INSERT INTO private.lessons(course_id,group_id,title,description,scheduled_at,published,created_by) VALUES($1,$2,'LOCAL FIXTURE · Derivatives','Черновик без Drive-видео для проверки интерфейса.',now()+interval '1 day',false,$3)",[courseId,groupId,id]);
-await query("INSERT INTO private.assignments(course_id,group_id,title,instructions,due_at,published,created_by) VALUES($1,$2,'LOCAL FIXTURE · Homework 1','Решите задания 1–5. В этой fixture сдача ответа не включена.',now()+interval '7 days',true,$3)",[courseId,groupId,id]);
+const assignmentId=String(((await query("INSERT INTO private.assignments(course_id,group_id,title,instructions,due_at,max_grade,published,created_by) VALUES($1,$2,'LOCAL FIXTURE · Homework 1','Решите задания 1–5 и покажите ход решения.',now()+interval '7 days',20,true,$3) RETURNING id",[courseId,groupId,id])).rows[0] as any).id);
+const submissionId=String(((await query("INSERT INTO private.submissions(assignment_id,user_id,status,current_version,feedback,reviewed_by,reviewed_at) VALUES($1,$2,'needs_revision',1,'Проверьте второй пункт и отправьте новую версию.',$3,now()) RETURNING id",[assignmentId,studentId,id])).rows[0] as any).id);
+await query("INSERT INTO private.submission_versions(submission_id,version,answer,is_late) VALUES($1,1,'1) lim x→0 sin(x)/x = 1. 2) Требуется исправление.',false)",[submissionId]);
 await query("INSERT INTO private.archive_entries(course_id,group_id,category,exam_year,semester,topic,title,published,created_by) VALUES($1,$2,'Midterm',2025,'Fall','Limits','LOCAL FIXTURE · Midterm archive',true,$3)",[courseId,groupId,id]);
 users.set(id,{id,phone,password,app_metadata:{}});
+users.set(studentId,{id:studentId,phone:studentPhone,password:studentPassword,app_metadata:{}});
 globalThis.fetch=async(input:any,init?:RequestInit)=>{
  const url=String(input),body=init?.body?JSON.parse(String(init.body)):{};
  if(url==='https://local-auth.invalid/auth/v1/token?grant_type=password'){
@@ -42,6 +48,7 @@ const {app}=await import('../server/index.js');
 await app.listen({host:'127.0.0.1',port:18878});
 console.info('LOCAL TEST ONLY: embedded SQL + simulated Auth; Drive UNVERIFIED. UI http://localhost:5174/#account');
 console.info('Fixture phone:',phone,'Fixture password:',password);
+console.info('Fixture student:',studentPhone,'Fixture password:',studentPassword);
 console.info('Current fixture TOTP:',totp(secret,Math.floor(Date.now()/30000)));
 process.on('SIGINT',async()=>{await app.close();await db.close();process.exit(0);});
 // Generate a fresh fixture TOTP in another terminal:

@@ -41,7 +41,7 @@ export function Pager({ data, lang, setPage, loading }: { data: Page; lang: Lang
   return <div className="manage-pagination"><span>{tr(lang, ['Барлығы', 'Всего'])}: {data.total} · {data.page} / {pages}</span><div><button className="button button-outline" disabled={loading || data.page <= 1} onClick={() => setPage(data.page - 1)}>← {tr(lang, ['Алдыңғы', 'Назад'])}</button><button className="button button-outline" disabled={loading || data.page >= pages} onClick={() => setPage(data.page + 1)}>{tr(lang, ['Келесі', 'Далее'])} →</button></div></div>;
 }
 
-export function Dialog({ title, lang, children, onClose, busy = false }: { title: string; lang: Lang; children: ReactNode; onClose: () => void; busy?: boolean }) {
+export function Dialog({ title, lang, children, onClose, busy = false, wide = false }: { title: string; lang: Lang; children: ReactNode; onClose: () => void; busy?: boolean; wide?: boolean }) {
   const dialog = useRef<HTMLDivElement>(null);
   const latest = useRef({ onClose, busy }); latest.current = { onClose, busy };
   useEffect(() => {
@@ -59,7 +59,7 @@ export function Dialog({ title, lang, children, onClose, busy = false }: { title
     document.addEventListener('keydown', key);
     return () => { document.removeEventListener('keydown', key); document.body.style.overflow = overflow; focusBefore?.focus(); };
   }, []);
-  return <div className="modal-backdrop" onClick={() => { if (!busy) onClose(); }}><div className="modal manage-dialog" role="dialog" aria-modal="true" aria-label={title} ref={dialog} onClick={event => event.stopPropagation()}><button type="button" className="modal-close" aria-label={tr(lang, ['Жабу', 'Закрыть'])} disabled={busy} onClick={onClose}>×</button><h2>{title}</h2>{children}</div></div>;
+  return <div className="modal-backdrop" onClick={() => { if (!busy) onClose(); }}><div className={`modal manage-dialog${wide?' manage-dialog-wide':''}`} role="dialog" aria-modal="true" aria-label={title} ref={dialog} onClick={event => event.stopPropagation()}><button type="button" className="modal-close" aria-label={tr(lang, ['Жабу', 'Закрыть'])} disabled={busy} onClick={onClose}>×</button><h2>{title}</h2>{children}</div></div>;
 }
 
 type Option = { id: string; label?: string; name?: string; title?: string; phone?: string; student_name?: string; course_title?: string; group_title?: string; [key: string]: unknown };
