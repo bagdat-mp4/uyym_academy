@@ -3,7 +3,7 @@ import { hashBody, signChallenge } from './device';
 export type User = { id: string; name: string; phone: string; role: 'ADMIN' | 'TEACHER' | 'STUDENT'; must_change_password: boolean; totp_required?: boolean };
 export type AuthStatus = { authenticated: boolean; user?: User; session_id?: string; session_active?: boolean; csrf_token?: string; device_status?: 'approved' | 'pending' | 'unregistered' | 'revoked' | 'different'; devices?: BrowserRequest[]; mfa_verified?: boolean };
 export type BrowserRequest = { id: string; user_id: string; name?: string; phone?: string; user_name?: string; user_phone?: string; label: string; created_at: string; status?: string; fingerprint?: string; key_fingerprint?: string };
-export type Lesson = { id: string; title: string; description: string; starts_at: string; course_title: string };
+export type Lesson = { id: string; title: string; description: string; starts_at: string; course_title: string; progress_seconds?: number; completed_at?: string | null };
 export type Course = { id: string; title: string; summary: string; price_kzt: number; weeks: number; lessons: number; hours: number; group_capacity: number };
 export type PublicData = { courses: Course[]; settings: { whatsapp?: string | null; contact_email?: string | null; email?: string | null; instagram?: string | null; title?: string; teachers_public?: { name: string; subject: string; bio: string }[]; faq?: { question: string; answer: string }[] } };
 let csrfToken = '';

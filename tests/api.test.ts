@@ -392,6 +392,50 @@ test('playback manifest hides Drive IDs; grants cannot transfer accounts and pau
   // playback remain outside the explicitly simulated Auth + local SQL suite.
 });
 
+test('student sees only published announcements and saves viewing progress with explicit completion', async()=>{
+ const student=await approvedStudent(),course=(await db.query<{id:string}>("select id from private.courses where slug='calculus-i'")).rows[0].id;
+ const group=randomUUID(),lesson=randomUUID();
+ await db.query(`insert into private.groups(id,course_id,title,schedule_description) values($1,$2,'Progress group','Mon 18:00 · Asia/Almaty')`,[group,course]);
+ await db.query(`insert into private.enrollments(user_id,course_id,group_id,status,starts_at,expires_at,created_by) values($1,$2,$3,'active',now()-interval '1 hour',now()+interval '1 day',$4)`,[student.a.id,course,group,student.owner.id]);
+ await db.query(`insert into private.lessons(id,course_id,group_id,title,published,video_duration_seconds) values($1,$2,$3,'Progress lesson',true,120)`,[lesson,course,group]);
+ await db.query(`insert into private.announcements(course_id,group_id,title,body,published,created_by) values($1,$2,'Visible announcement','Published body',true,$3),($1,$2,'Draft announcement','Hidden body',false,$3)`,[course,group,student.owner.id]);
+ const first=await signed(student.b,'PATCH',`/api/lessons/${lesson}/progress`,'api',{position_seconds:42,completed:false});
+ assert.equal(first.statusCode,200,first.body);assert.equal(first.json().completed_at,null);
+ const content=await signed(student.b,'GET',`/api/courses/${course}/content`);
+ assert.equal(content.statusCode,200,content.body);
+ assert.deepEqual(content.json().announcements.map((x:any)=>x.title),['Visible announcement']);
+ assert.equal(content.json().groups[0].schedule_description,'Mon 18:00 · Asia/Almaty');
+ const listed=content.json().lessons.find((x:any)=>x.id===lesson);assert.equal(Number(listed.progress_seconds),42);assert.equal(listed.completed_at,null);
+ const completed=await signed(student.b,'PATCH',`/api/lessons/${lesson}/progress`,'api',{position_seconds:70,completed:true});
+ assert.equal(completed.statusCode,200,completed.body);assert.ok(completed.json().completed_at);
+ assert.equal((await signed(student.b,'GET',`/api/lessons/${lesson}/attendance`)).statusCode,403);
+ const outsider=await approvedStudent();
+ assert.equal((await signed(outsider.b,'PATCH',`/api/lessons/${lesson}/progress`,'api',{position_seconds:1,completed:false})).statusCode,404);
+});
+
+test('teacher announcements and attendance stay inside assigned groups',async()=>{
+ const teacher=await account('TEACHER'),owner=await account('ADMIN'),browserProfile=await browser();
+ assert.equal((await login(browserProfile,teacher)).statusCode,200);
+ const device=(await db.query<{id:string}>('select id from private.device_bindings where user_id=$1',[teacher.id])).rows[0].id;
+ await db.query('select * from private.approve_device($1,$2)',[owner.id,device]);
+ assert.equal((await login(browserProfile,teacher)).statusCode,200);assert.equal((await activate(browserProfile)).statusCode,200);
+ const student=await account('STUDENT'),course=(await db.query<{id:string}>("select id from private.courses where slug='linear-algebra'")).rows[0].id;
+ const ownGroup=randomUUID(),foreignGroup=randomUUID(),ownLesson=randomUUID(),foreignLesson=randomUUID();
+ await db.query(`insert into private.groups(id,course_id,title) values($1,$3,'Teacher group'),($2,$3,'Foreign group')`,[ownGroup,foreignGroup,course]);
+ await db.query('insert into private.teacher_assignments(teacher_id,course_id,group_id,created_by) values($1,$2,$3,$4)',[teacher.id,course,ownGroup,owner.id]);
+ await db.query(`insert into private.lessons(id,course_id,group_id,title) values($1,$3,$4,'Own attendance'),($2,$3,$5,'Foreign attendance')`,[ownLesson,foreignLesson,course,ownGroup,foreignGroup]);
+ await db.query(`insert into private.enrollments(user_id,course_id,group_id,status,starts_at,expires_at,created_by) values($1,$2,$3,'active',now()-interval '1 hour',now()+interval '1 day',$4)`,[student.id,course,ownGroup,owner.id]);
+ const ownAnnouncement={operation_id:randomUUID(),course_id:course,group_id:ownGroup,title:'Class update',body:'Bring your notes.',published:true};
+ assert.equal((await signed(browserProfile,'POST','/api/content/announcements','api',ownAnnouncement)).statusCode,200);
+ const foreignAnnouncement={...ownAnnouncement,operation_id:randomUUID(),group_id:foreignGroup};
+ assert.equal((await signed(browserProfile,'POST','/api/content/announcements','api',foreignAnnouncement)).statusCode,403);
+ const body={operation_id:randomUUID(),records:[{user_id:student.id,status:'present'}]};
+ assert.equal((await signed(browserProfile,'PUT',`/api/lessons/${ownLesson}/attendance`,'api',body)).statusCode,200);
+ const roster=await signed(browserProfile,'GET',`/api/lessons/${ownLesson}/attendance`);assert.equal(roster.statusCode,200,roster.body);assert.equal(roster.json().items[0].status,'present');
+ assert.equal((await signed(browserProfile,'GET',`/api/lessons/${foreignLesson}/attendance`)).statusCode,404);
+ assert.equal((await signed(browserProfile,'PUT',`/api/lessons/${foreignLesson}/attendance`,'api',{...body,operation_id:randomUUID()})).statusCode,404);
+});
+
 test('account creation is idempotent; password is one-response only and ADMIN role injection is rejected',async()=>{
  const owner=await administrator();const body={operation_id:randomUUID(),name:'Provisioned test student',phone:`+7707${String(phoneCounter++).padStart(7,'0')}`,role:'STUDENT',identity_verified:true};
  const response=await signed(owner.b,'POST','/api/admin/users','api',body);assert.equal(response.statusCode,201,response.body);

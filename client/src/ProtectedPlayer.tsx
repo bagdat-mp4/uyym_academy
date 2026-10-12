@@ -46,6 +46,9 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
   const [expanded, setExpanded] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenNotice, setFullscreenNotice] = useState('');
+  const [completed, setCompleted] = useState(Boolean(lesson.completed_at));
+  const [progressNotice, setProgressNotice] = useState('');
+  const savingProgress = useRef(false);
   useEffect(() => {
     const changed = () => setFullscreen(document.fullscreenElement === shell.current);
     document.addEventListener('fullscreenchange', changed);
@@ -141,6 +144,7 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
         await updateBuffer(buffer!, () => buffer!.appendBuffer(bytes), controller.signal);
       };
       await loadPart(initial);
+      if (lesson.progress_seconds && lesson.progress_seconds > 0 && lesson.progress_seconds < grant.duration_seconds - 1) element.currentTime = lesson.progress_seconds;
       const pump = async () => {
         if (pumping || controller.signal.aborted) return;
         // Safari asks the client to stop/start streaming to save energy; heartbeat remains active.
@@ -191,6 +195,26 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
     };
   }, [lesson.id, attempt, lang]);
 
+  useEffect(() => {
+    const element=video.current!;
+    let lastSaved=Number(lesson.progress_seconds??0);
+    const save=async(done=false)=>{
+      const position=Math.max(0,element.currentTime||0);
+      if(savingProgress.current||(!done&&Math.abs(position-lastSaved)<5))return;
+      savingProgress.current=true;
+      try{
+        const result=await api<{position_seconds:number;completed_at:string|null}>(`/api/lessons/${lesson.id}/progress`,{method:'PATCH',proof:'api',body:{position_seconds:position,completed:done}});
+        lastSaved=Number(result.position_seconds);
+        if(result.completed_at){setCompleted(true);setProgressNotice(lang==='kk'?'Сабақ аяқталды деп белгіленді.':'Урок отмечен завершённым.');}
+      }catch{/* Progress is secondary to playback; the next interval retries. */}
+      finally{savingProgress.current=false;}
+    };
+    const paused=()=>void save(false);
+    const timer=setInterval(()=>{if(!element.paused)void save(false);},15000);
+    element.addEventListener('pause',paused);
+    return()=>{clearInterval(timer);element.removeEventListener('pause',paused);};
+  },[lesson.id,lesson.progress_seconds,lang]);
+
   return <div ref={shell} className={`player-shell ${expanded ? 'player-expanded' : ''}`}>
     <div className="video-stage">
       <video ref={video} controls controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture disableRemotePlayback playsInline preload="none" onContextMenu={event => event.preventDefault()} aria-label={lesson.title} />
@@ -198,7 +222,8 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
       {state === 'loading' && <div className="player-overlay"><span className="spinner" /><span>{lang === 'kk' ? 'Қауіпсіз ойнатқыш дайындалуда…' : 'Подготавливаем защищённый плеер…'}</span></div>}
       {state === 'error' && <div className="player-overlay player-error"><span className="player-lock">!</span><p>{error}</p><button className="button button-yellow" onClick={() => setAttempt(value => value + 1)}>{lang === 'kk' ? 'Қайта көру' : 'Повторить'}</button></div>}
     </div>
-    <div className="player-tools"><span className="small-dot" />{lang === 'kk' ? 'Жеке оқу қолжетімділігі' : 'Персональный учебный доступ'}<label className="speed-control">{lang === 'kk' ? 'Жылдамдық' : 'Скорость'}<select value={speed} onChange={event => { setSpeed(event.target.value); if (video.current) video.current.playbackRate = Number(event.target.value); }}>{[.75, 1, 1.25, 1.5, 2].map(value => <option value={value} key={value}>{value}×</option>)}</select></label><button type="button" className="fullscreen-button" onClick={() => void toggleFullscreen()} aria-label={expanded || fullscreen ? (lang === 'kk' ? 'Толық экраннан шығу' : 'Выйти из полного экрана') : (lang === 'kk' ? 'Толық экран' : 'Полный экран')}>{expanded || fullscreen ? '↙' : '⛶'}<span>{expanded || fullscreen ? (lang === 'kk' ? 'Шығу' : 'Выйти') : (lang === 'kk' ? 'Толық экран' : 'Полный экран')}</span></button></div>
+    <div className="player-tools"><span className="small-dot" />{lang === 'kk' ? 'Жеке оқу қолжетімділігі' : 'Персональный учебный доступ'}<label className="speed-control">{lang === 'kk' ? 'Жылдамдық' : 'Скорость'}<select value={speed} onChange={event => { setSpeed(event.target.value); if (video.current) video.current.playbackRate = Number(event.target.value); }}>{[.75, 1, 1.25, 1.5, 2].map(value => <option value={value} key={value}>{value}×</option>)}</select></label><button type="button" className={`complete-button ${completed?'completed':''}`} disabled={completed} onClick={()=>{const element=video.current;if(!element||savingProgress.current)return;savingProgress.current=true;setProgressNotice('');void api<{completed_at:string|null}>(`/api/lessons/${lesson.id}/progress`,{method:'PATCH',proof:'api',body:{position_seconds:Math.max(0,element.currentTime||0),completed:true}}).then(result=>{if(result.completed_at){setCompleted(true);setProgressNotice(lang==='kk'?'Сабақ аяқталды деп белгіленді.':'Урок отмечен завершённым.');}}).catch(()=>setProgressNotice(lang==='kk'?'Белгіні сақтау мүмкін болмады. Қайта көріңіз.':'Не удалось сохранить отметку. Повторите попытку.')).finally(()=>{savingProgress.current=false;});}}>{completed?'✓ ':''}{lang==='kk'?'Аяқталды':'Завершить'}</button><button type="button" className="fullscreen-button" onClick={() => void toggleFullscreen()} aria-label={expanded || fullscreen ? (lang === 'kk' ? 'Толық экраннан шығу' : 'Выйти из полного экрана') : (lang === 'kk' ? 'Толық экран' : 'Полный экран')}>{expanded || fullscreen ? '↙' : '⛶'}<span>{expanded || fullscreen ? (lang === 'kk' ? 'Шығу' : 'Выйти') : (lang === 'kk' ? 'Толық экран' : 'Полный экран')}</span></button></div>
+    {progressNotice&&<p className="player-progress-notice" role="status">{progressNotice}</p>}
     {fullscreenNotice && <p className="player-fullscreen-notice" role="status">{fullscreenNotice}</p>}
     <p className="privacy-note">{lang === 'kk' ? 'Әр жаңа бөлікке қолжетімділік қайта тексеріледі. Бұрын алынған буферді қайтару және экран жазбасын толық тоқтату мүмкін емес. Бұл DRM емес.' : 'Доступ проверяется перед каждой новой частью. Уже полученный буфер нельзя отозвать; запись экрана полностью предотвратить нельзя. Это не DRM.'}</p>
   </div>;

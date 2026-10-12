@@ -16,6 +16,7 @@ import {registerAcademicRoutes} from './academic.js';
 import {freshManagement} from './management.js';
 import {registerContentRoutes} from './content.js';
 import {registerSubmissionRoutes} from './submissions.js';
+import {registerEngagementRoutes} from './engagement.js';
 const uuid=z.string().uuid();
 // Five 5 MB files expand to roughly 33.4 MB in base64 JSON.
 export const app=Fastify({logger:false,bodyLimit:40*1024*1024,trustProxy:config.trustProxy?['127.0.0.1','::1']:false});
@@ -36,7 +37,7 @@ app.setErrorHandler((error,req,reply)=>{
  const ruMessage=status===500?'Сервис временно недоступен':error instanceof z.ZodError?'Проверьте данные':status===429?'Слишком много попыток. Повторите позже':(error as any).message_ru||({401:'Сессия завершилась. Войдите снова',403:'Нет разрешения на действие',404:'Запись недоступна',400:'Проверьте данные',409:'Запись изменилась. Обновите список',503:'Внешние сервисы ещё не подключены. Обратитесь к администратору'} as Record<number,string>)[status]||'Запрос не выполнен';
  reply.code(status).send({error:ru?ruMessage:kkMessage,code:(error as any).code|| (error instanceof z.ZodError?'INVALID_DATA':undefined)});
 });
-app.get('/api/health',async()=>({ok:true,stage:'homework-workflow-mvp',configured:ready(),drive_configured:Boolean(config.folders.length&&config.permissionEmails.length&&process.env.GOOGLE_APPLICATION_CREDENTIALS)}));
+app.get('/api/health',async()=>({ok:true,stage:'learning-engagement-mvp',configured:ready(),drive_configured:Boolean(config.folders.length&&config.permissionEmails.length&&process.env.GOOGLE_APPLICATION_CREDENTIALS)}));
 const defaultCourses=[['calculus-i','Calculus I','Туындылар, интегралдар және есептер.'],['linear-algebra','Linear Algebra','Матрицалар, векторлар және сызықтық жүйелер.'],['pp1','PP1 / Principles of Programming I','C++ тіліндегі бағдарламалау негіздері.']].map(([id,title,summary])=>({id,title,summary,price_kzt:60000,weeks:6,lessons:12,hours:18,group_capacity:5}));
 app.get('/api/public',async()=>{
  if(!ready())return {courses:defaultCourses,settings:{whatsapp:'',contact_email:''},configured:false};
@@ -196,6 +197,7 @@ registerAccountRoutes(app);
 registerAcademicRoutes(app);
 registerContentRoutes(app);
 registerSubmissionRoutes(app);
+registerEngagementRoutes(app);
 // Only exact build filenames are registered, never filesystem paths from an HTTP request.
 // No directory listings, arbitrary paths, private files, or SPA fallback for unknown URLs.
 const dist=resolve('dist/client');if(existsSync(dist)) {
