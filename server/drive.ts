@@ -2,7 +2,11 @@ import {GoogleAuth} from 'google-auth-library';
 import {Readable} from 'node:stream';
 import {config} from './config.js';
 import {HttpError,assertPartSize} from './security.js';
-const auth=new GoogleAuth({scopes:['https://www.googleapis.com/auth/drive.readonly']});
+const driveCredentials=process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+const auth=new GoogleAuth({
+ scopes:['https://www.googleapis.com/auth/drive.readonly'],
+ ...(driveCredentials?{credentials:JSON.parse(Buffer.from(driveCredentials,'base64').toString('utf8'))}:{})
+});
 async function headers() {const client=await auth.getClient();return await client.getRequestHeaders();}
 async function request(path:string,extra:Record<string,string>={}) {
  const h=await headers();const token=h.get('authorization');if(!token)throw new HttpError(503,'Drive қосылмаған');

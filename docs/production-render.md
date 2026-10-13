@@ -24,9 +24,9 @@ Set these server-only environment variables in Render, never in GitHub or Vite:
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Existing Supabase project values; service role is server-only |
 | `ADMIN_ENCRYPTION_KEY` | Existing key used for stored TOTP secret; do **not** regenerate during migration |
 | `DRIVE_ALLOWED_FOLDER_IDS`, `DRIVE_ALLOWED_PERMISSION_EMAILS` | Existing restricted Drive configuration |
-| `GOOGLE_APPLICATION_CREDENTIALS` | `/etc/secrets/google-drive.json` |
+| `GOOGLE_APPLICATION_CREDENTIALS_BASE64` | Base64 of the existing service-account JSON, stored as a server-only secret |
 
-Add the Google service account JSON as a Render **Secret File** named `google-drive.json`. Preserve its exact content but do not add it to the repo. Set `PORT` only if Render does not provide one; the server reads the platform `PORT` and binds `0.0.0.0`. `TRUST_LOCAL_PROXY` must remain false on Render. Copy optional content limits from `.env.example` if changed from defaults. Use Render's secret dashboard to set values; never send them in chat or expose them through build logs.
+The Google service-account JSON can alternatively be added as a Render **Secret File** named `google-drive.json`, with `GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/google-drive.json`. Preserve its exact content but do not add it to the repo. Set `PORT` only if Render does not provide one; the server reads the platform `PORT` and binds `0.0.0.0`. `TRUST_LOCAL_PROXY` must remain false on Render. Copy optional content limits from `.env.example` if changed from defaults. Use Render's secret dashboard to set values; never send them in chat or expose them through build logs.
 
 ## Temporary HTTPS verification
 
