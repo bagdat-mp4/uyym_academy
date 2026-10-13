@@ -79,10 +79,60 @@ test('fresh runtime role can reconcile Auth operations but cannot erase their hi
     await fresh.exec(await readFile(new URL('../supabase/backend-role.sql', import.meta.url), 'utf8'));
     const grants = (await fresh.query<{ select_allowed: boolean; insert_allowed: boolean; update_allowed: boolean; delete_allowed: boolean }>(`select has_table_privilege('uyym_backend','private.auth_operations','SELECT') as select_allowed,has_table_privilege('uyym_backend','private.auth_operations','INSERT') as insert_allowed,has_table_privilege('uyym_backend','private.auth_operations','UPDATE') as update_allowed,has_table_privilege('uyym_backend','private.auth_operations','DELETE') as delete_allowed`)).rows[0];
     assert.deepEqual(grants, { select_allowed: true, insert_allowed: true, update_allowed: true, delete_allowed: false });
+    const applications = (await fresh.query<{ select_allowed: boolean; insert_allowed: boolean; update_allowed: boolean; delete_allowed: boolean }>(
+      `select has_table_privilege('uyym_backend','private.registration_applications','SELECT') as select_allowed,
+              has_table_privilege('uyym_backend','private.registration_applications','INSERT') as insert_allowed,
+              has_table_privilege('uyym_backend','private.registration_applications','UPDATE') as update_allowed,
+              has_table_privilege('uyym_backend','private.registration_applications','DELETE') as delete_allowed`,
+    )).rows[0];
+    assert.deepEqual(applications, { select_allowed: true, insert_allowed: true, update_allowed: true, delete_allowed: false });
     await fresh.exec('set role uyym_backend');
     await assert.rejects(fresh.query('delete from private.auth_operations where false'), /permission denied/);
     await fresh.exec('reset role');
   } finally { await fresh.close(); }
+});
+
+test('registration applications keep private access and reject duplicate pending or approved requests', async () => {
+  const rls = (await db.query<{ relrowsecurity: boolean; relforcerowsecurity: boolean }>(
+    `select relrowsecurity,relforcerowsecurity from pg_class where oid='private.registration_applications'::regclass`,
+  )).rows[0];
+  assert.deepEqual(rls, { relrowsecurity: true, relforcerowsecurity: true });
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    const access = (await db.query<{ select_allowed: boolean; insert_allowed: boolean; update_allowed: boolean }>(
+      `select has_table_privilege($1,'private.registration_applications','SELECT') as select_allowed,
+              has_table_privilege($1,'private.registration_applications','INSERT') as insert_allowed,
+              has_table_privilege($1,'private.registration_applications','UPDATE') as update_allowed`, [role],
+    )).rows[0];
+    assert.deepEqual(access, { select_allowed: false, insert_allowed: false, update_allowed: false });
+  }
+  const backend = (await db.query<{ select_allowed: boolean; insert_allowed: boolean; update_allowed: boolean; delete_allowed: boolean }>(
+    `select has_table_privilege('uyym_backend','private.registration_applications','SELECT') as select_allowed,
+            has_table_privilege('uyym_backend','private.registration_applications','INSERT') as insert_allowed,
+            has_table_privilege('uyym_backend','private.registration_applications','UPDATE') as update_allowed,
+            has_table_privilege('uyym_backend','private.registration_applications','DELETE') as delete_allowed`,
+  )).rows[0];
+  assert.deepEqual(backend, { select_allowed: true, insert_allowed: true, update_allowed: true, delete_allowed: false });
+
+  const actor = await user('ADMIN'), student = await user(), group = await cohort();
+  const phone = (await db.query<{ phone: string }>('select phone from private.app_users where id=$1', [student])).rows[0].phone;
+  const add = () => db.query<{ id: string }>(
+    'insert into private.registration_applications(name,phone,course_id) values($1,$2,$3) returning id',
+    ['Registration fixture', phone, group.course],
+  );
+  const first = (await add()).rows[0].id;
+  await assert.rejects(add(), /unique constraint/);
+  await db.query("update private.registration_applications set status='rejected' where id=$1", [first]);
+  const second = (await add()).rows[0].id;
+  const enrollment = (await db.query<{ id: string }>(
+    `insert into private.enrollments(user_id,course_id,group_id,status,starts_at,expires_at,created_by)
+     values($1,$2,$3,'active',now(),now()+interval '6 weeks',$4) returning id`,
+    [student, group.course, group.id, actor],
+  )).rows[0].id;
+  await db.query(
+    `update private.registration_applications set status='approved',student_id=$2,enrollment_id=$3,approved_by=$4,approved_at=now() where id=$1`,
+    [second, student, enrollment, actor],
+  );
+  await assert.rejects(add(), /unique constraint/);
 });
 
 test('future pending and paused enrollments reserve seats; revoked and elapsed rows release seats', async () => {

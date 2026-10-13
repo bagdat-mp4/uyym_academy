@@ -1,5 +1,7 @@
 -- Public course applications and idempotent owner approval.
 -- This migration is additive and preserves all existing accounts/enrollments.
+-- Run once through Supabase migration history. A second run fails atomically;
+-- IF NOT EXISTS would conceal a conflicting pre-existing table definition.
 begin;
 
 create table private.registration_applications (
@@ -20,11 +22,18 @@ create table private.registration_applications (
   check (status <> 'processing' or operation_id is not null)
 );
 
-create unique index registration_applications_open_phone_course
+-- A rejected application may be resubmitted; an approved enrollment must not
+-- produce a second pending application that the owner can never approve.
+create unique index registration_applications_once_phone_course
 on private.registration_applications(phone,course_id)
-where status in ('pending','processing');
+where status in ('pending','processing','approved');
 create index registration_applications_status_created_idx
 on private.registration_applications(status,created_at desc);
+create index registration_applications_course_created_idx
+on private.registration_applications(course_id,created_at desc);
+create index registration_applications_student_idx
+on private.registration_applications(student_id)
+where student_id is not null;
 
 create trigger registration_applications_revision
 before update on private.registration_applications
@@ -37,7 +46,10 @@ revoke all on private.registration_applications from public,anon,authenticated,s
 do $$
 begin
   if exists(select 1 from pg_roles where rolname='uyym_backend') then
-    grant select,insert,update,delete on private.registration_applications to uyym_backend;
+    grant select,insert,update on private.registration_applications to uyym_backend;
+    -- Default privileges from an earlier backend-role installation may have
+    -- granted DELETE automatically. Applications are audit history.
+    revoke delete on private.registration_applications from uyym_backend;
   end if;
 end;
 $$;

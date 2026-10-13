@@ -108,11 +108,14 @@ async function finishApplication(req:FastifyRequest,ctx:Context,applicationId:st
 export function registerAccountRoutes(app:FastifyInstance){
  app.post('/api/applications',{config:{rateLimit:{max:5,timeWindow:'1 hour'}}},async(req,reply)=>{
   const raw=applicationSchema.parse(req.body),data={...raw,phone:normalizePhone(raw.phone)};
-  const course=(await pool.query('SELECT id FROM private.courses WHERE id=$1 AND active AND published',[data.course_id])).rows[0];
-  if(!course)fail('INVALID_DATA',400);
   try{
-   const application=(await pool.query('INSERT INTO private.registration_applications(name,phone,course_id) VALUES($1,$2,$3) RETURNING id,status,created_at',[data.name,data.phone,data.course_id])).rows[0];
-   await audit(pool,null,'application.submitted','application',application.id,{course_id:data.course_id});
+   const application=await transaction(async db=>{
+    const course=(await db.query('SELECT id FROM private.courses WHERE id=$1 AND active AND published FOR SHARE',[data.course_id])).rows[0];
+    if(!course)fail('INVALID_DATA',400);
+    const created=(await db.query('INSERT INTO private.registration_applications(name,phone,course_id) VALUES($1,$2,$3) RETURNING id,status,created_at',[data.name,data.phone,data.course_id])).rows[0];
+    await audit(db,null,'application.submitted','application',created.id,{course_id:data.course_id});
+    return created;
+   });
    reply.code(201);return {application};
   }catch(error:any){if(error?.code==='23505')fail('DUPLICATE',409);throw error;}
  });

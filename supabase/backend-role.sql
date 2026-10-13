@@ -26,6 +26,9 @@ begin
   if to_regclass('private.auth_operations') is not null then
     revoke delete on private.auth_operations from uyym_backend;
   end if;
+  if to_regclass('private.registration_applications') is not null then
+    revoke delete on private.registration_applications from uyym_backend;
+  end if;
 end;
 $$;
 alter default privileges in schema private grant select,insert,update,delete on tables to uyym_backend;
