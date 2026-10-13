@@ -167,7 +167,7 @@ app.post('/api/lessons/:id/playback',async(req)=>{
 });
 async function playback(ctx:any,id:string) {
  const g=(await pool.query('SELECT * FROM private.playback_grants WHERE id=$1 AND user_id=$2 AND session_id=$3 AND device_id=$4 AND auth_epoch=$5 AND revoked_at IS NULL AND expires_at>now() AND heartbeat_at>now()-interval \'35 seconds\'',[id,ctx.user_id,ctx.id,ctx.device_id,ctx.auth_epoch])).rows[0];
- if(!g)throw new HttpError(403,'Видео рұқсаты аяқталды');await lessonAllowed(ctx,g.lesson_id);return g;
+ if(!g)throw Object.assign(new HttpError(403,'Видео рұқсаты аяқталды'),{code:'MEDIA_GRANT_EXPIRED',message_ru:'Разрешение на видео истекло. Запустите просмотр снова'});await lessonAllowed(ctx,g.lesson_id);return g;
 }
 app.post('/api/playback/:id/heartbeat',async(req)=>{
  const ctx=await proof(req,'heartbeat');const id=uuid.parse((req.params as any).id);await playback(ctx,id);

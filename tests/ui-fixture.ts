@@ -21,6 +21,8 @@ await query('INSERT INTO auth.users(id,phone) VALUES($1,$2),($3,$4)',[id,phone,s
 await query("INSERT INTO private.app_users(id,phone,name,role,must_change_password,admin_totp_secret_encrypted) VALUES($1,$2,'LOCAL TEST OWNER','ADMIN',false,$3)",[id,phone,encrypt(secret,process.env.ADMIN_ENCRYPTION_KEY!)]);
 await query("INSERT INTO private.app_users(id,phone,name,role,must_change_password) VALUES($1,$2,'LOCAL FIXTURE STUDENT','STUDENT',false)",[studentId,studentPhone]);
 const courseId=String(((await query("SELECT id FROM private.courses WHERE slug='calculus-i'")).rows[0] as any).id),groupId=randomUUID();
+const pp1Id=String(((await query("SELECT id FROM private.courses WHERE slug='pp1'")).rows[0] as any).id);
+await query("INSERT INTO private.registration_applications(name,phone,course_id) VALUES('LOCAL FIXTURE · PP1 APPLICANT','+77070000003',$1)",[pp1Id]);
 await query("INSERT INTO private.groups(id,course_id,title,active,capacity,starts_at,ends_at,schedule_description) VALUES($1,$2,'LOCAL UI FIXTURE · CALC A',true,5,now()-interval '1 day',now()+interval '30 days','Сейсенбі және бейсенбі · 18:00 · Asia/Almaty')",[groupId,courseId]);
 await query("INSERT INTO private.enrollments(user_id,course_id,group_id,status,starts_at,expires_at,payment_status,created_by) VALUES($1,$2,$3,'active',now()-interval '1 day',now()+interval '30 days','paid',$4)",[studentId,courseId,groupId,id]);
 await query("INSERT INTO private.lessons(course_id,group_id,title,description,scheduled_at,published,created_by) VALUES($1,$2,'LOCAL FIXTURE · Derivatives','Черновик без Drive-видео для проверки интерфейса.',now()+interval '1 day',false,$3)",[courseId,groupId,id]);

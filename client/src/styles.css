@@ -267,6 +267,8 @@ form .button { margin-top: 26px; }
 .video-watermark { position: absolute; right: 18px; top: 18px; color: #fff9; font-size: 11px; text-shadow: 0 1px 4px #000; pointer-events: none; max-width: 75%; overflow-wrap: anywhere; }
 .player-overlay { position: absolute; inset: 0; background: #112a50; display: flex; justify-content: center; align-items: center; gap: 15px; color: #bfd0e8; font-size: 12px; padding: 30px; text-align: center; pointer-events: none; }
 .player-error { flex-direction: column; gap: 17px; pointer-events: auto; }
+.player-idle { flex-direction: column; gap: 17px; pointer-events: auto; background: linear-gradient(145deg,#112a50,#173968); }
+.player-idle p { max-width: 520px; font-size: 12px; line-height: 1.8; }
 .player-error p { max-width: 600px; font-size: 13px; line-height: 1.8; }
 .player-lock { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; font-size: 20px; background: #28436a; border-radius: 100%; color: #ffd773; }
 .player-tools { display: flex; align-items: center; gap: 9px; padding: 15px 19px; font-size: 10px; color: #8092ae; }
@@ -282,6 +284,15 @@ form .button { margin-top: 26px; }
 .player-shell:fullscreen .privacy-note, .player-shell.player-expanded .privacy-note { display: none; }
 .player-shell:fullscreen .player-fullscreen-notice, .player-shell.player-expanded .player-fullscreen-notice { background: #172c4f; color: #adbed7; }
 .player-shell > .privacy-note { padding: 0 19px 17px; margin-top: 0; }
+.enrollment-modal { max-width: 520px; }
+.application-form { display: grid; gap: 15px; margin-top: 21px; }
+.application-form label { display: grid; gap: 8px; color: #5b7599; font-size: 11px; font-weight: 600; }
+.application-form .button { margin-top: 3px; }
+.application-form .alert { margin-top: 0; }
+.application-success { display: flex; gap: 13px; align-items: flex-start; margin: 22px 0; padding: 17px; border: 1px solid #d5e8d8; border-radius: 8px; background: #eff8f0; color: #35694f; }
+.application-success .icon { width: 20px; flex: 0 0 auto; }
+.application-success strong { font-size: 12px; }
+.application-success p { margin-top: 5px; font-size: 10px; line-height: 1.7; }
 .spinner { display: inline-block; border: 2px solid #a0b2ce66; border-top-color: #668bbb; border-radius: 100%; width: 21px; height: 21px; animation: spin .8s linear infinite; flex-shrink: 0; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (min-width: 1600px) { .hero { padding-block: 90px; } }

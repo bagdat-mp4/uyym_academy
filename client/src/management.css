@@ -16,6 +16,9 @@
 .manage-records { display: flex; flex-direction: column; }
 .manage-record { display: flex; align-items: flex-start; gap: 18px; border-top: 1px solid #e3e9f0; padding: 21px 0; }
 .manage-record-info { flex: 1; min-width: 0; }
+.group-media-placeholder { display:flex; align-items:center; gap:9px; width:max-content; margin-bottom:13px; padding:6px 10px 6px 6px; border:1px dashed #ced9e7; border-radius:8px; background:#f7f9fc; color:#7890b0; }
+.group-media-placeholder span { display:grid; place-items:center; width:28px; height:28px; border-radius:6px; background:#e5edf8; color:#315d95; font-size:12px; font-weight:750; }
+.group-media-placeholder small { font-size:9px; }
 .manage-record-title { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .manage-record-title h3 { font-size: 13px; line-height: 1.5; font-weight: 650; color: #355984; overflow-wrap: anywhere; }
 .manage-status { border-radius: 20px; display: inline-block; padding: 4px 8px; font-size: 8px; font-weight: 600; line-height: 1.5; color: #7d8da2; background: #eff2f6; }

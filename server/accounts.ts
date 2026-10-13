@@ -10,6 +10,8 @@ import type {Context} from './auth.js';
 const userFields='u.id,u.name,u.phone,u.role,u.active,u.must_change_password,u.auth_operation_id,u.created_at,u.updated_at';
 const createSchema=z.object({operation_id:uuid,name:z.string().trim().min(1).max(120),phone:z.string().min(5).max(30),role:z.enum(['STUDENT','TEACHER']),identity_verified:z.literal(true)}).strict();
 const resetSchema=z.object({operation_id:uuid,identity_verified:z.literal(true)}).strict();
+const applicationSchema=z.object({name:z.string().trim().min(1).max(120),phone:z.string().min(5).max(30),course_id:uuid}).strict();
+const approvalSchema=z.object({operation_id:uuid,identity_verified:z.literal(true)}).strict();
 export async function invalidateUser(db:any,userId:string){
  await db.query('UPDATE private.app_users SET auth_epoch=auth_epoch+1,updated_at=now() WHERE id=$1',[userId]);
  await db.query('UPDATE private.playback_grants SET revoked_at=coalesce(revoked_at,now()) WHERE user_id=$1',[userId]);
@@ -79,7 +81,85 @@ async function reconcile(req:FastifyRequest,ctx:Context,op:any){
   return operationResponse(await finish(req,ctx,confirmed));
  }catch(e){if(e instanceof AuthAdminError&&e.code==='AUTH_NOT_FOUND')return operationResponse(op);return operationResponse(await operationError(op,e));}
 }
+
+async function finishApplication(req:FastifyRequest,ctx:Context,applicationId:string,operationId:string){
+ return transaction(async db=>{
+  await freshManagement(db,req,ctx);
+  const application=(await db.query('SELECT * FROM private.registration_applications WHERE id=$1 FOR UPDATE',[applicationId])).rows[0];
+  if(!application)fail('NOT_FOUND',404);
+  if(application.status==='approved')return application;
+  if(application.status!=='processing'||application.operation_id!==operationId)fail('CONFLICT',409);
+  const op=(await db.query("SELECT * FROM private.auth_operations WHERE id=$1 AND action='create_user' FOR UPDATE",[operationId])).rows[0];
+  if(!op||op.state!=='completed'||!op.target_user_id)fail('AUTH_PENDING',409);
+  const student=(await db.query("SELECT id FROM private.app_users WHERE id=$1 AND phone=$2 AND role='STUDENT' AND active FOR UPDATE",[op.target_user_id,application.phone])).rows[0];
+  if(!student)fail('CONFLICT',409);
+  let enrollment=(await db.query('SELECT * FROM private.enrollments WHERE user_id=$1 AND course_id=$2 FOR UPDATE',[student.id,application.course_id])).rows[0];
+  if(!enrollment){
+   enrollment=(await db.query(`INSERT INTO private.enrollments(user_id,course_id,status,starts_at,expires_at,payment_status,created_by)
+     SELECT $1,c.id,'active',now(),now()+make_interval(weeks=>c.weeks),'unpaid',$2
+     FROM private.courses c WHERE c.id=$3 AND c.active AND c.published RETURNING *`,[student.id,ctx.user_id,application.course_id])).rows[0];
+  }
+  if(!enrollment)fail('INVALID_DATA',400);
+  const approved=(await db.query("UPDATE private.registration_applications SET status='approved',student_id=$2,enrollment_id=$3,approved_by=$4,approved_at=now(),updated_at=now() WHERE id=$1 RETURNING *",[applicationId,student.id,enrollment.id,ctx.user_id])).rows[0];
+  await audit(db,ctx.user_id,'application.approved','application',applicationId,{course_id:application.course_id,student_id:student.id,enrollment_id:enrollment.id});
+  return approved;
+ });
+}
 export function registerAccountRoutes(app:FastifyInstance){
+ app.post('/api/applications',{config:{rateLimit:{max:5,timeWindow:'1 hour'}}},async(req,reply)=>{
+  const raw=applicationSchema.parse(req.body),data={...raw,phone:normalizePhone(raw.phone)};
+  const course=(await pool.query('SELECT id FROM private.courses WHERE id=$1 AND active AND published',[data.course_id])).rows[0];
+  if(!course)fail('INVALID_DATA',400);
+  try{
+   const application=(await pool.query('INSERT INTO private.registration_applications(name,phone,course_id) VALUES($1,$2,$3) RETURNING id,status,created_at',[data.name,data.phone,data.course_id])).rows[0];
+   await audit(pool,null,'application.submitted','application',application.id,{course_id:data.course_id});
+   reply.code(201);return {application};
+  }catch(error:any){if(error?.code==='23505')fail('DUPLICATE',409);throw error;}
+ });
+
+ app.get('/api/admin/applications',async req=>{
+  await readAccess(req);const p=pageParams(req),query=req.query as any,params:unknown[]=[`%${p.q}%`],where=['(a.name ILIKE $1 OR a.phone ILIKE $1 OR c.title ILIKE $1)'];
+  if(query.status)where.push(`a.status=$${params.push(z.enum(['pending','processing','approved','rejected']).parse(query.status))}`);
+  return pageList(req,pool,'private.registration_applications a JOIN private.courses c ON c.id=a.course_id LEFT JOIN private.app_users u ON u.id=a.student_id','a.id,a.name,a.phone,a.course_id,a.status,a.operation_id,a.student_id,a.enrollment_id,a.revision,a.created_at,a.updated_at,a.approved_at,c.title AS course_title,u.name AS student_name',where.join(' AND '),params,'a.created_at DESC,a.id');
+ });
+
+ app.post('/api/admin/applications/:id/approve',async(req,reply)=>{
+  const applicationId=uuid.parse((req.params as any).id),data=approvalSchema.parse(req.body),ctx=await readAccess(req);
+  const prepared=await transaction(async db=>{
+   await freshManagement(db,req,ctx);
+   const application=(await db.query('SELECT * FROM private.registration_applications WHERE id=$1 FOR UPDATE',[applicationId])).rows[0];
+   if(!application)fail('NOT_FOUND',404);
+   if(application.status==='approved')return {application,op:null,created:false,approved:true};
+   if(application.status==='rejected')fail('CONFLICT',409);
+   const intent={operation_id:data.operation_id,application_id:applicationId,name:application.name,phone:application.phone,role:'STUDENT',course_id:application.course_id,identity_verified:true};
+   const intentHash=hash(JSON.stringify(intent));
+   if(application.operation_id&&application.operation_id!==data.operation_id)fail('OPERATION_CONFLICT',409);
+   const old=(await db.query('SELECT * FROM private.auth_operations WHERE id=$1 FOR UPDATE',[data.operation_id])).rows[0];
+   if(old){if(old.actor_id!==ctx.user_id||old.action!=='create_user'||old.request_hash!==intentHash)fail('OPERATION_CONFLICT',409);return {application,op:old,created:false,approved:false};}
+   if((await db.query('SELECT 1 FROM private.app_users WHERE phone=$1',[application.phone])).rowCount)fail('DUPLICATE',409);
+   if((await db.query("SELECT 1 FROM private.auth_operations WHERE phone=$1 AND action='create_user' AND state NOT IN ('failed','completed')",[application.phone])).rowCount)fail('AUTH_PENDING',409);
+   const op=(await db.query("INSERT INTO private.auth_operations(id,actor_id,action,request_hash,phone,name,requested_role,auth_user_id,state,lease_until,attempts) VALUES($1,$2,'create_user',$3,$4,$5,'STUDENT',$6,'inflight',now()+interval '45 seconds',1) RETURNING *",[data.operation_id,ctx.user_id,intentHash,application.phone,application.name,randomUUID()])).rows[0];
+   await db.query("UPDATE private.registration_applications SET status='processing',operation_id=$2,updated_at=now() WHERE id=$1",[applicationId,op.id]);
+   await audit(db,ctx.user_id,'application.approval.started','application',applicationId,{course_id:application.course_id,operation_id:op.id});
+   return {application,op,created:true,approved:false};
+  });
+  if(prepared.approved){reply.code(200);return {status:'completed',application:prepared.application,user:await safeUser(prepared.application.student_id)};}
+  let op=prepared.op;
+  if(!prepared.created){
+   const reconciled=await reconcile(req,ctx,op);op=(await pool.query('SELECT * FROM private.auth_operations WHERE id=$1',[op.id])).rows[0];
+   if(op.state!=='completed'){reply.code(202);return {...reconciled,application:{id:applicationId,status:'processing'}};}
+   const application=await finishApplication(req,ctx,applicationId,op.id);reply.code(200);return {...reconciled,application,user:await safeUser(application.student_id)};
+  }
+  const password=opaque();
+  try{
+   const created=await createAuthUser(prepared.application.phone,password,op.auth_user_id,op.id);
+   if(created.id!==op.auth_user_id)throw new AuthAdminError('AUTH_ID_MISMATCH',true);
+   op=await confirm(req,ctx,op);op=await finish(req,ctx,op);
+   if(op.state!=='completed'){reply.code(202);return {...await operationResponse(op),application:{id:applicationId,status:'processing'}};}
+   const application=await finishApplication(req,ctx,applicationId,op.id);reply.code(201);return {...await operationResponse(op,password),application,user:await safeUser(application.student_id)};
+  }catch(error){op=await operationError(op,error);reply.code(202);return {...await operationResponse(op),application:{id:applicationId,status:'processing'}};}
+ });
+
  app.get('/api/admin/users',async req=>{
   await readAccess(req);const p=pageParams(req),q=req.query as any,params:unknown[]=[`%${p.q}%`],where=["(u.name ILIKE $1 OR u.phone ILIKE $1)"];
   if(q.role){where.push(`u.role=$${params.push(z.enum(['ADMIN','TEACHER','STUDENT']).parse(q.role))}`);}

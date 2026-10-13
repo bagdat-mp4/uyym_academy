@@ -383,6 +383,12 @@ test('playback manifest hides Drive IDs; grants cannot transfer accounts and pau
   assert.equal((await signed(first.b, 'POST', `/api/playback/${grant}/heartbeat`, 'heartbeat', {})).statusCode, 200);
   assert.equal((await signed(second.b, 'GET', `/api/media/${lesson}?grant=${grant}&part=0`, 'media')).statusCode, 403);
   assert.equal((await signed(first.b, 'GET', `/api/media/${foreignLesson}?grant=${grant}&part=0`, 'media')).statusCode, 404);
+  const invalidGrant=await signed(first.b,'GET',`/api/media/${lesson}?grant=${randomUUID()}&part=0`,'media');
+  assert.equal(invalidGrant.statusCode,403);assert.equal(invalidGrant.json().code,'MEDIA_GRANT_EXPIRED');
+  await db.query("update private.playback_grants set heartbeat_at=now()-interval '36 seconds' where id=$1",[grant]);
+  const staleGrant=await signed(first.b,'GET',`/api/media/${lesson}?grant=${grant}&part=0`,'media');
+  assert.equal(staleGrant.statusCode,403);assert.equal(staleGrant.json().code,'MEDIA_GRANT_EXPIRED');
+  await db.query('update private.playback_grants set heartbeat_at=now() where id=$1',[grant]);
   await db.query(`update private.enrollments set status='paused' where user_id=$1 and course_id=$2`, [first.a.id, course]);
   assert.equal((await signed(first.b, 'POST', `/api/playback/${grant}/heartbeat`, 'heartbeat', {})).statusCode, 404);
   assert.equal((await signed(first.b, 'GET', `/api/media/${lesson}?grant=${grant}&part=0`, 'media')).statusCode, 404);
@@ -448,6 +454,41 @@ test('account creation is idempotent; password is one-response only and ADMIN ro
  const b=await browser();assert.equal((await login(b,{...result.user,password:result.temporary_password},result.temporary_password)).statusCode,200);
  assert.equal((await request(b,'POST','/api/proof/challenge',{method:'GET',path:'/api/admin/users',purpose:'api'})).statusCode,403);
  const student=await approvedStudent();assert.equal((await signed(student.b,'GET','/api/admin/users')).statusCode,403);
+});
+
+test('public PP1 application is normalized, approved once, enrolled, and scoped to the selected course',async()=>{
+ const pp1=(await db.query<{id:string}>("select id from private.courses where slug='pp1'")).rows[0].id;
+ const publicBrowser=await browser(),phone=`+7707${String(phoneCounter++).padStart(7,'0')}`;
+ const payload={name:'PP1 application student',phone:phone.replace('+7','8 '),course_id:pp1};
+ const submitted=await request(publicBrowser,'POST','/api/applications',payload);
+ assert.equal(submitted.statusCode,201,submitted.body);assert.equal(submitted.json().application.status,'pending');
+ assert.equal((await request(publicBrowser,'POST','/api/applications',payload)).statusCode,409);
+ assert.equal((await request(publicBrowser,'POST','/api/applications',{phone,course_id:pp1})).statusCode,400);
+ assert.equal((await request(publicBrowser,'POST','/api/applications',{name:'Unknown course',phone:`+7707${String(phoneCounter++).padStart(7,'0')}`,course_id:randomUUID()})).statusCode,400);
+
+ const owner=await administrator();
+ assert.equal((await request(publicBrowser,'GET','/api/admin/applications')).statusCode,401);
+ const list=await signed(owner.b,'GET','/api/admin/applications?page=1&page_size=20&q=PP1');
+ assert.equal(list.statusCode,200,list.body);
+ const application=list.json().items.find((item:any)=>item.id===submitted.json().application.id);assert.ok(application);assert.equal(application.phone,phone);
+ const operationId=randomUUID(),path=`/api/admin/applications/${application.id}/approve`,approval={operation_id:operationId,identity_verified:true};
+ const approved=await signed(owner.b,'POST',path,'api',approval);
+ assert.equal(approved.statusCode,201,approved.body);const result=approved.json();assert.equal(result.application.status,'approved');assert.ok(result.temporary_password);
+ const replay=await signed(owner.b,'POST',path,'api',approval);assert.equal(replay.statusCode,200,replay.body);assert.equal(replay.json().temporary_password,undefined);
+ const secondApproval=await signed(owner.b,'POST',path,'api',{...approval,operation_id:randomUUID()});assert.equal(secondApproval.statusCode,200,secondApproval.body);
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from private.app_users where phone=$1',[phone])).rows[0].n,1);
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from private.enrollments where user_id=$1 and course_id=$2',[result.user.id,pp1])).rows[0].n,1);
+
+ const studentBrowser=await browser(),student={id:result.user.id,phone,password:result.temporary_password};
+ const firstLogin=await login(studentBrowser,student,result.temporary_password);assert.equal(firstLogin.statusCode,200,firstLogin.body);assert.equal(firstLogin.json().user.must_change_password,true);
+ assert.equal((await request(studentBrowser,'POST','/api/auth/change-password',{password:'PP1-changed-password-0123456789'})).statusCode,200);
+ const requests=await signed(owner.b,'GET','/api/admin/device-requests');const pending=requests.json().requests.find((item:any)=>item.phone===phone);assert.ok(pending);
+ assert.equal((await signed(owner.b,'POST',`/api/admin/devices/${pending.id}/approve`,'api',{})).statusCode,200);
+ accounts.get(phone)!.password='PP1-changed-password-0123456789';
+ assert.equal((await login(studentBrowser,student,'PP1-changed-password-0123456789')).statusCode,200);
+ assert.equal((await activate(studentBrowser)).statusCode,200);
+ const courses=await signed(studentBrowser,'GET','/api/courses');assert.equal(courses.statusCode,200,courses.body);assert.deepEqual(courses.json().courses.map((course:any)=>course.id),[pp1]);
+ assert.equal((await signed(studentBrowser,'GET','/api/admin/applications')).statusCode,403);
 });
 
 test('lost Auth create response reconciles the preallocated identity without duplicates or password replay',async()=>{
