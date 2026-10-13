@@ -10,7 +10,7 @@ The app is one Node web service: Fastify serves `dist/client` and `/api` on the 
 
 ## Render web service
 
-Connect the **private** GitHub repository and `main` branch. Use Node 22, build command `npm ci && npm run build`, start command `npm start`, and health check path `/api/health`. Select the region closest to the Supabase database. Start with the temporary `*.onrender.com` URL; keep Name.com unchanged until its HTTPS checks pass. Render Free is suitable only for a preview: it spins down on idle and may suspend for high outbound Drive traffic. The always-on `0.5c-512mb` service is currently $7/month before usage charges; obtain the owner's choice before selecting it.
+Connect the **private** GitHub repository and `main` branch. Use Node 22, build command `npm ci --include=dev && npm run build`, start command `npm start`, and health check path `/api/health`. Select the region closest to the Supabase database. Start with the temporary `*.onrender.com` URL; keep Name.com unchanged until its HTTPS checks pass. Render Free is suitable only for a preview: it spins down on idle and may suspend for high outbound Drive traffic. The always-on `0.5c-512mb` service is currently $7/month before usage charges; obtain the owner's choice before selecting it.
 
 Set these server-only environment variables in Render, never in GitHub or Vite:
 
