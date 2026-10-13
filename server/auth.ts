@@ -1,7 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type pg from 'pg';
 import {pool,transaction} from './db.js';
-import {cookieName,config} from './config.js';
+import {cookieName,config,trustedOrigin} from './config.js';
 import {hash,HttpError,challengePayload,verifyProof} from './security.js';
 export interface Context {
  id:string;user_id:string;device_id:string;auth_epoch:string;csrf_token:string;mfa_verified:boolean;
@@ -23,7 +23,7 @@ export async function context(req:FastifyRequest,db:pg.Pool|pg.PoolClient=pool):
  throw new HttpError(401,'Сессия аяқталды. Қайта кіріңіз');
 }
 export function csrf(req:FastifyRequest,ctx:Context) {
- if(req.headers.origin!==config.origin || req.headers['x-csrf-token']!==ctx.csrf_token)throw new HttpError(403,'Сұрау расталмады');
+ if(!trustedOrigin(req.headers.origin) || req.headers['x-csrf-token']!==ctx.csrf_token)throw new HttpError(403,'Сұрау расталмады');
 }
 export function requireLearning(ctx:Context) {
  if(ctx.kind!=='session')throw new HttpError(403,'Алдымен браузерді растаңыз');

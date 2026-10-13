@@ -5,7 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import {existsSync,createReadStream,readdirSync,statSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {z} from 'zod';
-import {config,ready} from './config.js';
+import {config,ready,trustedOrigin} from './config.js';
 import {pool,transaction,audit} from './db.js';
 import {HttpError,hash,opaque,publicJwk,normalizePhone,challengePayload,decrypt,verifyTotp} from './security.js';
 import {authenticate,setPassword} from './supabase.js';
@@ -26,7 +26,7 @@ await app.register(rateLimit,{max:3000,timeWindow:'1 minute'});
 app.addHook('onRequest',async(req,reply)=>{
  if(req.url.startsWith('/api/'))reply.header('Cache-Control','private, no-store').header('Pragma','no-cache');
  if(req.url.startsWith('/api/')&&req.method!=='GET'&&req.method!=='HEAD') {
-  if(req.headers.origin!==config.origin||!req.headers['content-type']?.startsWith('application/json'))throw new HttpError(403,'Сұрау расталмады');
+  if(!trustedOrigin(req.headers.origin)||!req.headers['content-type']?.startsWith('application/json'))throw new HttpError(403,'Сұрау расталмады');
  }
  if(req.url.startsWith('/api/')&&!req.url.startsWith('/api/public')&&!req.url.startsWith('/api/health')&&!ready())throw new HttpError(503,'Сыртқы қызметтер әлі қосылмаған. Әкімшіге хабарласыңыз');
 });
@@ -37,10 +37,16 @@ app.setErrorHandler((error,req,reply)=>{
  const ruMessage=status===500?'Сервис временно недоступен':error instanceof z.ZodError?'Проверьте данные':status===429?'Слишком много попыток. Повторите позже':(error as any).message_ru||({401:'Сессия завершилась. Войдите снова',403:'Нет разрешения на действие',404:'Запись недоступна',400:'Проверьте данные',409:'Запись изменилась. Обновите список',503:'Внешние сервисы ещё не подключены. Обратитесь к администратору'} as Record<number,string>)[status]||'Запрос не выполнен';
  reply.code(status).send({error:ru?ruMessage:kkMessage,code:(error as any).code|| (error instanceof z.ZodError?'INVALID_DATA':undefined)});
 });
-app.get('/api/health',async()=>({ok:true,stage:'learning-engagement-mvp',configured:ready(),drive_configured:Boolean(config.folders.length&&config.permissionEmails.length&&process.env.GOOGLE_APPLICATION_CREDENTIALS)}));
+app.get('/api/health',async(_req,reply)=>{
+ if(!ready())return reply.code(503).send({ok:false});
+ try{await pool.query('SELECT 1');return {ok:true};}catch{return reply.code(503).send({ok:false});}
+});
 const defaultCourses=[['calculus-i','Calculus I','Туындылар, интегралдар және есептер.'],['linear-algebra','Linear Algebra','Матрицалар, векторлар және сызықтық жүйелер.'],['pp1','PP1 / Principles of Programming I','C++ тіліндегі бағдарламалау негіздері.']].map(([id,title,summary])=>({id,title,summary,price_kzt:60000,weeks:6,lessons:12,hours:18,group_capacity:5}));
 app.get('/api/public',async()=>{
- if(!ready())return {courses:defaultCourses,settings:{whatsapp:'',contact_email:''},configured:false};
+ if(!ready()){
+  if(config.production)throw new HttpError(503,'Сервис уақытша қолжетімсіз');
+  return {courses:defaultCourses,settings:{whatsapp:'',contact_email:''},configured:false};
+ }
  const {rows}=await pool.query('SELECT id,title,description AS summary,price_kzt,weeks,weeks*lessons_per_week AS lessons,weeks*lessons_per_week*lesson_minutes/60.0 AS hours,default_group_size AS group_capacity FROM private.courses WHERE active AND published ORDER BY created_at');
  const row=(await pool.query('SELECT title,contacts,teachers_public,faq FROM private.site_settings WHERE id=true')).rows[0];
  const settings={...row?.contacts,title:row?.title,teachers_public:row?.teachers_public||[],faq:row?.faq||[]};
@@ -198,11 +204,14 @@ registerAcademicRoutes(app);
 registerContentRoutes(app);
 registerSubmissionRoutes(app);
 registerEngagementRoutes(app);
-// Only exact build filenames are registered, never filesystem paths from an HTTP request.
-// No directory listings, arbitrary paths, private files, or SPA fallback for unknown URLs.
+// Serve only known build files; navigation fallback always returns the fixed index file.
 const dist=resolve('dist/client');if(existsSync(dist)) {
  const files:[string,string,string][]=[['/','index.html','text/html; charset=utf-8'],['/brand.png','brand.png','image/png']];
  const assets=resolve(dist,'assets');if(existsSync(assets))for(const name of readdirSync(assets))if(/^[A-Za-z0-9_-]+\.(js|css)$/.test(name)&&statSync(resolve(assets,name)).isFile())files.push([`/assets/${name}`,`assets/${name}`,name.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8']);
  for(const [url,file,mime] of files)if(existsSync(resolve(dist,file)))app.get(url,async(_req,reply)=>reply.type(mime).send(createReadStream(resolve(dist,file))));
 }
-app.setNotFoundHandler((_req,reply)=>reply.code(404).send({error:'Endpoint табылмады'}));
+app.setNotFoundHandler((req,reply)=>{
+ const path=req.url.split('?')[0];
+ if(existsSync(resolve(dist,'index.html'))&&req.method==='GET'&&req.headers.accept?.includes('text/html')&&!path.startsWith('/api/')&&!path.startsWith('/assets/')&&!path.includes('.')&&!path.includes('\\'))return reply.type('text/html; charset=utf-8').send(createReadStream(resolve(dist,'index.html')));
+ return reply.code(404).send({error:'Endpoint табылмады'});
+});
