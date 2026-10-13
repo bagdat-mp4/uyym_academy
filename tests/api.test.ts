@@ -491,6 +491,35 @@ test('public PP1 application is normalized, approved once, enrolled, and scoped 
  assert.equal((await signed(studentBrowser,'GET','/api/admin/applications')).statusCode,403);
 });
 
+test('owner can reject a pending application without creating an account, then applicant may resubmit',async()=>{
+ const pp1=(await db.query<{id:string}>("select id from private.courses where slug='pp1'")).rows[0].id;
+ const phone=`+7707${String(phoneCounter++).padStart(7,'0')}`;
+ const publicBrowser=await browser(),payload={name:'Rejected PP1 test',phone,course_id:pp1};
+ const submitted=await request(publicBrowser,'POST','/api/applications',payload);
+ assert.equal(submitted.statusCode,201,submitted.body);
+ const first=submitted.json().application;
+ const owner=await administrator(),student=await approvedStudent();
+ const path=`/api/admin/applications/${first.id}/reject`;
+ const body={operation_id:randomUUID(),revision:1};
+ assert.equal((await signed(student.b,'POST',path,'api',body)).statusCode,403);
+ assert.equal((await signed(owner.b,'POST',path,'api',{...body,revision:2})).statusCode,409);
+ const rejected=await signed(owner.b,'POST',path,'api',body);
+ assert.equal(rejected.statusCode,200,rejected.body);
+ assert.equal(rejected.json().ok,true);
+ assert.equal((await db.query<{status:string}>('select status from private.registration_applications where id=$1',[first.id])).rows[0].status,'rejected');
+ const replay=await signed(owner.b,'POST',path,'api',body);
+ assert.equal(replay.statusCode,200,replay.body);
+ assert.equal(replay.json().replayed,true);
+ assert.equal((await signed(owner.b,'POST',path,'api',{operation_id:randomUUID(),revision:1})).statusCode,409);
+ assert.equal((await db.query<{n:number}>("select count(*)::int as n from private.audit_log where action='application.rejected' and target_id=$1",[first.id])).rows[0].n,1);
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from private.app_users where phone=$1',[phone])).rows[0].n,0);
+ assert.equal((await db.query<{n:number}>('select count(*)::int as n from private.enrollments e join private.app_users u on u.id=e.user_id where u.phone=$1',[phone])).rows[0].n,0);
+ const resubmitted=await request(publicBrowser,'POST','/api/applications',payload);
+ assert.equal(resubmitted.statusCode,201);
+ const secondPath=`/api/admin/applications/${resubmitted.json().application.id}/reject`;
+ assert.equal((await signed(owner.b,'POST',secondPath,'api',body)).statusCode,409);
+});
+
 test('lost Auth create response reconciles the preallocated identity without duplicates or password replay',async()=>{
  const owner=await administrator(),body={operation_id:randomUUID(),name:'Lost response fixture',phone:`+7707${String(phoneCounter++).padStart(7,'0')}`,role:'TEACHER',identity_verified:true};
  authFailure='create-after';const pending=await signed(owner.b,'POST','/api/admin/users','api',body);assert.equal(pending.statusCode,202,pending.body);assert.equal(pending.json().status,'reconcile_required');

@@ -88,9 +88,15 @@ function ApplicationApprovalDialog({ row, lang, onClose, onSaved }: { row: Row; 
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [operationId] = useState(() => value(row, 'operation_id') || newOperation());
+    const [rejectOperationId] = useState(newOperation);
     const submit = (event: FormEvent) => {
         event.preventDefault(); setBusy(true); setError('');
         void managementMutation<Record<string, unknown>>(`/api/admin/applications/${row.id}/approve`, { operation_id: operationId, identity_verified: true })
+            .then(onSaved).catch(reason => setError(message(reason))).finally(() => setBusy(false));
+    };
+    const reject = () => {
+        setBusy(true); setError('');
+        void managementMutation<Record<string, unknown>>(`/api/admin/applications/${row.id}/reject`, { operation_id: rejectOperationId, revision: Number(row.revision) })
             .then(onSaved).catch(reason => setError(message(reason))).finally(() => setBusy(false));
     };
     return <Dialog title={tr(lang, ['Курс өтінімін мақұлдау', 'Одобрить заявку на курс'])} lang={lang} onClose={onClose} busy={busy}>
@@ -99,7 +105,7 @@ function ApplicationApprovalDialog({ row, lang, onClose, onSaved }: { row: Row; 
             <p className="form-help">{tr(lang, ['Телефон иесін бар жеке байланыс арқылы тексеріңіз. Мақұлдаудан кейін оқушы аккаунты мен таңдалған курсқа 6 апталық қолжетімділік жасалады.', 'Проверьте владельца номера через существующий личный контакт. После одобрения создаются аккаунт ученика и доступ к выбранному курсу на срок программы.'])}</p>
             <label className="checkbox-field"><input type="checkbox" checked={verified} onChange={event => setVerified(event.target.checked)} required/>{tr(lang, ['Жеке басын және өтінімді тексердім', 'Я проверил личность и заявку'])}</label>
             <Notice error={error}/>
-            <div className="manage-dialog-actions"><button className="button button-yellow" disabled={busy || !verified}>{busy ? tr(lang, ['Өңделуде…', 'Обрабатываем…']) : tr(lang, ['Аккаунт пен қолжетімділік жасау', 'Создать аккаунт и доступ'])}</button><button type="button" className="button button-outline" disabled={busy} onClick={onClose}>{tr(lang, ['Бас тарту', 'Отмена'])}</button></div>
+            <div className="manage-dialog-actions"><button className="button button-yellow" disabled={busy || !verified}>{busy ? tr(lang, ['Өңделуде…', 'Обрабатываем…']) : tr(lang, ['Аккаунт пен қолжетімділік жасау', 'Создать аккаунт и доступ'])}</button>{row.status === 'pending' && <button type="button" className="button button-outline" disabled={busy} onClick={reject}>{tr(lang, ['Өтінімді қабылдамау', 'Отклонить заявку'])}</button>}<button type="button" className="button button-outline" disabled={busy} onClick={onClose}>{tr(lang, ['Бас тарту', 'Отмена'])}</button></div>
         </form>
     </Dialog>;
 }

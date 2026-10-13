@@ -126,6 +126,19 @@ export function registerAccountRoutes(app:FastifyInstance){
   return pageList(req,pool,'private.registration_applications a JOIN private.courses c ON c.id=a.course_id LEFT JOIN private.app_users u ON u.id=a.student_id','a.id,a.name,a.phone,a.course_id,a.status,a.operation_id,a.student_id,a.enrollment_id,a.revision,a.created_at,a.updated_at,a.approved_at,c.title AS course_title,u.name AS student_name',where.join(' AND '),params,'a.created_at DESC,a.id');
  });
 
+ app.post('/api/admin/applications/:id/reject',async req=>{
+  const applicationId=uuid.parse((req.params as any).id);
+  const data=z.object({operation_id:uuid,revision:z.number().int().min(1)}).strict().parse(req.body);
+  return managementMutation(req,'application.reject',{...data,application_id:applicationId},async(db,ctx)=>{
+   const application=(await db.query('SELECT id,status,revision FROM private.registration_applications WHERE id=$1 FOR UPDATE',[applicationId])).rows[0];
+   if(!application)fail('NOT_FOUND',404);
+   if(application.status!=='pending'||Number(application.revision)!==data.revision)fail('CONFLICT',409);
+   const rejected=(await db.query("UPDATE private.registration_applications SET status='rejected',updated_at=now() WHERE id=$1 RETURNING id,revision",[applicationId])).rows[0];
+   await audit(db,ctx.user_id,'application.rejected','application',applicationId,{});
+   return {id:rejected.id,ok:true,revision:Number(rejected.revision)};
+  });
+ });
+
  app.post('/api/admin/applications/:id/approve',async(req,reply)=>{
   const applicationId=uuid.parse((req.params as any).id),data=approvalSchema.parse(req.body),ctx=await readAccess(req);
   const prepared=await transaction(async db=>{
