@@ -499,5 +499,6 @@
   "Доступ проверяется перед каждой новой частью. Уже полученный буфер нельзя отозвать; запись экрана полностью предотвратить нельзя. Это не DRM.": "Access is checked before every new part. Already buffered video cannot be revoked, and screen recording cannot be fully prevented. This is not DRM.",
   "Время ожидания истекло. Проверьте соединение и повторите попытку.": "The request timed out. Check your connection and try again.",
   "Свернуть": "Exit fullscreen",
-  "Этот аккаунт зарегистрирован в другом браузере. Для замены обратитесь к администратору.": "This account is registered to another browser. Contact the administrator to replace it."
+  "Этот аккаунт зарегистрирован в другом браузере. Для замены обратитесь к администратору.": "This account is registered to another browser. Contact the administrator to replace it.",
+  "Записаться": "Enroll"
 }
