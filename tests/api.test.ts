@@ -175,6 +175,102 @@ async function administrator() {
   return { a, b, secret, counter };
 }
 
+test('additional ADMIN invitation requires owner proof, identity consent and fresh TOTP; it grants no provisional rights',async()=>{
+ const owner=await administrator(),target=await approvedStudent();
+ const path=`/api/admin/users/${target.a.id}/admin-invitation`;
+ const {totp}=await import('../server/security.js');
+ const body={operation_id:randomUUID(),identity_verified:true,full_access_confirmed:true,code:totp(owner.secret,owner.counter+1)};
+ assert.equal((await request(await browser(),'POST',path,body)).statusCode,401);
+ assert.equal((await signed(target.b,'POST',path,'api',body)).statusCode,403);
+ assert.equal((await request(owner.b,'POST',path,body)).statusCode,403);
+ assert.equal((await signed(owner.b,'POST',path,'api',{...body,identity_verified:false})).statusCode,400);
+ assert.equal((await signed(owner.b,'POST',path,'api',{...body,code:totp(owner.secret,owner.counter)})).statusCode,403,'sign-in code cannot be replayed for an invitation');
+ assert.equal((await signed(owner.b,'POST',path,'api',body)).statusCode,200);
+ assert.equal((await signed(owner.b,'POST',path,'api',body)).json().replayed,true,'same operation is an acknowledgement only');
+ const row=(await db.query<{role:string;admin_totp_secret_encrypted:string|null}>('SELECT role,admin_totp_secret_encrypted FROM private.app_users WHERE id=$1',[target.a.id])).rows[0];
+ assert.equal(row.role,'STUDENT');assert.equal(row.admin_totp_secret_encrypted,null);
+ assert.equal((await signed(target.b,'GET','/api/admin/users')).statusCode,403);
+ const receipts=await db.query<{response:any;count:number}>("SELECT response FROM private.mutation_receipts WHERE operation_id=$1",[body.operation_id]);
+ assert.deepEqual(receipts.rows[0].response,{id:body.operation_id,user_id:target.a.id,status:'pending'});
+ assert.equal((await signed(owner.b,'GET','/api/admin/users')).statusCode,200,'owner remains signed in');
+});
+
+test('recipient confirms own TOTP before ADMIN, old sessions are revoked, recovery codes are one-response hashes and owner remains usable',async()=>{
+ const owner=await administrator(),target=await approvedStudent();const {totp,decrypt,verifyTotp}=await import('../server/security.js');
+ const path=`/api/admin/users/${target.a.id}/admin-invitation`;
+ assert.equal((await signed(owner.b,'POST',path,'api',{operation_id:randomUUID(),identity_verified:true,full_access_confirmed:true,code:totp(owner.secret,owner.counter+1)})).statusCode,200);
+ assert.equal((await signed(target.b,'GET','/api/account/admin-invitation')).json().pending,true);
+ const setupResponse=await signed(target.b,'POST','/api/account/admin-invitation/setup','api',{});
+ assert.equal(setupResponse.statusCode,200);assert.match(String(setupResponse.headers['cache-control']),/no-store/);
+ const setup=setupResponse.json();assert.match(setup.secret,/^[A-Z2-7]{32}$/);assert.ok(!setup.setup_token.includes(setup.secret));
+ const copied=await browser();copied.cookies=new Map(target.b.cookies);copied.csrf=target.b.csrf;
+ assert.equal((await signed(copied,'POST','/api/account/admin-invitation/setup','api',{})).statusCode,403);
+ const wrongRecipient=await approvedStudent();
+ const code=totp(setup.secret,Math.floor(Date.now()/30000));
+ const body={setup_token:setup.setup_token,code,full_access_confirmed:true};
+ assert.equal((await signed(wrongRecipient.b,'POST','/api/account/admin-invitation/confirm','api',body)).statusCode,403);
+ let wrong='000000';while(verifyTotp(setup.secret,wrong,-1)!==null)wrong=String(Number(wrong)+1).padStart(6,'0');
+ assert.equal((await signed(target.b,'POST','/api/account/admin-invitation/confirm','api',{...body,code:wrong})).statusCode,403);
+ const oldCookies=new Map(target.b.cookies);
+ const confirm=await signed(target.b,'POST','/api/account/admin-invitation/confirm','api',body);
+ assert.equal(confirm.statusCode,200,confirm.body);assert.equal(confirm.json().recovery_codes.length,10);
+ const row=(await db.query<any>('SELECT * FROM private.app_users WHERE id=$1',[target.a.id])).rows[0];
+ assert.equal(row.role,'ADMIN');assert.equal(decrypt(row.admin_totp_secret_encrypted,process.env.ADMIN_ENCRYPTION_KEY!),setup.secret);
+ for(const recovery of confirm.json().recovery_codes){assert.ok(row.recovery_hashes.includes(sha(recovery)));assert.ok(!JSON.stringify(row).includes(recovery));}
+ const revoked=(await db.query<{count:number}>('SELECT count(*)::integer AS count FROM private.app_sessions WHERE user_id=$1 AND revoked_at IS NULL',[target.a.id])).rows[0];assert.equal(revoked.count,0);
+ const stale=await browser();stale.cookies=oldCookies;assert.equal((await request(stale,'GET','/api/admin/users')).statusCode,401);
+ const ledger=(await db.query<any>("SELECT metadata FROM private.audit_log WHERE target_id=$1",[target.a.id])).rows;
+ assert.ok(!JSON.stringify(ledger).includes(setup.secret));assert.ok(!JSON.stringify(ledger).includes(setup.setup_token));
+ assert.equal((await signed(owner.b,'GET','/api/admin/users')).statusCode,200);
+ assert.equal((await login(target.b,target.a)).statusCode,200);
+ assert.equal((await request(target.b,'POST','/api/auth/totp',{code})).statusCode,403,'setup counter cannot replay at sign-in');
+ assert.equal((await request(target.b,'POST','/api/auth/totp',{code:totp(setup.secret,Math.floor(Date.now()/30000)+1)})).statusCode,200);
+ assert.equal((await activate(target.b)).statusCode,200);
+ assert.equal((await signed(target.b,'GET','/api/admin/users')).statusCode,200);
+});
+
+test('cancelled ADMIN invitation rejects even an issued setup token; no account role or owner TOTP key changes',async()=>{
+ const owner=await administrator(),target=await approvedStudent();const {totp}=await import('../server/security.js');
+ const path=`/api/admin/users/${target.a.id}/admin-invitation`;
+ await signed(owner.b,'POST',path,'api',{operation_id:randomUUID(),identity_verified:true,full_access_confirmed:true,code:totp(owner.secret,owner.counter+1)});
+ const setup=(await signed(target.b,'POST','/api/account/admin-invitation/setup','api',{})).json();
+ assert.equal((await signed(owner.b,'POST',path+'/cancel','api',{operation_id:randomUUID()})).statusCode,200);
+ assert.equal((await signed(target.b,'GET','/api/account/admin-invitation')).json().pending,false);
+ assert.equal((await signed(target.b,'POST','/api/account/admin-invitation/confirm','api',{setup_token:setup.setup_token,code:totp(setup.secret,Math.floor(Date.now()/30000)),full_access_confirmed:true})).statusCode,403);
+ assert.equal((await db.query<any>('SELECT role FROM private.app_users WHERE id=$1',[target.a.id])).rows[0].role,'STUDENT');
+ assert.equal((await signed(owner.b,'GET','/api/admin/users')).statusCode,200);
+});
+
+test('expired invitation, expired setup, tampered setup and pending browser fail closed',async()=>{
+ const owner=await administrator(),target=await approvedStudent();const {totp,encrypt,decrypt}=await import('../server/security.js');
+ const path=`/api/admin/users/${target.a.id}/admin-invitation`;
+ await signed(owner.b,'POST',path,'api',{operation_id:randomUUID(),identity_verified:true,full_access_confirmed:true,code:totp(owner.secret,owner.counter+1)});
+ const setup=(await signed(target.b,'POST','/api/account/admin-invitation/setup','api',{})).json();
+ const payload=JSON.parse(decrypt(setup.setup_token,process.env.ADMIN_ENCRYPTION_KEY!));payload.expires_at=Date.now()-1000;
+ for(const token of [encrypt(JSON.stringify(payload),process.env.ADMIN_ENCRYPTION_KEY!),setup.setup_token.slice(0,-8)+'AAAAAAAA']){
+  assert.equal((await signed(target.b,'POST','/api/account/admin-invitation/confirm','api',{setup_token:token,code:'000000',full_access_confirmed:true})).statusCode,403);
+ }
+ const expired=await approvedStudent();
+ await db.query(`INSERT INTO private.mutation_receipts(operation_id,actor_id,action,request_hash,response,created_at) VALUES($1,$2,'admin.invited',$3,$4,now()-interval '25 hours')`,[randomUUID(),owner.a.id,sha('expired-fixture'),JSON.stringify({user_id:expired.a.id,status:'pending'})]);
+ assert.equal((await signed(expired.b,'GET','/api/account/admin-invitation')).json().pending,false);
+ assert.equal((await signed(expired.b,'POST','/api/account/admin-invitation/setup','api',{})).statusCode,403);
+ const pending=await account(),b=await browser();await login(b,pending);
+ assert.equal((await request(b,'POST','/api/account/admin-invitation/setup',{})).statusCode,403);
+});
+
+test('ADMIN setup cannot move to a new session and an inactive inviter cannot authorize promotion',async()=>{
+ const owner=await administrator(),target=await approvedStudent();const {totp}=await import('../server/security.js');
+ const path=`/api/admin/users/${target.a.id}/admin-invitation`;
+ await signed(owner.b,'POST',path,'api',{operation_id:randomUUID(),identity_verified:true,full_access_confirmed:true,code:totp(owner.secret,owner.counter+1)});
+ const setup=(await signed(target.b,'POST','/api/account/admin-invitation/setup','api',{})).json();
+ await signed(target.b,'POST','/api/auth/logout','api',{});await login(target.b,target.a);await activate(target.b);
+ assert.equal((await signed(target.b,'POST','/api/account/admin-invitation/confirm','api',{setup_token:setup.setup_token,code:totp(setup.secret,Math.floor(Date.now()/30000)),full_access_confirmed:true})).statusCode,403);
+ const fresh=(await signed(target.b,'POST','/api/account/admin-invitation/setup','api',{})).json();
+ await db.query('UPDATE private.app_users SET active=false WHERE id=$1',[owner.a.id]);
+ assert.equal((await signed(target.b,'POST','/api/account/admin-invitation/confirm','api',{setup_token:fresh.setup_token,code:totp(fresh.secret,Math.floor(Date.now()/30000)),full_access_confirmed:true})).statusCode,403);
+ assert.equal((await db.query<any>('SELECT role FROM private.app_users WHERE id=$1',[target.a.id])).rows[0].role,'STUDENT');
+});
+
 test('temporary-password login exposes setup only; password change still cannot approve browser', async () => {
   const a = await account('STUDENT', true), b = await browser();
   const response = await login(b, a);

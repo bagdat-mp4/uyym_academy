@@ -17,6 +17,7 @@ import {freshManagement} from './management.js';
 import {registerContentRoutes} from './content.js';
 import {registerSubmissionRoutes} from './submissions.js';
 import {registerEngagementRoutes} from './engagement.js';
+import {registerAdminInvitationRoutes} from './admin-invitations.js';
 import {publicFaq} from '../shared/public-faq.js';
 const uuid=z.string().uuid();
 // Five 5 MB files expand to roughly 33.4 MB in base64 JSON.
@@ -207,6 +208,7 @@ registerAcademicRoutes(app);
 registerContentRoutes(app);
 registerSubmissionRoutes(app);
 registerEngagementRoutes(app);
+registerAdminInvitationRoutes(app);
 // Serve only known build files; navigation fallback always returns the fixed index file.
 const dist=resolve('dist/client');if(existsSync(dist)) {
  const files:[string,string,string][]=[['/','index.html','text/html; charset=utf-8'],['/brand.png','brand.png','image/png']];
