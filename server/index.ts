@@ -17,6 +17,7 @@ import {freshManagement} from './management.js';
 import {registerContentRoutes} from './content.js';
 import {registerSubmissionRoutes} from './submissions.js';
 import {registerEngagementRoutes} from './engagement.js';
+import {registerDiagnosticRoutes} from './diagnostics.js';
 const uuid=z.string().uuid();
 // Five 5 MB files expand to roughly 33.4 MB in base64 JSON.
 export const app=Fastify({logger:false,bodyLimit:40*1024*1024,trustProxy:config.trustProxy?['127.0.0.1','::1']:false});
@@ -200,6 +201,7 @@ async function adminMutation(req:any,fn:(db:import('pg').PoolClient,ctx:any)=>Pr
 app.post('/api/admin/devices/:id/approve',async(req)=>{await adminMutation(req,async(db,ctx)=>{await db.query('SELECT * FROM private.approve_device($1,$2)',[ctx.user_id,uuid.parse((req.params as any).id)]);});return {ok:true,relogin_required:true};});
 app.post('/api/admin/users/:id/revoke-device',async(req)=>{await adminMutation(req,async(db,ctx)=>{await db.query('SELECT private.revoke_device($1,$2)',[ctx.user_id,uuid.parse((req.params as any).id)]);});return {ok:true};});
 registerAccountRoutes(app);
+registerDiagnosticRoutes(app);
 registerAcademicRoutes(app);
 registerContentRoutes(app);
 registerSubmissionRoutes(app);

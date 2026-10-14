@@ -58,6 +58,66 @@ test('management lists require both role and device proof, use bounded paginatio
  assert.equal((await signed(owner,'GET','/api/admin/courses?page_size=101')).statusCode,400);
 });
 
+test('temporary Auth diagnostic denies anonymous, non-admin, missing proof and missing TOTP without remote calls',async()=>{
+ const originalFetch=globalThis.fetch;let calls=0;
+ globalThis.fetch=async()=>{calls++;throw new Error('No remote request expected');};
+ try {
+  const path='/api/admin/diagnostics/auth';
+  assert.equal((await app.inject({method:'GET',url:path})).statusCode,401);
+  assert.equal((await raw(owner,'GET',path)).statusCode,403);
+  for(const role of ['STUDENT','TEACHER'])assert.equal((await signed(await actor(role),'GET',path)).statusCode,403);
+  const noTotp=await actor('ADMIN');
+  const challenge=await raw(noTotp,'POST','/api/proof/challenge',{method:'GET',path,purpose:'api',body_hash:sha('')});
+  assert.equal(challenge.statusCode,200);
+  const c=challenge.json(),signature=await webcrypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},noTotp.key.privateKey,new TextEncoder().encode(c.payload));
+  await db.query('UPDATE private.app_sessions SET mfa_verified=false WHERE id=$1',[noTotp.session]);
+  assert.equal((await raw(noTotp,'GET',path,undefined,{'x-proof-id':c.id,'x-device-proof':Buffer.from(signature).toString('base64url')})).statusCode,403);
+  assert.equal(calls,0);
+ }finally{globalThis.fetch=originalFetch;}
+});
+
+test('temporary Auth diagnostic performs only one remote GET and preserves all business and Auth data',async()=>{
+ const originalFetch=globalThis.fetch;const calls:{url:string;method:string}[]=[];
+ const tables=(await db.query<{table_name:string}>("SELECT table_name FROM information_schema.tables WHERE table_schema IN ('private','auth') AND table_type='BASE TABLE' ORDER BY table_schema,table_name")).rows;
+ // Proof validation must consume its one-time nonce; that security bookkeeping
+ // is intentionally excluded. Every other stored row must remain unchanged.
+ const snapshot=async()=>{
+  const result:Record<string,unknown>={};
+  for(const {table_name} of tables){
+   if(table_name==='challenges')continue;
+   const schema=table_name==='users'?'auth':'private';
+   result[schema+'.'+table_name]=(await db.query(`SELECT to_jsonb(t) AS row FROM ${schema}."${table_name}" t ORDER BY to_jsonb(t)::text`)).rows;
+  }
+  return result;
+ };
+ globalThis.fetch=async(input,init)=>{
+  calls.push({url:String(input),method:init?.method??'GET'});
+  assert.equal(String(input),`https://auth-management-test.example/auth/v1/admin/users/${owner.id}`);
+  assert.equal(init?.method,'GET');assert.equal(init?.body,undefined);
+  assert.equal((init?.headers as Record<string,string>).apikey,'test-service');
+  return new Response(JSON.stringify({id:owner.id,phone:'sensitive-fixture',app_metadata:{secret:'not-for-client'}}),{status:200});
+ };
+ try {
+  const before=await snapshot();
+  const response=await signed(owner,'GET','/api/admin/diagnostics/auth');
+  assert.equal(response.statusCode,200);assert.deepEqual(response.json(),{ok:true});
+  assert.match(String(response.headers['cache-control']),/no-store/);
+  assert.equal(calls.length,1);assert.deepEqual(await snapshot(),before);
+ }finally{globalThis.fetch=originalFetch;}
+});
+
+test('temporary Auth diagnostic hides remote errors and preserves data on failure',async()=>{
+ const originalFetch=globalThis.fetch;
+ const before=(await db.query('SELECT to_jsonb(u) AS row FROM private.app_users u ORDER BY id')).rows;
+ globalThis.fetch=async()=>{throw new Error('sensitive-provider-url-and-secret');};
+ try {
+  const response=await signed(owner,'GET','/api/admin/diagnostics/auth');
+  assert.equal(response.statusCode,503);
+  assert.deepEqual(response.json(),{error:'Проверка Auth не выполнена. Повторите позже.'});
+  assert.deepEqual((await db.query('SELECT to_jsonb(u) AS row FROM private.app_users u ORDER BY id')).rows,before);
+ }finally{globalThis.fetch=originalFetch;}
+});
+
 test('course create is idempotent, altered operation payload conflicts, PATCH omitted defaults stay unchanged',async()=>{
  const operation_id=randomUUID(),body={operation_id,slug:`idempotent-${randomUUID()}`,title:'Idempotent fixture',active:false,published:false,price_kzt:73500,weeks:8};
  const first=await signed(owner,'POST','/api/admin/courses',body);assert.equal(first.statusCode,200,first.body);const row=first.json();
