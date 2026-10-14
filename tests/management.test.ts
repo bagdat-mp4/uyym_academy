@@ -58,6 +58,24 @@ test('management lists require both role and device proof, use bounded paginatio
  assert.equal((await signed(owner,'GET','/api/admin/courses?page_size=101')).statusCode,400);
 });
 
+test('English API errors stay generic and authenticated routes remain protected',async()=>{
+ const response=await app.inject({method:'GET',url:'/api/admin/courses',headers:{'accept-language':'en'}});
+ assert.equal(response.statusCode,401);
+ assert.equal(response.json().error,'Sign-in or session verification failed. Check your details or contact the administrator.');
+ assert.ok(!response.body.includes('postgres')&&!response.body.includes('SUPABASE'));
+});
+
+test('public API hides the legacy affiliation FAQ from stored settings without changing stored data',async()=>{
+ const previous=(await db.query<{faq:unknown}>('SELECT faq FROM private.site_settings WHERE id=true')).rows[0].faq;
+ const faq=[{question:'UYYM Academy — официальный проект КБТУ?',answer:'Официальное партнёрство с КБТУ не заявлено.'},{question:'Owner question',answer:'Owner answer stays verbatim'}];
+ await db.query('UPDATE private.site_settings SET faq=$1::jsonb WHERE id=true',[JSON.stringify(faq)]);
+ try {
+  const response=await app.inject({method:'GET',url:'/api/public'});
+  assert.equal(response.statusCode,200);assert.deepEqual(response.json().settings.faq,[faq[1]]);
+  assert.deepEqual((await db.query<{faq:unknown}>('SELECT faq FROM private.site_settings WHERE id=true')).rows[0].faq,faq);
+ }finally{await db.query('UPDATE private.site_settings SET faq=$1::jsonb WHERE id=true',[JSON.stringify(previous)]);}
+});
+
 test('course create is idempotent, altered operation payload conflicts, PATCH omitted defaults stay unchanged',async()=>{
  const operation_id=randomUUID(),body={operation_id,slug:`idempotent-${randomUUID()}`,title:'Idempotent fixture',active:false,published:false,price_kzt:73500,weeks:8};
  const first=await signed(owner,'POST','/api/admin/courses',body);assert.equal(first.statusCode,200,first.body);const row=first.json();

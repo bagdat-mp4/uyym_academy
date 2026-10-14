@@ -1,0 +1,813 @@
+/* Dark overrides for existing light surfaces and typography. */
+html[data-theme="dark"] :root {
+    color: #c6d8ff;
+    background: #1b273b
+}
+html[data-theme="dark"] .announcement-right {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .site-header {
+    border-bottom: 1px solid #41516b
+}
+html[data-theme="dark"] .desktop-nav a {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .language-button {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .button-yellow {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .button-yellow:hover:not(:disabled) {
+    background: #453d25
+}
+html[data-theme="dark"] .button-outline {
+    color: #c6d8ff;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .button-outline:hover:not(:disabled) {
+    background: #1b273b
+}
+html[data-theme="dark"] .button-white {
+    background: #1b273b
+}
+html[data-theme="dark"] .hero-description {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .hero-details {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .hero-details .icon {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .orbit {
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .orbit-two {
+    border-color: #41516b
+}
+html[data-theme="dark"] .math-sheet {
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .sheet-kicker {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .sheet-note {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .algebra-sheet {
+    background: #453d25
+}
+html[data-theme="dark"] .algebra-sheet .sheet-kicker {
+    color: #f3dda0
+}
+html[data-theme="dark"] .matrix-equation {
+    color: #f3dda0
+}
+html[data-theme="dark"] .code-sheet {
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .code-sheet .sheet-kicker {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .code-sheet code span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .code-sheet code em {
+    color: #b9c7dc
+}
+html[data-theme="dark"] .illustration-caption {
+    color: #b9c7dc
+}
+html[data-theme="dark"] .yellow-spark {
+    color: #f3dda0
+}
+html[data-theme="dark"] .exam-band {
+    background: #1b273b;
+    border-top: 1px solid #41516b;
+    border-bottom: 1px solid #41516b
+}
+html[data-theme="dark"] .exam-band span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .exam-band .container > div {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .exam-band i {
+    color: #f3dda0
+}
+html[data-theme="dark"] .muted-heading {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-card {
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .course-number {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-category {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-symbol {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-1 .course-symbol {
+    background: #453d25;
+    color: #f3dda0
+}
+html[data-theme="dark"] .course-2 .course-symbol {
+    background: #1b273b;
+    color: #b9c7dc
+}
+html[data-theme="dark"] .course-card > p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-meta span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-meta .icon {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-bottom {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .course-bottom small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .section-footnote {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .format-section {
+    background: #1b273b
+}
+html[data-theme="dark"] .format-title > p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .format-facts > div + div {
+    border-left: 1px solid #41516b
+}
+html[data-theme="dark"] .format-facts span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .step-number {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .format-step h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .format-step p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .access-panel {
+    color: #ffffff
+}
+html[data-theme="dark"] .access-icon {
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .access-panel h2 {
+    color: #ffffff
+}
+html[data-theme="dark"] .access-panel .eyebrow {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .access-panel p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .teacher-grid > div > p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .teacher-empty {
+    border: 1px dashed #41516b;
+    background: #1b273b
+}
+html[data-theme="dark"] .teacher-empty > .icon {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .teacher-empty h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .teacher-empty p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .faq-section {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .faq-grid > div > p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .faq-list details {
+    border-bottom: 1px solid #41516b
+}
+html[data-theme="dark"] .faq-list details:first-child {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .faq-list summary {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .faq-list summary span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .faq-list details p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .contact-grid .eyebrow {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .contact-grid p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .contact-actions .button-yellow:disabled {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .poc-notice {
+    color: #c6d8ff
+}
+html[data-theme="dark"] footer {
+    background: #1b273b;
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .footer-top p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .footer-top .text-link {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .footer-bottom {
+    border-top: 1px solid #41516b;
+    color: #b9c7dc
+}
+html[data-theme="dark"] .modal {
+    background: #1b273b
+}
+html[data-theme="dark"] .modal-close {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .modal > p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .modal-info {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .inline-notice {
+    border: 1px solid #41516b;
+    background: #1b273b
+}
+html[data-theme="dark"] .account-main {
+    background: #1b273b
+}
+html[data-theme="dark"] .account-breadcrumb {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .account-breadcrumb button {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .account-breadcrumb > span:first-of-type {
+    color: #b9c7dc
+}
+html[data-theme="dark"] .poc-badge {
+    background: #1b273b;
+    border: 1px solid #41516b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .auth-story h1 span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .auth-story > p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .auth-security {
+    border-top: 1px solid #41516b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .auth-story > small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .auth-card {
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .auth-card h2 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .auth-card > p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] label {
+    color: #c6d8ff
+}
+html[data-theme="dark"] input {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] input::placeholder {
+    color: #b9c7dc
+}
+html[data-theme="dark"] .form-help {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .alert-error {
+    color: #b9c7dc;
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .alert-success {
+    color: #b9c7dc;
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .alert-warning {
+    color: #f3dda0;
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .dashboard-heading h1 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .dashboard-heading .button {
+    background: #1b273b
+}
+html[data-theme="dark"] .gate-card {
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .gate-icon {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .gate-card h2 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .gate-card > p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .status-pill {
+    color: #f3dda0;
+    background: #1b273b
+}
+html[data-theme="dark"] .device-label {
+    color: #c6d8ff;
+    border: 1px solid #41516b;
+    background: #1b273b
+}
+html[data-theme="dark"] .privacy-note {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .dashboard-security {
+    background: #1b273b;
+    color: #b9c7dc;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .small-dot {
+    background: #1b273b
+}
+html[data-theme="dark"] .dashboard-security strong {
+    color: #b9c7dc
+}
+html[data-theme="dark"] .dashboard-panel {
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .panel-heading h2 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .panel-description {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .empty-state,html[data-theme="dark"] .state-card {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .empty-state > .icon {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .empty-state h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .request-card {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .request-avatar {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .request-info h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .request-info p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .request-info small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .fingerprint {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-card {
+    background: #1b273b;
+    border: 1px solid #41516b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-card:hover {
+    background: #1b273b
+}
+html[data-theme="dark"] .lesson-play {
+    background: #1b273b
+}
+html[data-theme="dark"] .lesson-card small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-card h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-card p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .poc-account-note {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .back-link {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-panel h2 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-date {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-description {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .player-shell {
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .player-overlay {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .player-tools {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .speed-control {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .speed-control select {
+    background: #1b273b;
+    border: 1px solid #41516b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .fullscreen-button {
+    color: #c6d8ff;
+    background: #1b273b;
+    border: 1px solid #41516b
+}
+html[data-theme="dark"] .player-fullscreen-notice {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .player-shell:fullscreen .player-tools,html[data-theme="dark"] .player-shell.player-expanded .player-tools {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .player-shell:fullscreen .player-fullscreen-notice,html[data-theme="dark"] .player-shell.player-expanded .player-fullscreen-notice {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .application-form label {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .application-success {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #b9c7dc
+}
+html[data-theme="dark"] .spinner {
+    border: 2px solid #41516b
+}
+@media (max-width: 740px) {
+    html[data-theme="dark"] .menu-button {
+        color: #c6d8ff
+    }
+}
+@media (max-width: 740px) {
+    html[data-theme="dark"] .desktop-nav {
+        background: #1b273b;
+        border-bottom: 1px solid #41516b
+    }
+}
+html[data-theme="dark"] .manage-tabs {
+    border: 1px solid #41516b;
+    background: #1b273b
+}
+html[data-theme="dark"] .manage-tabs button {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-tabs button.selected {
+    color: #c6d8ff;
+    background: #453d25
+}
+html[data-theme="dark"] .manage-tabs button:hover {
+    background: #1b273b
+}
+html[data-theme="dark"] .management-shell select,html[data-theme="dark"] .manage-dialog select {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-form textarea {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-record {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .group-media-placeholder {
+    border: 1px dashed #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .group-media-placeholder span {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-record-title h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-status {
+    color: #c6d8ff;
+    background: #1b273b
+}
+html[data-theme="dark"] .status-active,html[data-theme="dark"] .status-approved,html[data-theme="dark"] .status-paid,html[data-theme="dark"] .status-posted {
+    color: #b9c7dc;
+    background: #1b273b
+}
+html[data-theme="dark"] .status-pending,html[data-theme="dark"] .status-partial {
+    color: #f3dda0;
+    background: #1b273b
+}
+html[data-theme="dark"] .status-paused,html[data-theme="dark"] .status-expired,html[data-theme="dark"] .status-revoked,html[data-theme="dark"] .status-rejected,html[data-theme="dark"] .status-voided {
+    color: #b9c7dc;
+    background: #1b273b
+}
+html[data-theme="dark"] .status-admin,html[data-theme="dark"] .status-teacher {
+    color: #c6d8ff;
+    background: #1b273b
+}
+html[data-theme="dark"] .manage-record-info dt {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-record-info dd {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-text-action {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-text-action.danger {
+    color: #b9c7dc
+}
+html[data-theme="dark"] .manage-pagination {
+    border-top: 1px solid #41516b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-dialog-description {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-form input:read-only {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .entity-field label input {
+    background: #1b273b
+}
+html[data-theme="dark"] .field-hint,html[data-theme="dark"] .field-error {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .field-error {
+    color: #b9c7dc
+}
+html[data-theme="dark"] .temporary-password {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-detail-section h3,html[data-theme="dark"] .manage-subheading h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-detail-item {
+    border-top: 1px solid #41516b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .manage-detail-item small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .settings-repeat {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .settings-repeat-row {
+    border: 1px solid #41516b;
+    background: #1b273b
+}
+html[data-theme="dark"] .auth-operations {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .auth-operations h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .public-teacher-list .teacher-empty small {
+    color: #c6d8ff
+}
+@media (max-width: 740px) {
+    html[data-theme="dark"] .manage-mobile-nav {
+        color: #c6d8ff
+    }
+}
+@media (max-width: 740px) {
+    html[data-theme="dark"] .manage-mobile-nav select {
+        background: #1b273b
+    }
+}
+html[data-theme="dark"] .course-access-card {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-access-card:hover {
+    border-color: #41516b
+}
+html[data-theme="dark"] .course-access-card span,html[data-theme="dark"] .course-access-card small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-access-card h3,html[data-theme="dark"] .content-card h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-access-card p,html[data-theme="dark"] .content-card p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-access-card strong {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .content-tabs button {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .content-tabs button.selected {
+    border-color: #41516b
+}
+html[data-theme="dark"] .content-card {
+    border: 1px solid #41516b;
+    background: #1b273b
+}
+html[data-theme="dark"] .content-status-line .published {
+    background: #1b273b;
+    color: #b9c7dc
+}
+html[data-theme="dark"] .content-status-line .draft {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .content-status-line small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .learning-files button {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .learning-files small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .archive-filters label {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .content-form input[type=file] {
+    background: #1b273b
+}
+html[data-theme="dark"] .course-schedule {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-schedule > strong {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .course-schedule p span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-progress > div {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-progress strong {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .lesson-progress i {
+    background: #1b273b
+}
+html[data-theme="dark"] .lesson-progress b {
+    background: #1b273b
+}
+html[data-theme="dark"] .attendance-row {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .attendance-row > span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .attendance-row small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .complete-button {
+    border: 1px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .complete-button.completed {
+    background: #1b273b;
+    border-color: #41516b;
+    color: #b9c7dc
+}
+html[data-theme="dark"] .player-progress-notice {
+    background: #1b273b;
+    color: #b9c7dc
+}
+html[data-theme="dark"] .assignment-meta {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .submission-status small {
+    color: #f3dda0
+}
+html[data-theme="dark"] .submission-pill {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .submission-pill.submitted {
+    background: #453d25;
+    color: #f3dda0
+}
+html[data-theme="dark"] .submission-pill.reviewed {
+    background: #1b273b;
+    color: #b9c7dc
+}
+html[data-theme="dark"] .submission-pill.needs_revision {
+    background: #1b273b;
+    color: #b9c7dc
+}
+html[data-theme="dark"] .submission-result {
+    border-top: 1px solid #41516b
+}
+html[data-theme="dark"] .submission-result blockquote,html[data-theme="dark"] .review-feedback {
+    border-left: 3px solid #41516b;
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .grade-box {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .grade-box span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .review-roster {
+    border-right: 1px solid #41516b
+}
+html[data-theme="dark"] .review-student {
+    background: #1b273b;
+    color: #c6d8ff
+}
+html[data-theme="dark"] .review-student.selected {
+    border-color: #41516b;
+    background: #1b273b
+}
+html[data-theme="dark"] .review-student small {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .review-placeholder {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .review-heading h3 {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .submission-version {
+    border: 1px solid #41516b;
+    background: #1b273b
+}
+html[data-theme="dark"] .submission-version header {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .submission-version header span {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .submission-version p {
+    color: #c6d8ff
+}
+html[data-theme="dark"] .review-form {
+    border-top: 1px solid #41516b
+}
+@media (max-width:740px) {
+    html[data-theme="dark"] .review-roster {
+        border-bottom: 1px solid #41516b
+    }
+}

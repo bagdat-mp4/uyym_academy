@@ -1,0 +1,57 @@
+/* Shared appearance controls. Language and theme remain accessible on phones. */
+:root { color-scheme: light; }
+.language-switch { display:flex; gap:2px; border:1px solid var(--border); border-radius:8px; padding:3px; }
+.language-switch button { background:transparent; color:var(--navy); font-size:11px; font-weight:700; min-width:36px; min-height:38px; border-radius:5px; }
+.language-switch button[aria-pressed="true"] { background:var(--navy); color:white; }
+.theme-button { background:transparent; border:1px solid var(--border); color:var(--navy); border-radius:8px; width:42px; height:44px; flex-shrink:0; font-size:24px; }
+.header-actions { gap:10px; }
+input,textarea,select { max-width:100%; }
+.hero h1 .highlight { white-space:normal; overflow-wrap:break-word; }
+/* Existing light panels retain their original surfaces, with readable labels. */
+.manage-record-info dt,.manage-record-info dd,.manage-tabs button,.manage-status,.review-student small,.review-placeholder { color:#4f6078; }
+.status-pending,.status-partial { color:#725713; }
+.status-paused,.status-expired,.status-revoked,.status-rejected,.status-voided { color:#8f4340; }
+.manage-toolbar label,.form-help { color:#53647b; }
+input::placeholder,textarea::placeholder { color:#647089; }
+.panel-description,.auth-story > small,.hero-details,.course-meta span,.privacy-note,.sheet-note { color:#53647b; }
+.dashboard-security { color:#47604d; }
+html[data-theme="dark"] { color-scheme:dark; --navy:#b6ceff; --blue:#a9c4ff; --cream:#101827; --muted:#afbdd0; --border:#41516b; color:#e7edf7; background:#101827; }
+html[data-theme="dark"] body { background:#101827; color:#e7edf7; }
+html[data-theme="dark"] .announcement { background:#142d5a; }
+html[data-theme="dark"] .site-header { background:rgba(16,24,39,.97); border-color:#41516b; }
+html[data-theme="dark"] :is(.desktop-nav,.auth-card,.gate-card,.state-card,.modal,.manage-dialog,.manage-tabs,.dashboard-panel,.lesson-panel,.teacher-empty,.request-card,.lesson-card,.course-card,.student-course-card,.learning-course-card,.submission-version,.review-student,.course-schedule) { background:#1b273b; border-color:#41516b; color:#e7edf7; }
+html[data-theme="dark"] :is(h1,h2,h3,h4,strong,label,summary,.desktop-nav a,.brand,.back-link,.text-link,.account-breadcrumb,.manage-record-title h3,.review-heading h3,.submission-version header) { color:#e7edf7; }
+html[data-theme="dark"] :is(p,small,dt,dd,.muted-heading,.hero-description,.course-meta,.section-footnote,.form-help,.manage-tabs button,.manage-text-action,.manage-record-info dt,.manage-record-info dd,.review-placeholder,.review-student small,.lesson-date,.lesson-description,.panel-description,.course-category,.course-number,.footer-bottom) { color:#b9c7dc; }
+html[data-theme="dark"] :is(input,textarea,select) { background:#101c30; color:#edf3ff; border-color:#647894; }
+html[data-theme="dark"] input::placeholder,html[data-theme="dark"] textarea::placeholder { color:#9faec5; }
+html[data-theme="dark"] :is(.manage-toolbar,.manage-record,.faq-list details,.review-form,.review-roster,.auth-security,.course-bottom,footer,.footer-bottom) { border-color:#41516b; }
+html[data-theme="dark"] .button-outline { background:#1b273b; border-color:#7589a5; color:#e7edf7; }
+html[data-theme="dark"] :is(.button-yellow,.course-link) { background:#ffcd2b; color:#142542; }
+html[data-theme="dark"] .button-yellow :is(span,svg) { color:#142542; }
+html[data-theme="dark"] .language-switch button[aria-pressed="true"] { background:#b6ceff; color:#101827; }
+html[data-theme="dark"] :is(.manage-tabs button.selected,.manage-tabs button:hover,.review-student.selected,.review-student:hover) { background:#304563; color:#fff; }
+html[data-theme="dark"] :is(.manage-status,.group-media-placeholder,.group-media-placeholder span,.modal-info,.player-tools) { background:#293b56; color:#d3e0f6; border-color:#526783; }
+html[data-theme="dark"] :is(.dashboard-security,.alert-success,.application-success,.status-active,.status-approved,.status-paid,.status-posted) { background:#193a30; color:#b9e8d1; border-color:#47745e; }
+html[data-theme="dark"] :is(.alert-error,.status-paused,.status-expired,.status-revoked,.status-rejected,.status-voided) { background:#482c38; color:#ffc4cb; border-color:#966270; }
+html[data-theme="dark"] :is(.status-pending,.status-partial) { background:#453d25; color:#f5dda0; }
+html[data-theme="dark"] :is(.study-sheet,.formula-card) { border-color:#526783; }
+html[data-theme="dark"] .algebra-sheet { background:#453d25; }
+html[data-theme="dark"] .algebra-sheet :is(.sheet-kicker,.matrix-equation) { color:#f5dda0; }
+html[data-theme="dark"] .code-sheet { background:#142d5a; }
+html[data-theme="dark"] .study-stamp :is(span,small) { color:#142542; }
+html[data-theme="dark"] :is(.exam-band,.access-panel,.contact-section) { background:#142d5a; color:#fff; }
+html[data-theme="dark"] .highlight::after { background:#7b651b; }
+html[data-theme="dark"] .video-stage { background:#080c14; }
+html[data-theme="dark"] .privacy-note { color:#b9c7dc; }
+@media(max-width:740px) {
+ .header-inner { flex-wrap:wrap; gap:8px; padding-block:10px; min-height:88px; }
+ .header-actions { margin-left:auto; gap:7px; }
+ .language-switch button { min-width:32px; min-height:36px; font-size:10px; }
+ .theme-button { width:36px; height:42px; }
+ .header-login { display:flex; width:38px; min-height:42px; padding:9px; font-size:0; gap:0; }
+ .header-login .icon { display:block; width:18px; height:18px; }
+ .desktop-nav { top:100%; }
+ .manage-record-actions { max-width:100%; }
+ .hero-actions { flex-wrap:wrap; }
+}
+@media(max-width:360px) { .brand strong { font-size:18px; }.brand img { width:30px;height:30px; }.header-actions { gap:3px; }.language-switch { padding:2px; }.language-switch button { min-width:29px; }.theme-button { width:30px; } }

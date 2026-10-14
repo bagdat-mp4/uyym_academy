@@ -1,4 +1,5 @@
 import { hashBody, signChallenge } from './device';
+import {currentLanguage,tr} from './i18n';
 
 export type User = { id: string; name: string; phone: string; role: 'ADMIN' | 'TEACHER' | 'STUDENT'; must_change_password: boolean; totp_required?: boolean };
 export type AuthStatus = { authenticated: boolean; user?: User; session_id?: string; session_active?: boolean; csrf_token?: string; device_status?: 'approved' | 'pending' | 'unregistered' | 'revoked' | 'different'; devices?: BrowserRequest[]; mfa_verified?: boolean };
@@ -16,7 +17,7 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   const method = options.method ?? 'GET';
   // All mutations carry JSON; challenge hashes the exact bytes subsequently sent.
   const body = options.body === undefined ? (method === 'GET' || method === 'HEAD' ? undefined : '{}') : JSON.stringify(options.body);
-  const headers: Record<string, string> = { accept: options.binary ? '*/*' : 'application/json', 'accept-language': document.documentElement.lang === 'ru' ? 'ru' : 'kk' };
+  const headers: Record<string, string> = { accept: options.binary ? '*/*' : 'application/json', 'accept-language': currentLanguage() };
   if (body !== undefined) headers['content-type'] = 'application/json';
   if (csrfToken && method !== 'GET') headers['x-csrf-token'] = csrfToken;
   if (options.proof) {
@@ -38,13 +39,13 @@ export async function api<T>(path: string, options: { method?: string; body?: un
       let payload: { error?: string; message?: string; code?: string } = {};
       try { payload = await response.json(); } catch { /* Generic error deliberately contains no server diagnostics. */ }
       if (response.status === 401) window.dispatchEvent(new CustomEvent('uyym-session-expired'));
-      throw new ApiError(payload.message ?? payload.error ?? 'Сұрауды орындау мүмкін болмады. Қайта көріңіз.', response.status, payload.code);
+      throw new ApiError(payload.message ?? payload.error ?? (currentLanguage()==='en'?'The request could not be completed. Please try again.':'Сұрауды орындау мүмкін болмады. Қайта көріңіз.'), response.status, payload.code);
     }
     if (options.binary) return await response.arrayBuffer() as T;
     if (response.status === 204) return undefined as T;
     return await response.json() as T;
   } catch (error) {
-    if (timedOut) throw new ApiError(document.documentElement.lang === 'ru' ? 'Время ожидания истекло. Проверьте соединение и повторите попытку.' : 'Сұрау уақыты аяқталды. Интернет байланысын тексеріп, қайта көріңіз.', 408, 'REQUEST_TIMEOUT');
+    if (timedOut) throw new ApiError(tr(currentLanguage(),['Сұрау уақыты аяқталды. Интернет байланысын тексеріп, қайта көріңіз.','Время ожидания истекло. Проверьте соединение и повторите попытку.']),408,'REQUEST_TIMEOUT');
     throw error;
   } finally {
     clearTimeout(timeout);

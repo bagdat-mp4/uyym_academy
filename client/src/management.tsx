@@ -1,17 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, ApiError } from './api';
 
-export type Lang = 'kk' | 'ru';
-export type Copy = [string, string];
+import {tr,locale,interfaceError,type Lang,type Copy} from './i18n';
+export {tr,type Lang,type Copy} from './i18n';
 export type Row = { id: string; revision?: number; [field: string]: unknown };
 export type Page = { items: Row[]; total: number; page: number; page_size: number; can_manage_access?: boolean };
-export const tr = (lang: Lang, copy: Copy) => copy[lang === 'kk' ? 0 : 1];
 export const value = (row: Row, field: string, fallback = '') => row[field] == null ? fallback : String(row[field]);
-export const message = (error: unknown) => error instanceof Error ? error.message : 'Сұрау орындалмады.';
+export const message = interfaceError;
 export const newOperation = () => crypto.randomUUID();
 export const dateLabel = (date: unknown, lang: Lang) => {
   if (!date || !Number.isFinite(Date.parse(String(date)))) return '—';
-  return new Intl.DateTimeFormat(lang === 'kk' ? 'kk-KZ' : 'ru-RU', { timeZone: 'Asia/Almaty', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(String(date)));
+  return new Intl.DateTimeFormat(locale(lang), { timeZone: 'Asia/Almaty', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(String(date)));
 };
 export const localDate = (date: unknown) => date && Number.isFinite(Date.parse(String(date))) ? new Date(Date.parse(String(date)) + 5 * 3600000).toISOString().slice(0, 16) : '';
 export const utcDate = (date: string) => date ? new Date(`${date}:00+05:00`).toISOString() : null;

@@ -17,6 +17,7 @@ import {freshManagement} from './management.js';
 import {registerContentRoutes} from './content.js';
 import {registerSubmissionRoutes} from './submissions.js';
 import {registerEngagementRoutes} from './engagement.js';
+import {publicFaq} from '../shared/public-faq.js';
 const uuid=z.string().uuid();
 // Five 5 MB files expand to roughly 33.4 MB in base64 JSON.
 export const app=Fastify({logger:false,bodyLimit:40*1024*1024,trustProxy:config.trustProxy?['127.0.0.1','::1']:false});
@@ -33,9 +34,11 @@ app.addHook('onRequest',async(req,reply)=>{
 app.setErrorHandler((error,req,reply)=>{
  const status=error instanceof HttpError?error.statusCode:error instanceof z.ZodError?400:((error as any)?.statusCode===429?429:500);
  const ru=String(req.headers['accept-language']||'').startsWith('ru');
+ const en=String(req.headers['accept-language']||'').startsWith('en');
  const kkMessage=status===500?'Сервис уақытша қолжетімсіз':error instanceof z.ZodError?'Деректерді тексеріңіз':status===429?'Көп әрекет жасалды. Кейін қайталаңыз':(error as Error).message;
  const ruMessage=status===500?'Сервис временно недоступен':error instanceof z.ZodError?'Проверьте данные':status===429?'Слишком много попыток. Повторите позже':(error as any).message_ru||({401:'Сессия завершилась. Войдите снова',403:'Нет разрешения на действие',404:'Запись недоступна',400:'Проверьте данные',409:'Запись изменилась. Обновите список',503:'Внешние сервисы ещё не подключены. Обратитесь к администратору'} as Record<number,string>)[status]||'Запрос не выполнен';
- reply.code(status).send({error:ru?ruMessage:kkMessage,code:(error as any).code|| (error instanceof z.ZodError?'INVALID_DATA':undefined)});
+ const enMessage=({400:'Check the submitted details.',401:'Sign-in or session verification failed. Check your details or contact the administrator.',403:'This action is not allowed. Check your approved browser and account setup.',404:'The requested record is unavailable.',409:'The record changed. Refresh and try again.',429:'Too many attempts. Please try again later.',500:'The service is temporarily unavailable.',503:'The service is temporarily unavailable. Contact the administrator.'} as Record<number,string>)[status]||'The request could not be completed.';
+ reply.code(status).send({error:en?enMessage:ru?ruMessage:kkMessage,code:(error as any).code|| (error instanceof z.ZodError?'INVALID_DATA':undefined)});
 });
 app.get('/api/health',async(_req,reply)=>{
  if(!ready())return reply.code(503).send({ok:false});
@@ -49,7 +52,7 @@ app.get('/api/public',async()=>{
  }
  const {rows}=await pool.query('SELECT id,title,description AS summary,price_kzt,weeks,weeks*lessons_per_week AS lessons,weeks*lessons_per_week*lesson_minutes/60.0 AS hours,default_group_size AS group_capacity FROM private.courses WHERE active AND published ORDER BY created_at');
  const row=(await pool.query('SELECT title,contacts,teachers_public,faq FROM private.site_settings WHERE id=true')).rows[0];
- const settings={...row?.contacts,title:row?.title,teachers_public:row?.teachers_public||[],faq:row?.faq||[]};
+ const settings={...row?.contacts,title:row?.title,teachers_public:row?.teachers_public||[],faq:publicFaq(row?.faq||[])};
  return {courses:rows,settings,configured:true};
 });
 async function status(req:any) {
