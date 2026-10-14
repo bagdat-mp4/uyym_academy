@@ -1,0 +1,264 @@
+/* UYYM's study workspace: restrained public pages, comfortable working panels.
+   Scope overrides to the app, preserving native media and security behavior. */
+:root {
+ --ui-bg:#f4f7fc; --ui-panel:#fff; --ui-soft:#edf3fb;
+ --ui-ink:#142c50; --ui-muted:#526780; --ui-line:#d7e1ed;
+ --ui-control:#788ba8;
+ --ui-brand:#1d3e87; --ui-yellow:#ffcd2b; --ui-shadow:0 12px 36px #19375c0a;
+ font-family:"Segoe UI Variable Text","Segoe UI",system-ui,Arial,sans-serif;
+}
+html[data-theme="dark"] {
+ --ui-bg:#0c1525; --ui-panel:#142239; --ui-soft:#1b2d48;
+ --ui-ink:#edf4ff; --ui-muted:#b0bed2; --ui-line:#334765;
+ --ui-control:#657da0;
+ --ui-brand:#c5d8ff; --ui-shadow:0 12px 36px #0000001a;
+}
+html body { background:var(--ui-bg); color:var(--ui-ink); }
+html .uyym-ui { min-height:100vh; font-size:16px; line-height:1.6; }
+html .uyym-ui .container { width:min(1240px,calc(100% - 80px)); }
+html .uyym-ui :is(h1,h2,h3) { color:var(--ui-ink); text-wrap:balance; }
+html .uyym-ui :is(p,small,dt,dd) { color:var(--ui-muted); }
+html .uyym-ui :is(a,button,input,select,textarea,summary):focus-visible { outline:3px solid #477ce8; outline-offset:4px; }
+html .uyym-ui .site-header { background:var(--ui-panel); border-color:var(--ui-line); backdrop-filter:none; }
+html .uyym-ui .header-inner { min-height:92px; gap:24px; }
+html .uyym-ui .brand strong { color:var(--ui-ink); font-size:26px; letter-spacing:-.055em; }
+html .uyym-ui .brand small { color:var(--ui-ink); font-size:9px; }
+html .uyym-ui .brand img { width:48px; height:48px; }
+html .uyym-ui .desktop-nav { margin-left:auto; gap:26px; background:transparent; }
+html .uyym-ui .desktop-nav a { font-size:14px; color:var(--ui-muted); }
+html .uyym-ui .header-actions { gap:10px; }
+html .uyym-ui .language-switch { background:var(--ui-soft); border-color:var(--ui-line); }
+html .uyym-ui .language-switch button { font-size:12px; min-width:38px; min-height:38px; color:var(--ui-ink); }
+html .uyym-ui .language-switch button[aria-pressed="true"] { background:var(--ui-panel); color:var(--ui-ink); box-shadow:0 1px 5px #00000012; }
+html .uyym-ui .theme-button { color:var(--ui-ink); background:var(--ui-panel); border-color:var(--ui-line); width:44px; height:46px; }
+html .uyym-ui .button { min-height:46px; border-radius:10px; padding:12px 18px; font-size:14px; font-weight:650; box-shadow:none; }
+html .uyym-ui .button-outline { background:var(--ui-panel); color:var(--ui-ink); border-color:var(--ui-line); }
+html .uyym-ui .button-outline:hover:not(:disabled) { background:var(--ui-soft); }
+html .uyym-ui .button-yellow { background:var(--ui-yellow); color:#142c50; border-color:var(--ui-yellow); }
+html .uyym-ui .button-yellow:hover:not(:disabled) { background:#ffdb61; }
+html .uyym-ui .button-white { background:#fff; color:#142c50; }
+html .uyym-ui .button-large { min-height:54px; font-size:15px; padding-inline:24px; }
+html .uyym-ui .text-link { color:var(--ui-brand); font-size:14px; }
+html .uyym-ui .hero { background:var(--ui-bg); padding:88px 0 80px; }
+html .uyym-ui .hero-grid { gap:48px; grid-template-columns:1.15fr 1fr; }
+html .uyym-ui .hero h1 { font-size:clamp(42px,4.7vw,68px); line-height:1.08; letter-spacing:-.05em; margin-top:22px; }
+html .uyym-ui .highlight::after { display:none; }
+html .uyym-ui .hero-description { font-size:17px; line-height:1.75; max-width:48ch; color:var(--ui-muted); margin-top:26px; }
+html .uyym-ui .hero-actions { gap:26px; margin-top:32px; }
+html .uyym-ui .hero-details { font-size:13px; color:var(--ui-muted); gap:24px; }
+html .uyym-ui .eyebrow { text-transform:none; letter-spacing:.025em; font-size:13px; font-weight:650; color:var(--ui-brand); }
+html .uyym-ui .exam-band { background:#1d3e87; padding-block:4px; }
+html .uyym-ui .exam-band .container > div { color:#eef4ff; }
+html .uyym-ui .exam-band span { color:#d7e4ff; text-transform:none; font-size:12px; letter-spacing:.02em; }
+html .uyym-ui .section { padding:88px 0; }
+html .uyym-ui .section h2 { font-size:clamp(30px,3.3vw,44px); line-height:1.15; letter-spacing:-.04em; margin-top:16px; }
+html .uyym-ui .section-heading { align-items:flex-start; margin-bottom:36px; gap:44px; }
+html .uyym-ui .section-heading > p { font-size:16px; line-height:1.75; max-width:43ch; }
+html .uyym-ui .muted-heading { color:var(--ui-muted); }
+html .uyym-ui .course-grid { gap:24px; align-items:stretch; }
+html .uyym-ui .course-card { border:1px solid var(--ui-line); border-radius:20px; background:var(--ui-panel); padding:28px; display:flex; flex-direction:column; box-shadow:var(--ui-shadow); }
+html .uyym-ui .course-top { height:64px; margin-bottom:16px; justify-content:flex-start; }
+html .uyym-ui .course-symbol { position:static; color:#1d3e87; background:#edf3ff; width:54px; height:54px; border-radius:14px; }
+html .uyym-ui .course-1 .course-symbol { background:#fff5cb; color:#5c491b; }
+html .uyym-ui .course-2 .course-symbol { background:#e8f3ee; color:#285442; }
+html .uyym-ui .course-card h3 { font-size:25px; letter-spacing:-.035em; line-height:1.3; min-height:65px; }
+html .uyym-ui .course-card > p { font-size:15px; line-height:1.7; min-height:100px; color:var(--ui-muted); }
+html .uyym-ui .course-meta { margin:24px 0; gap:10px; }
+html .uyym-ui .course-meta span { font-size:13px; color:var(--ui-muted); }
+html .uyym-ui .course-bottom { border-color:var(--ui-line); margin-top:auto; padding-top:24px; gap:14px; }
+html .uyym-ui .course-bottom strong { font-size:25px; color:var(--ui-ink); }
+html .uyym-ui .course-bottom small { font-size:12px; }
+html .uyym-ui .course-link { width:auto; min-height:46px; border-radius:10px; padding:10px 15px; gap:9px; color:#142c50; font-size:14px; font-weight:650; background:var(--ui-yellow); }
+html .uyym-ui .course-link span { color:inherit; }
+html .uyym-ui .section-footnote { color:var(--ui-muted); font-size:13px; margin-top:28px; }
+html .uyym-ui .format-section { background:var(--ui-panel); }
+html .uyym-ui .format-title > p,html .uyym-ui .format-step p { font-size:15px; line-height:1.75; color:var(--ui-muted); }
+html .uyym-ui .format-step h3 { font-size:19px; }
+html .uyym-ui .format-facts small { font-size:13px; }
+html .uyym-ui .access-panel { background:#1d3e87; border-radius:20px; padding:40px; gap:24px; }
+html .uyym-ui .access-panel :is(h2,p,.eyebrow) { color:#fff; }
+html .uyym-ui .access-panel p { font-size:15px; line-height:1.75; }
+html .uyym-ui .teacher-grid > div > p,html .uyym-ui .faq-grid > div > p { font-size:16px; line-height:1.75; }
+html .uyym-ui .teacher-empty { background:var(--ui-panel); border-color:var(--ui-line); border-radius:16px; padding:28px; }
+html .uyym-ui .teacher-empty h3 { font-size:18px; }
+html .uyym-ui .teacher-empty p { font-size:15px; }
+html .uyym-ui .faq-list details { border-color:var(--ui-line); }
+html .uyym-ui .faq-list summary { font-size:17px; line-height:1.5; padding:25px 0; color:var(--ui-ink); }
+html .uyym-ui .faq-list details p { font-size:15px; line-height:1.75; padding-right:24px; }
+html .uyym-ui .contact-section { background:#142f67; padding:72px 0; }
+html .uyym-ui .contact-section :is(h2,p,.eyebrow,.text-link) { color:#e9f0ff; }
+html .uyym-ui .contact-section p { font-size:16px; }
+html .uyym-ui footer { background:var(--ui-panel); border-color:var(--ui-line); }
+html .uyym-ui .footer-top { padding-block:22px; }
+html .uyym-ui .footer-top p,html .uyym-ui .footer-bottom { font-size:13px; color:var(--ui-muted); }
+html .uyym-ui .footer-bottom { border-color:var(--ui-line); padding-block:20px; }
+html .uyym-ui .poc-notice p { font-size:13px; color:var(--ui-muted); }
+/* Account hierarchy prioritizes the current role and task over decorative labels. */
+html .uyym-ui .account-main { background:var(--ui-bg); padding:32px 0 72px; min-height:65vh; }
+html .uyym-ui .account-breadcrumb { font-size:14px; color:var(--ui-muted); margin-bottom:36px; }
+html .uyym-ui .dashboard-heading { margin-bottom:28px; }
+html .uyym-ui .dashboard-heading h1 { font-size:36px; line-height:1.2; color:var(--ui-ink); }
+html .uyym-ui .dashboard-security { padding:16px 20px; font-size:13px; border-radius:12px; margin-bottom:28px; }
+html .uyym-ui .dashboard-security strong { font-size:13px; }
+html .uyym-ui .dashboard-security > span:last-child { font-size:12px; }
+html .uyym-ui .management-shell { grid-template-columns:224px minmax(0,1fr); gap:28px; }
+html .uyym-ui .manage-tabs { padding:10px; border-radius:16px; background:var(--ui-panel); border-color:var(--ui-line); top:112px; }
+html .uyym-ui .manage-tabs button { font-size:14px; font-weight:550; padding:13px 16px; min-height:46px; border-radius:9px; color:var(--ui-muted); }
+html .uyym-ui .manage-tabs button.selected { background:var(--ui-soft); color:var(--ui-ink); font-weight:700; box-shadow:inset 3px 0 #ffcd2b; }
+html .uyym-ui .manage-tabs button:hover { background:var(--ui-soft); color:var(--ui-ink); }
+html .uyym-ui :is(.dashboard-panel,.auth-card,.gate-card,.modal,.state-card) { border:1px solid var(--ui-line); background:var(--ui-panel); color:var(--ui-ink); border-radius:20px; box-shadow:var(--ui-shadow); }
+html .uyym-ui .dashboard-panel { padding:32px; }
+html .uyym-ui .panel-heading { margin-bottom:24px; gap:20px; }
+html .uyym-ui .panel-heading h2 { font-size:28px; letter-spacing:-.035em; line-height:1.25; }
+html .uyym-ui .panel-description { font-size:15px; line-height:1.7; color:var(--ui-muted); max-width:78ch; }
+html .uyym-ui :is(.manage-heading-actions,.manage-pagination,.manage-record-actions,.panel-heading) .button { font-size:13px; min-height:44px; padding:10px 14px; }
+html .uyym-ui .manage-toolbar { gap:20px; margin:24px 0; }
+html .uyym-ui :is(label,.manage-toolbar label,.manage-form label) { font-size:14px; font-weight:600; color:var(--ui-ink); }
+html .uyym-ui :is(input,select,textarea,.management-shell select,.manage-dialog select,.manage-form textarea,.manage-form input) { font-size:16px; background:var(--ui-panel); color:var(--ui-ink); border:1px solid var(--ui-control); border-radius:10px; padding:12px 14px; min-height:48px; }
+html .uyym-ui .manage-form input:read-only { background:var(--ui-soft); }
+html .uyym-ui :is(input,textarea)::placeholder { color:var(--ui-muted); opacity:1; }
+html .uyym-ui input[type="checkbox"] { min-height:0; width:18px; height:18px; accent-color:#1d3e87; padding:0; }
+html .uyym-ui .manage-record { padding:24px 0; gap:24px; border-color:var(--ui-line); }
+html .uyym-ui .manage-record-title h3 { color:var(--ui-ink); font-size:17px; line-height:1.4; }
+html .uyym-ui .manage-status { font-size:12px; padding:4px 9px; }
+html .uyym-ui .manage-record-info dl { margin-top:18px; gap:12px 24px; }
+html .uyym-ui .manage-record-info dt { font-size:12px; color:var(--ui-muted); }
+html .uyym-ui .manage-record-info dd { font-size:14px; color:var(--ui-ink); line-height:1.6; }
+html .uyym-ui .manage-record-actions { width:150px; gap:9px; }
+html .uyym-ui .manage-text-action { font-size:13px; color:var(--ui-brand); line-height:1.6; }
+html .uyym-ui .manage-text-action.danger { color:#a23a43; }
+html[data-theme="dark"] .uyym-ui .manage-text-action.danger { color:#ffb5bf; }
+html .uyym-ui :is(.manage-pagination,.form-help,.field-hint,.field-error,.manage-dialog-description,.manage-detail-item,.manage-detail-item small) { font-size:13px; line-height:1.7; color:var(--ui-muted); }
+html .uyym-ui .manage-pagination { flex-wrap:wrap; border-color:var(--ui-line); padding-top:24px; }
+html .uyym-ui .auth-grid { gap:72px; align-items:start; }
+html .uyym-ui .auth-story h1 { font-size:48px; line-height:1.12; letter-spacing:-.045em; }
+html .uyym-ui .auth-story > p { font-size:17px; line-height:1.75; color:var(--ui-muted); }
+html .uyym-ui .auth-story > small { font-size:14px; line-height:1.7; }
+html .uyym-ui .auth-security { font-size:15px; color:var(--ui-ink); border-color:var(--ui-line); }
+html .uyym-ui .auth-card { padding:36px; }
+html .uyym-ui .auth-card h2 { font-size:28px; }
+html .uyym-ui .auth-card > p { font-size:15px; line-height:1.7; color:var(--ui-muted); }
+html .uyym-ui .modal { padding:44px 32px 32px; max-width:calc(100vw - 32px); }
+html .uyym-ui .modal h2 { font-size:28px; line-height:1.25; }
+html .uyym-ui .modal-close { width:40px; height:40px; border-radius:10px; top:14px; right:14px; color:var(--ui-muted); background:var(--ui-soft); }
+html .uyym-ui .modal-info { border-radius:12px; background:var(--ui-soft); padding:18px; }
+html .uyym-ui .modal-info p { font-size:14px; line-height:1.7; color:var(--ui-muted); }
+html .uyym-ui .enrollment-modal > p { font-size:15px; }
+html .uyym-ui .application-form { margin-top:24px; }
+html .uyym-ui .course-access-grid { gap:20px; }
+html .uyym-ui .course-access-card { border-color:var(--ui-line); background:var(--ui-panel); border-radius:16px; padding:26px; box-shadow:none; }
+html .uyym-ui .course-access-card h3 { font-size:24px; line-height:1.3; }
+html .uyym-ui .course-access-card p { font-size:15px; line-height:1.7; }
+html .uyym-ui .course-access-card :is(small,span) { font-size:13px; }
+html .uyym-ui .content-tabs { border-color:var(--ui-line); gap:8px; padding-block:12px; }
+html .uyym-ui .content-tabs button { font-size:14px; min-height:44px; color:var(--ui-muted); padding:10px 16px; background:var(--ui-panel); border-color:var(--ui-line); }
+html .uyym-ui .content-tabs button.selected { background:#1d3e87; color:#fff; border-color:#1d3e87; }
+html .uyym-ui .content-card { border-color:var(--ui-line); background:var(--ui-panel); border-radius:16px; padding:24px; }
+html .uyym-ui .content-card h3 { font-size:20px; }
+html .uyym-ui .content-card p,html .uyym-ui .submission-result p { font-size:15px; line-height:1.7; }
+html .uyym-ui .assignment-meta small { font-size:13px; }
+html .uyym-ui .course-schedule { background:var(--ui-soft); border-color:var(--ui-line); padding:20px; border-radius:12px; }
+html .uyym-ui .course-schedule p { font-size:14px; color:var(--ui-muted); }
+html .uyym-ui .empty-state { min-height:220px; padding:32px; }
+html .uyym-ui .empty-state h3 { font-size:20px; }
+html .uyym-ui .empty-state p { font-size:15px; }
+html .uyym-ui .player-tools { font-size:13px; gap:12px; padding:18px; }
+html .uyym-ui .privacy-note { font-size:13px; }
+html .uyym-ui .player-overlay p { color:#eef4ff; font-size:14px; line-height:1.7; }
+html .uyym-ui .speed-control { font-size:13px; }
+@media(max-width:1100px) {
+ html .uyym-ui .container { width:calc(100% - 48px); }
+ html .uyym-ui .header-inner { gap:16px; }
+ html .uyym-ui .desktop-nav { gap:15px; }
+ html .uyym-ui .header-login { font-size:12px; padding-inline:14px; }
+ html .uyym-ui .hero-grid { gap:20px; grid-template-columns:1.1fr 1fr; }
+ html .uyym-ui .hero h1 { font-size:48px; }
+ html .uyym-ui .study-illustration { transform:scale(.82); transform-origin:left center; margin-left:0; }
+ html .uyym-ui .course-card { padding:24px; }
+ html .uyym-ui .course-card h3 { font-size:23px; }
+ html .uyym-ui .course-bottom { align-items:flex-start; flex-wrap:wrap; }
+ html .uyym-ui .management-shell { grid-template-columns:200px minmax(0,1fr); gap:20px; }
+}
+@media(max-width:740px) {
+ html .uyym-ui .container { width:calc(100% - 36px); }
+ html .uyym-ui .announcement { font-size:11px; padding-inline:16px; }
+ html .uyym-ui .header-inner { min-height:104px; flex-wrap:wrap; gap:10px; padding-block:14px; }
+ html .uyym-ui .brand img { width:38px; height:38px; }
+ html .uyym-ui .brand strong { font-size:23px; }
+ html .uyym-ui .header-actions { gap:7px; }
+ html .uyym-ui .header-login { width:40px; min-height:44px; padding:10px; font-size:0; }
+ html .uyym-ui .language-switch button { min-width:32px; font-size:11px; }
+ html .uyym-ui .theme-button { width:40px; height:46px; }
+ html .uyym-ui .menu-button { color:var(--ui-ink); }
+ html .uyym-ui .desktop-nav { margin-left:0; top:100%; background:var(--ui-panel); border-color:var(--ui-line); padding:12px 18px 20px; }
+ html .uyym-ui .desktop-nav a { font-size:16px; padding:14px; }
+ html .uyym-ui .hero { padding:48px 0 56px; }
+ html .uyym-ui .hero-grid { display:flex; flex-direction:column; gap:12px; }
+ html .uyym-ui .hero h1 { font-size:clamp(36px,9vw,46px); line-height:1.13; }
+ html .uyym-ui .hero-description { font-size:16px; line-height:1.7; }
+ html .uyym-ui .hero-actions { flex-wrap:wrap; gap:12px 20px; margin-top:26px; }
+ html .uyym-ui .hero-details { flex-wrap:wrap; font-size:12px; gap:12px 20px; margin-top:24px; }
+ html .uyym-ui .study-illustration { transform:scale(.68); transform-origin:top center; margin:32px 0 -130px; align-self:center; }
+ html .uyym-ui .exam-band .container > div { font-size:14px; }
+ html .uyym-ui .section { padding:56px 0; }
+ html .uyym-ui .section h2 { font-size:32px; }
+ html .uyym-ui .section-heading { margin-bottom:26px; }
+ html .uyym-ui .section-heading > p { margin-top:20px; font-size:15px; }
+ html .uyym-ui .course-grid { grid-template-columns:1fr; gap:20px; }
+ html .uyym-ui .course-card { padding:26px; }
+ html .uyym-ui .course-card h3 { min-height:0; font-size:26px; margin-bottom:14px; }
+ html .uyym-ui .course-card > p { min-height:0; font-size:15px; }
+ html .uyym-ui .course-top { margin-bottom:12px; }
+ html .uyym-ui .course-meta { margin-block:22px; }
+ html .uyym-ui .course-bottom { align-items:center; }
+ html .uyym-ui .course-link { margin-left:auto; }
+ html .uyym-ui .access-section { padding-bottom:0; }
+ html .uyym-ui .access-panel { padding:28px; }
+ html .uyym-ui .access-panel h2 { font-size:28px; }
+ html .uyym-ui .contact-section { padding:56px 0; }
+ html .uyym-ui .contact-grid h2 { font-size:36px; }
+ html .uyym-ui .footer-top { gap:20px; }
+ html .uyym-ui .footer-top p { font-size:12px; }
+ html .uyym-ui .account-main { padding-top:24px; }
+ html .uyym-ui .account-breadcrumb { font-size:13px; margin-bottom:28px; }
+ html .uyym-ui .dashboard-heading { align-items:flex-start; gap:12px; }
+ html .uyym-ui .dashboard-heading h1 { font-size:29px; }
+ html .uyym-ui .dashboard-heading .button { padding:10px 12px; font-size:12px; }
+ html .uyym-ui .dashboard-security { font-size:12px; gap:10px; padding:16px; }
+ html .uyym-ui .dashboard-security strong { font-size:12px; }
+ html .uyym-ui .management-shell { grid-template-columns:1fr; gap:20px; }
+ html .uyym-ui .manage-mobile-nav { font-size:14px; }
+ html .uyym-ui .dashboard-panel { padding:24px 20px; }
+ html .uyym-ui .panel-heading { flex-wrap:wrap; gap:16px; }
+ html .uyym-ui .panel-heading h2 { font-size:26px; }
+ html .uyym-ui .manage-toolbar { flex-wrap:wrap; gap:16px; }
+ html .uyym-ui .manage-toolbar label { flex-basis:100%; max-width:none; margin:0; }
+ html .uyym-ui .manage-toolbar label + label { max-width:none; }
+ html .uyym-ui .manage-record { flex-wrap:wrap; gap:18px; }
+ html .uyym-ui .manage-record-info { flex-basis:100%; }
+ html .uyym-ui .manage-record-actions { width:100%; flex-direction:row; align-items:center; flex-wrap:wrap; }
+ html .uyym-ui .manage-record-info dl { gap:12px 16px; }
+ html .uyym-ui .manage-record-info dt { font-size:12px; }
+ html .uyym-ui .manage-record-info dd { font-size:14px; }
+ html .uyym-ui .manage-pagination > div { flex-wrap:wrap; }
+ html .uyym-ui .auth-grid { gap:32px; }
+ html .uyym-ui .auth-story h1 { font-size:38px; }
+ html .uyym-ui .auth-story > p { font-size:16px; }
+ html .uyym-ui .auth-card { padding:28px 24px; }
+ html .uyym-ui .modal { padding:52px 24px 28px; width:calc(100vw - 28px); max-width:calc(100vw - 28px); }
+ html .uyym-ui .modal h2 { font-size:26px; }
+ html .uyym-ui .manage-form-grid { grid-template-columns:1fr; }
+ html .uyym-ui .course-access-card { padding:24px; }
+ html .uyym-ui .content-tabs { flex-wrap:wrap; }
+ html .uyym-ui .content-tabs button { flex:1 1 42%; text-align:center; font-size:13px; }
+ html .uyym-ui .content-card { padding:22px; }
+}
+@media(max-width:360px) {
+ html .uyym-ui .header-actions { gap:4px; }
+ html .uyym-ui .brand strong { font-size:21px; }
+ html .uyym-ui .hero h1 { font-size:35px; }
+ html .uyym-ui .study-illustration { transform:scale(.6); margin-bottom:-170px; }
+ html .uyym-ui .course-bottom { flex-direction:column; align-items:stretch; }
+ html .uyym-ui .course-link { margin-left:0; width:100%; }
+}
+@media(prefers-reduced-motion:reduce) { html .uyym-ui .button { transition:none; } }
