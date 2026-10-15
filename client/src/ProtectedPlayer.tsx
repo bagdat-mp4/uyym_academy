@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, type Lesson } from './api';
+import { api, type Lesson, type User } from './api';
+import {observePlayer,playerDiagnosticsEnabled,watchStudentProgress} from './player-observation';
 import {tr,interfaceError,type Lang} from './i18n';
 
 type MediaPart = { index: number; start: number; duration: number; bytes: number };
@@ -36,7 +37,7 @@ function isBuffered(buffer: SourceBuffer, part: MediaPart): boolean {
   return false;
 }
 
-export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang: Lang }) {
+export default function ProtectedPlayer({ lesson, lang, role }: { lesson: Lesson; lang: Lang; role:User['role'] }) {
   const t=(kk:string,ru:string)=>tr(lang,[kk,ru]);
   const video = useRef<HTMLVideoElement>(null);
   const shell = useRef<HTMLDivElement>(null);
@@ -52,6 +53,9 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
   const [progressNotice, setProgressNotice] = useState('');
   const savingProgress = useRef(false);
   const [started, setStarted] = useState(false);
+  const startedAt=useRef(0);
+  const playbackLanguage=useRef(lang);
+  useEffect(()=>{playbackLanguage.current=lang;},[lang]);
   useEffect(() => { setStarted(false); setState('idle'); setError(''); }, [lesson.id]);
   useEffect(() => {
     const changed = () => setFullscreen(document.fullscreenElement === shell.current);
@@ -82,8 +86,16 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
 
   useEffect(() => {
     if (!started) return;
+    // Translating controls must not destroy MSE, discard its buffer or issue a
+    // new grant. Async error text still reads the current selected language.
+    const t=(kk:string,ru:string)=>tr(playbackLanguage.current,[kk,ru]);
     const element = video.current!;
     const controller = new AbortController();
+    const diagnostics=playerDiagnosticsEnabled();
+    const observation=observePlayer(diagnostics,startedAt.current||performance.now());
+    const firstData=()=>{if(!controller.signal.aborted)observation.mark('first_frame_ready');};
+    element.addEventListener('loadeddata',firstData,{once:true});
+    const frame=diagnostics&&element.requestVideoFrameCallback?element.requestVideoFrameCallback(()=>{if(!controller.signal.aborted)observation.mark('first_frame');}):undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let objectUrl = '';
@@ -109,7 +121,7 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
       const nativeSource = window.MediaSource as MediaSourceConstructor | undefined;
       const managedSource = (window as unknown as { ManagedMediaSource?: MediaSourceConstructor }).ManagedMediaSource;
       if (!nativeSource && !managedSource) throw new Error(t('Бұл браузер қорғалған ойнатқышты қолдамайды. Chrome, Edge немесе MediaSource / ManagedMediaSource қолдайтын Safari нұсқасын қолданыңыз.','Браузер не поддерживает защищённый плеер. Используйте Chrome, Edge или Safari с MediaSource / ManagedMediaSource.'));
-      const grant = await api<Playback>(`/api/lessons/${lesson.id}/playback`, { method: 'POST', body: {}, proof: 'playback', signal: controller.signal });
+      const grant = await observation.measure('playback',()=>api<Playback>(`/api/lessons/${lesson.id}/playback`, { method: 'POST', body: {}, proof: 'playback', signal: controller.signal,playerTiming:diagnostics }));
       const beat = () => api(`/api/playback/${grant.grant_id}/heartbeat`, { method: 'POST', body: {}, proof: 'heartbeat', signal: controller.signal }).catch(fail);
       // Keep the grant fresh while MediaSource opens and Drive validates the
       // init fragment. A slow Drive response must not expire its own grant.
@@ -150,7 +162,8 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
       buffer.mode = 'segments';
       const loadPart = async (part: MediaPart) => {
         const path = `/api/media/${lesson.id}?grant=${encodeURIComponent(grant.grant_id)}&part=${part.index}`;
-        const bytes = await api<ArrayBuffer>(path, { proof: 'media', binary: true, signal: controller.signal });
+        const request=()=>api<ArrayBuffer>(path, { proof: 'media', binary: true, signal: controller.signal,playerTiming:diagnostics });
+        const bytes = await(part.index===-1?observation.measure('media_init',request):part.index===0?observation.measure('media_0',request):request());
         if (bytes.byteLength > MAX_BYTES || bytes.byteLength !== part.bytes) throw new Error('Media part integrity check failed.');
         await updateBuffer(buffer!, () => buffer!.appendBuffer(bytes), controller.signal);
       };
@@ -195,14 +208,17 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
       if (heartbeat) clearInterval(heartbeat);
       if (timer) clearTimeout(timer);
       element.removeEventListener('error', mediaError);
+      element.removeEventListener('loadeddata',firstData);
+      if(frame!==undefined)element.cancelVideoFrameCallback(frame);
       source?.removeEventListener('startstreaming', startStreaming);
       source?.removeEventListener('endstreaming', endStreaming);
       element.pause(); element.removeAttribute('src'); element.load();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [lesson.id, attempt, lang, started]);
+  }, [lesson.id, attempt, started]);
 
   useEffect(() => {
+    if(role!=='STUDENT')return;
     const element=video.current!;
     let lastSaved=Number(lesson.progress_seconds??0);
     const save=async(done=false)=>{
@@ -216,21 +232,18 @@ export default function ProtectedPlayer({ lesson, lang }: { lesson: Lesson; lang
       }catch{/* Progress is secondary to playback; the next interval retries. */}
       finally{savingProgress.current=false;}
     };
-    const paused=()=>void save(false);
-    const timer=setInterval(()=>{if(!element.paused)void save(false);},15000);
-    element.addEventListener('pause',paused);
-    return()=>{clearInterval(timer);element.removeEventListener('pause',paused);};
-  },[lesson.id,lesson.progress_seconds,lang]);
+    return watchStudentProgress(role,element,()=>void save(false));
+  },[lesson.id,lesson.progress_seconds,lang,role]);
 
   return <div ref={shell} className={`player-shell ${expanded ? 'player-expanded' : ''}`}>
     <div className="video-stage">
       <video ref={video} controls controlsList="nodownload nofullscreen noremoteplayback" disablePictureInPicture disableRemotePlayback playsInline preload="none" onContextMenu={event => event.preventDefault()} aria-label={lesson.title} />
       {watermark && <div className="video-watermark" aria-hidden="true">UYYM Academy · {watermark}</div>}
-      {state === 'idle' && <div className="player-overlay player-idle"><span className="player-lock">▶</span><p>{t('Бейне тек сіз бастағаннан кейін қорғалған бөліктермен жүктеледі.','Защищённые части видео загрузятся только после запуска.')}</p><button className="button button-yellow" onClick={() => setStarted(true)}>{t('Көруді бастау','Начать просмотр')}</button></div>}
+      {state === 'idle' && <div className="player-overlay player-idle"><span className="player-lock">▶</span><p>{t('Бейне тек сіз бастағаннан кейін қорғалған бөліктермен жүктеледі.','Защищённые части видео загрузятся только после запуска.')}</p><button className="button button-yellow" onClick={() => {startedAt.current=performance.now();setStarted(true);}}>{t('Көруді бастау','Начать просмотр')}</button></div>}
       {state === 'loading' && <div className="player-overlay"><span className="spinner" /><span>{t('Қауіпсіз ойнатқыш дайындалуда…','Подготавливаем защищённый плеер…')}</span></div>}
-      {state === 'error' && <div className="player-overlay player-error"><span className="player-lock">!</span><p>{error}</p><button className="button button-yellow" onClick={() => setAttempt(value => value + 1)}>{t('Қайта көру','Повторить')}</button></div>}
+      {state === 'error' && <div className="player-overlay player-error"><span className="player-lock">!</span><p>{error}</p><button className="button button-yellow" onClick={() => {startedAt.current=performance.now();setAttempt(value => value + 1);}}>{t('Қайта көру','Повторить')}</button></div>}
     </div>
-    <div className="player-tools"><span className="small-dot" />{t('Жеке оқу қолжетімділігі','Персональный учебный доступ')}<label className="speed-control">{t('Жылдамдық','Скорость')}<select value={speed} onChange={event => { setSpeed(event.target.value); if (video.current) video.current.playbackRate = Number(event.target.value); }}>{[.75, 1, 1.25, 1.5, 2].map(value => <option value={value} key={value}>{value}×</option>)}</select></label><button type="button" className={`complete-button ${completed?'completed':''}`} disabled={completed||!started} onClick={()=>{const element=video.current;if(!element||savingProgress.current)return;savingProgress.current=true;setProgressNotice('');void api<{completed_at:string|null}>(`/api/lessons/${lesson.id}/progress`,{method:'PATCH',proof:'api',body:{position_seconds:Math.max(0,element.currentTime||0),completed:true}}).then(result=>{if(result.completed_at){setCompleted(true);setProgressNotice(t('Сабақ аяқталды деп белгіленді.','Урок отмечен завершённым.'));}}).catch(()=>setProgressNotice(t('Белгіні сақтау мүмкін болмады. Қайта көріңіз.','Не удалось сохранить отметку. Повторите попытку.'))).finally(()=>{savingProgress.current=false;});}}>{completed?'✓ ':''}{t('Аяқталды','Завершить')}</button><button type="button" className="fullscreen-button" onClick={() => void toggleFullscreen()} aria-label={expanded || fullscreen ? (t('Толық экраннан шығу','Выйти из полноэкранного режима')) : (t('Толық экран','Полный экран'))}>{expanded || fullscreen ? '↙' : '⛶'}<span>{expanded || fullscreen ? (t('Шығу','Свернуть')) : (t('Толық экран','Полный экран'))}</span></button></div>
+    <div className="player-tools"><span className="small-dot" />{t('Жеке оқу қолжетімділігі','Персональный учебный доступ')}<label className="speed-control">{t('Жылдамдық','Скорость')}<select value={speed} onChange={event => { setSpeed(event.target.value); if (video.current) video.current.playbackRate = Number(event.target.value); }}>{[.75, 1, 1.25, 1.5, 2].map(value => <option value={value} key={value}>{value}×</option>)}</select></label>{role==='STUDENT'&&<button type="button" className={`complete-button ${completed?'completed':''}`} disabled={completed||!started} onClick={()=>{const element=video.current;if(role!=='STUDENT'||!element||savingProgress.current)return;savingProgress.current=true;setProgressNotice('');void api<{completed_at:string|null}>(`/api/lessons/${lesson.id}/progress`,{method:'PATCH',proof:'api',body:{position_seconds:Math.max(0,element.currentTime||0),completed:true}}).then(result=>{if(result.completed_at){setCompleted(true);setProgressNotice(t('Сабақ аяқталды деп белгіленді.','Урок отмечен завершённым.'));}}).catch(()=>setProgressNotice(t('Белгіні сақтау мүмкін болмады. Қайта көріңіз.','Не удалось сохранить отметку. Повторите попытку.'))).finally(()=>{savingProgress.current=false;});}}>{completed?'✓ ':''}{t('Аяқталды','Завершить')}</button>}<button type="button" className="fullscreen-button" onClick={() => void toggleFullscreen()} aria-label={expanded || fullscreen ? (t('Толық экраннан шығу','Выйти из полноэкранного режима')) : (t('Толық экран','Полный экран'))}>{expanded || fullscreen ? '↙' : '⛶'}<span>{expanded || fullscreen ? (t('Шығу','Свернуть')) : (t('Толық экран','Полный экран'))}</span></button></div>
     {progressNotice&&<p className="player-progress-notice" role="status">{progressNotice}</p>}
     {fullscreenNotice && <p className="player-fullscreen-notice" role="status">{fullscreenNotice}</p>}
     <p className="privacy-note">{t('Әр жаңа бөлікке қолжетімділік қайта тексеріледі. Бұрын алынған буферді қайтару және экран жазбасын толық тоқтату мүмкін емес. Бұл DRM емес.','Доступ проверяется перед каждой новой частью. Уже полученный буфер нельзя отозвать; запись экрана полностью предотвратить нельзя. Это не DRM.')}</p>

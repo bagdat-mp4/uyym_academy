@@ -7,6 +7,21 @@ import {savedLanguage,savedTheme,publicFaq,tr,locale} from '../client/src/i18n.j
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import App from '../client/src/App.js';
+import AccountLink from '../client/src/AccountLink.js';
+import {WorkspaceError,WorkspaceLoading} from '../client/src/Workspace.js';
+
+test('account navigation names the real destination for guests and each role in all languages',()=>{
+ for(const [lang,labels] of [
+  ['en',['Sign in','My learning','Teaching workspace','Administration']],
+  ['kk',['Кіру','Менің оқуым','Оқытушы кабинеті','Әкімші панелі']],
+  ['ru',['Войти','Моё обучение','Кабинет преподавателя','Администрирование']],
+ ] as const){
+  [undefined,'STUDENT','TEACHER','ADMIN'].forEach((role,index)=>{
+   const markup=renderToStaticMarkup(createElement(AccountLink,{lang,role:role as 'STUDENT'|'TEACHER'|'ADMIN'|undefined,current:true,onNavigate(){}}));
+   assert.ok(markup.includes(labels[index]),markup);assert.ok(markup.includes('href="#account"'));assert.ok(markup.includes('aria-current="page"'));
+  });
+ }
+});
 
 test('new visitors default to English and light; all saved choices are retained',()=>{
  const storage=(value:string|null)=>({getItem:()=>value});
@@ -16,6 +31,13 @@ test('new visitors default to English and light; all saved choices are retained'
  const blocked={getItem(){throw new Error('Blocked storage');}};
  assert.equal(savedLanguage(blocked),'en');assert.equal(savedTheme(blocked),'light');
  assert.equal(tr('en',['Курстар','Курсы']),'Courses');assert.equal(locale('en'),'en-GB');
+});
+
+test('deferred workspace loading/error retain translated accessible states without error details',()=>{
+ for(const [lang,retry] of [['en','Reload page'],['kk','Бетті жаңарту'],['ru','Обновить страницу']] as const){
+  const loading=renderToStaticMarkup(createElement(WorkspaceLoading,{lang}));assert.ok(loading.includes('role="status"'));
+  const error=renderToStaticMarkup(createElement(WorkspaceError,{lang}));assert.ok(error.includes('role="alert"')&&error.includes(retry));assert.ok(!/stack|\.js|supabase|grant=/i.test(error));
+ }
 });
 
 test('account header replaces public navigation with home; public header keeps course links',()=>{
@@ -29,6 +51,7 @@ test('account header replaces public navigation with home; public header keeps c
   const homepage=renderToStaticMarkup(createElement(App)).match(/<header[\s\S]*?<\/header>/)![0];
   for(const path of ['#courses','#format','#faq','#contact'])assert.ok(homepage.includes(`href="${path}"`));
   assert.ok(homepage.includes('EN')&&homepage.includes('ҚАЗ')&&homepage.includes('RU'));
+  const full=renderToStaticMarkup(createElement(App));assert.ok(full.includes('class="skip-link"')&&full.includes('id="main-content" tabindex="-1"'));assert.ok(full.includes('width="48" height="48"'));
  }finally{if(previous)Object.defineProperty(globalThis,'window',previous);else Reflect.deleteProperty(globalThis,'window');}
 });
 

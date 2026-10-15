@@ -500,5 +500,13 @@
   "Время ожидания истекло. Проверьте соединение и повторите попытку.": "The request timed out. Check your connection and try again.",
   "Свернуть": "Exit fullscreen",
   "Этот аккаунт зарегистрирован в другом браузере. Для замены обратитесь к администратору.": "This account is registered to another browser. Contact the administrator to replace it.",
-  "Записаться": "Enroll"
+  "Записаться": "Enroll",
+  "Администрирование": "Administration",
+  "Кабинет преподавателя": "Teaching workspace",
+  "Моё обучение": "My learning",
+  "Перейти к содержимому": "Skip to content",
+  "Входим…": "Signing in…",
+  "Не удалось загрузить кабинет": "The workspace could not be loaded",
+  "Проверьте соединение и обновите страницу.": "Check your connection and reload the page.",
+  "Обновить страницу": "Reload page"
 }

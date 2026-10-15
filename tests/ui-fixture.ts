@@ -3,8 +3,10 @@
 import {PGlite} from '@electric-sql/pglite';
 import {readFile,readdir} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
+import {resolve} from 'node:path';
 if(process.env.NODE_ENV==='production')throw new Error('Test provider cannot run in production');
-Object.assign(process.env,{NODE_ENV:'test',PORT:'18878',APP_ORIGIN:'http://localhost:5174',COOKIE_SECURE:'false',DATABASE_URL:'postgresql://unused@127.0.0.1:1/postgres',SUPABASE_URL:'https://local-auth.invalid',SUPABASE_ANON_KEY:'TEST_ONLY',SUPABASE_SERVICE_ROLE_KEY:'TEST_ONLY',ADMIN_ENCRYPTION_KEY:'ab'.repeat(32)});
+const testOrigin=process.env.UYYM_UI_ORIGIN||'http://localhost:5174';if(!['http://localhost:5174','http://localhost:18878'].includes(testOrigin))throw new Error('Fixture origin must stay local');
+Object.assign(process.env,{DOTENV_CONFIG_PATH:resolve('work/nonexistent-ui-fixture.env'),GOOGLE_APPLICATION_CREDENTIALS_BASE64:'',NODE_ENV:'test',PORT:'18878',APP_ORIGIN:testOrigin,COOKIE_SECURE:'false',DATABASE_URL:'postgresql://unused@127.0.0.1:1/postgres',SUPABASE_URL:'https://local-auth.invalid',SUPABASE_ANON_KEY:'TEST_ONLY',SUPABASE_SERVICE_ROLE_KEY:'TEST_ONLY',ADMIN_ENCRYPTION_KEY:'ab'.repeat(32)});
 const db=new PGlite();
 await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text);create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key,bucket_id text,name text);alter table storage.objects enable row level security;`);
 const dir=new URL('../supabase/migrations/',import.meta.url);for(const file of(await readdir(dir)).filter(x=>x.endsWith('.sql')).sort())await db.exec(await readFile(new URL(file,dir),'utf8'));
@@ -17,12 +19,14 @@ async function lease(){let release!:()=>void;const previous=queue;queue=new Prom
 const users=new Map<string,any>();const id=randomUUID(),phone='+77070000001',password='UiFixture-Only-Password-2026';
 const teacherId=randomUUID(),teacherPhone='+77070000004',teacherPassword='UiFixture-Teacher-Password-2026';
 const studentId=randomUUID(),studentPhone='+77070000002',studentPassword='UiFixture-Student-Password-2026';
-const {encrypt,totp}=await import('../server/security.js');const secret='JBSWY3DPEHPK3PXP';
+const {encrypt}=await import('../server/security.js');const secret='JBSWY3DPEHPK3PXP';
 await query('INSERT INTO auth.users(id,phone) VALUES($1,$2),($3,$4)',[id,phone,studentId,studentPhone]);
 await query("INSERT INTO private.app_users(id,phone,name,role,must_change_password,admin_totp_secret_encrypted) VALUES($1,$2,'LOCAL TEST OWNER','ADMIN',false,$3)",[id,phone,encrypt(secret,process.env.ADMIN_ENCRYPTION_KEY!)]);
 await query("INSERT INTO private.app_users(id,phone,name,role,must_change_password) VALUES($1,$2,'LOCAL FIXTURE STUDENT','STUDENT',false)",[studentId,studentPhone]);
 const courseId=String(((await query("SELECT id FROM private.courses WHERE slug='calculus-i'")).rows[0] as any).id),groupId=randomUUID();
 const pp1Id=String(((await query("SELECT id FROM private.courses WHERE slug='pp1'")).rows[0] as any).id);
+await query("INSERT INTO private.enrollments(user_id,course_id,status,starts_at,expires_at,created_by) VALUES($1,$2,'active',now()-interval '1 day',now()+interval '30 days',$3)",[studentId,pp1Id,id]);
+await query("INSERT INTO private.lessons(course_id,title,description,published,created_by) VALUES($1,'LOCAL FIXTURE · PP1 course-wide lesson','Local content rendering only; no private Drive video.',true,$2)",[pp1Id,id]);
 await query("INSERT INTO private.registration_applications(name,phone,course_id) VALUES('LOCAL FIXTURE · PP1 APPLICANT','+77070000003',$1)",[pp1Id]);
 await query("INSERT INTO private.groups(id,course_id,title,active,capacity,starts_at,ends_at,schedule_description) VALUES($1,$2,'LOCAL UI FIXTURE · CALC A',true,5,now()-interval '1 day',now()+interval '30 days','Сейсенбі және бейсенбі · 18:00 · Asia/Almaty')",[groupId,courseId]);
 await query("INSERT INTO private.enrollments(user_id,course_id,group_id,status,starts_at,expires_at,payment_status,created_by) VALUES($1,$2,$3,'active',now()-interval '1 day',now()+interval '30 days','paid',$4)",[studentId,courseId,groupId,id]);
@@ -53,6 +57,16 @@ globalThis.fetch=async(input:any,init?:RequestInit)=>{
  throw new Error('Test provider forbids other external HTTP');
 };
 const {app}=await import('../server/index.js');
+// Exercise an actual failed dynamic import and subsequent browser reload using
+// the production build. This flag exists only in this loopback test entrypoint.
+let failNextAdminChunk=process.env.UYYM_UI_FAIL_CHUNK==='1';
+app.addHook('onRequest',async(req,reply)=>{
+ if(failNextAdminChunk&&/^\/assets\/AdminPanel-[\w-]+\.js$/.test(req.url)){failNextAdminChunk=false;return reply.code(404).send('Local fixture: failed chunk');}
+});
+const samples:{route:string;status:number;ms:number}[]=[];
+const tracked=new Set(['/api/public','/api/auth/status','/api/courses','/api/courses/:id/content']);
+app.addHook('onResponse',async(req,reply)=>{const route=req.routeOptions.url;if(route&&tracked.has(route)){samples.push({route,status:reply.statusCode,ms:Math.round(reply.elapsedTime)});if(samples.length>100)samples.shift();}});
+app.get('/__ui/metrics',async()=>({local_fixture:true,samples}));
 // UI-only fixtures represent previously approved student/teacher profiles.
 // Production device approval is tested by the security suites, not this hook.
 app.addHook('onResponse',async req=>{
@@ -62,10 +76,5 @@ app.addHook('onResponse',async req=>{
  if(fixtureId)await (pool as any).query("UPDATE private.device_bindings SET status='approved',approved_at=now(),approved_by=$2 WHERE user_id=$1 AND status='pending'",[fixtureId,id]);
 });
 await app.listen({host:'127.0.0.1',port:18878});
-console.info('LOCAL TEST ONLY: embedded SQL + simulated Auth; Drive UNVERIFIED. UI http://localhost:5174/#account');
-console.info('Fixture phone:',phone,'Fixture password:',password);
-console.info('Fixture student:',studentPhone,'Fixture password:',studentPassword);
-console.info('Current fixture TOTP:',totp(secret,Math.floor(Date.now()/30000)));
+console.info(`LOCAL TEST ONLY: embedded SQL + simulated Auth; Drive UNVERIFIED. UI ${testOrigin}/#account`);
 process.on('SIGINT',async()=>{await app.close();await db.close();process.exit(0);});
-// Generate a fresh fixture TOTP in another terminal:
-// node --import tsx -e "import('./server/security.ts').then(m=>console.log(m.totp('JBSWY3DPEHPK3PXP',Math.floor(Date.now()/30000))))"
