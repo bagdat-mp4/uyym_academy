@@ -65,6 +65,18 @@ test('English API errors stay generic and authenticated routes remain protected'
  assert.ok(!response.body.includes('postgres')&&!response.body.includes('SUPABASE'));
 });
 
+test('unexpected database failures expose neither internal SQL codes nor exception details',async()=>{
+ const {pool}=await import('../server/db.js'),original=pool.query;
+ (pool as any).query=async()=>{throw Object.assign(new Error('INTERNAL_FIXTURE_DETAIL'),{code:'42P18'});};
+ try{
+  for(const lang of ['en','kk','ru']){
+   const response=await app.inject({method:'GET',url:'/api/public',headers:{'accept-language':lang}});
+   assert.equal(response.statusCode,500);assert.equal(response.json().code,'SERVICE_UNAVAILABLE');
+   assert.ok(!response.body.includes('42P18')&&!response.body.includes('INTERNAL_FIXTURE_DETAIL'));
+  }
+ }finally{pool.query=original;}
+});
+
 test('public API hides the legacy affiliation FAQ from stored settings without changing stored data',async()=>{
  const previous=(await db.query<{faq:unknown}>('SELECT faq FROM private.site_settings WHERE id=true')).rows[0].faq;
  const faq=[{question:'UYYM Academy — официальный проект КБТУ?',answer:'Официальное партнёрство с КБТУ не заявлено.'},{question:'Owner question',answer:'Owner answer stays verbatim'}];
@@ -158,6 +170,37 @@ test('audit resolves named objects and preserves safe changes without exposing j
  for(const secret of ['admin_totp_secret','recovery_hashes','token_hash','csrf_token','public_key','temporary_password'])assert.ok(!result.body.includes(secret));
  await db.query("INSERT INTO private.audit_log(actor_id,action,target_type,target_id,metadata) VALUES($1,'legacy.fixture','course','historical non-UUID target','{}')",[owner.id]);
  const historical=await signed(owner,'GET','/api/admin/audit?q=legacy.fixture');assert.equal(historical.statusCode,200,historical.body);assert.equal(historical.json().items[0].object_label,null);
+});
+
+test('ungrouped student content binds SQL correctly and keeps publication, group and personal result boundaries',async()=>{
+ const c=await course(),foreign=await group(c.id),student=await actor('STUDENT'),other=await actor('STUDENT');
+ const access=await enrollment(student.id,c.id,null);await enrollment(other.id,c.id,foreign.id);
+ const lesson=randomUUID(),hidden=randomUUID(),groupLesson=randomUUID(),assignment=randomUUID();
+ await db.query("INSERT INTO private.lessons(id,course_id,group_id,title,published) VALUES($1,$2,null,'Course-wide lesson',true),($3,$2,null,'Draft lesson',false),($4,$2,$5,'Foreign group lesson',true)",[lesson,c.id,hidden,groupLesson,foreign.id]);
+ await db.query('INSERT INTO private.lesson_progress(user_id,lesson_id,position_seconds) VALUES($1,$2,37),($3,$2,91)',[student.id,lesson,other.id]);
+ await db.query("INSERT INTO private.assignments(id,course_id,group_id,title,instructions,due_at,published,created_by) VALUES($1,$2,$3,'Group assignment','Local fixture task',now()+interval '1 day',true,$4)",[assignment,c.id,foreign.id,owner.id]);
+ for(const [id,feedback] of [[student.id,'Own feedback'],[other.id,'Foreign feedback']]){
+  const submission=randomUUID();
+  await db.query("INSERT INTO private.submissions(id,assignment_id,user_id,status,current_version,grade,feedback) VALUES($1,$2,$3,'reviewed',1,8,$4)",[submission,assignment,id,feedback]);
+  await db.query('INSERT INTO private.submission_versions(submission_id,version,answer,is_late) VALUES($1,1,$2,false)',[submission,feedback]);
+ }
+ await db.query("INSERT INTO private.archive_entries(course_id,category,exam_year,title,published,created_by) VALUES($1,'Quiz',2025,'Course archive',true,$2)",[c.id,owner.id]);
+ await db.query("INSERT INTO private.announcements(course_id,title,body,published,created_by) VALUES($1,'Course news','Visible news',true,$2)",[c.id,owner.id]);
+ const path=`/api/courses/${c.id}/content`;
+ assert.equal((await raw(student,'GET',path)).statusCode,403);
+ const result=await signed(student,'GET',path);assert.equal(result.statusCode,200,result.body);
+ const content=result.json();assert.deepEqual(content.groups,[]);assert.deepEqual(content.lessons.map((x:any)=>x.id),[lesson]);
+ assert.equal(Number(content.lessons[0].progress_seconds),37);
+ assert.deepEqual(content.assignments,[]);
+ assert.equal(content.archive.length,1);assert.equal(content.announcements.length,1);
+ assert.ok(!result.body.includes('Foreign feedback')&&!result.body.includes('Own feedback')&&!result.body.includes(groupLesson)&&!result.body.includes(hidden));
+ const grouped=await signed(other,'GET',path);assert.equal(grouped.statusCode,200,grouped.body);
+ assert.equal(Number(grouped.json().lessons.find((x:any)=>x.id===lesson).progress_seconds),91);
+ assert.equal(grouped.json().assignments[0].submission.feedback,'Foreign feedback');
+ assert.ok(grouped.json().lessons.some((x:any)=>x.id===groupLesson));
+ const unrelated=await course();assert.equal((await signed(student,'GET',`/api/courses/${unrelated.id}/content`)).statusCode,404);
+ const paused=await signed(owner,'PATCH',`/api/admin/enrollments/${access.id}`,{operation_id:randomUUID(),revision:Number(access.revision),status:'paused'});assert.equal(paused.statusCode,200,paused.body);
+ assert.equal((await signed(student,'GET',path)).statusCode,404);
 });
 
 test('learning content is scoped by course/group; private files close immediately after access revocation',async()=>{

@@ -101,7 +101,10 @@ export async function registerContentRoutes(app:FastifyInstance){
   let groups:string[]|null=null;
   if(ctx.user.role==='STUDENT'){const row=(await pool.query("SELECT group_id FROM private.enrollments WHERE user_id=$1 AND course_id=$2 AND status='active' AND starts_at<=now() AND expires_at>now()",[ctx.user_id,courseId])).rows[0];groups=row?.group_id?[row.group_id]:[];}
   if(ctx.user.role==='TEACHER'){const assigned=(await pool.query('SELECT group_id FROM private.teacher_assignments WHERE teacher_id=$1 AND course_id=$2',[ctx.user_id,courseId])).rows;if(!assigned.length)fail('NOT_FOUND',404);groups=assigned.some(x=>x.group_id===null)?null:assigned.map(x=>x.group_id);}
-  const groupSql=groups===null?'TRUE':groups.length?`(x.group_id IS NULL OR x.group_id=ANY($2::uuid[]))`:'x.group_id IS NULL';const params=groups===null?[courseId]:[courseId,groups];const published=ctx.user.role==='STUDENT'?'AND x.published':'';
+  const groupSql=groups===null?'TRUE':groups.length?`(x.group_id IS NULL OR x.group_id=ANY($2::uuid[]))`:'x.group_id IS NULL';
+  // An ungrouped enrollment sees course-wide content only. Do not bind an
+  // unused $2: it has no inferred type and shifts the student's progress ID.
+  const params=groups?.length?[courseId,groups]:[courseId];const published=ctx.user.role==='STUDENT'?'AND x.published':'';
   const course=(await pool.query('SELECT id,title,description FROM private.courses WHERE id=$1',[courseId])).rows[0];if(!course)fail('NOT_FOUND',404);
   const visibleGroups=groups===null?(await pool.query('SELECT id,title,schedule_description,starts_at,ends_at FROM private.groups WHERE course_id=$1 ORDER BY title',[courseId])).rows:groups.length?(await pool.query('SELECT id,title,schedule_description,starts_at,ends_at FROM private.groups WHERE course_id=$1 AND id=ANY($2::uuid[]) ORDER BY title',[courseId,groups])).rows:[];
   const progress=ctx.user.role==='STUDENT'?`,COALESCE(lp.position_seconds,0) AS progress_seconds,lp.completed_at,lp.last_opened_at`:'';

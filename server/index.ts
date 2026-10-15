@@ -39,7 +39,7 @@ app.setErrorHandler((error,req,reply)=>{
  const kkMessage=status===500?'Сервис уақытша қолжетімсіз':error instanceof z.ZodError?'Деректерді тексеріңіз':status===429?'Көп әрекет жасалды. Кейін қайталаңыз':(error as Error).message;
  const ruMessage=status===500?'Сервис временно недоступен':error instanceof z.ZodError?'Проверьте данные':status===429?'Слишком много попыток. Повторите позже':(error as any).message_ru||({401:'Сессия завершилась. Войдите снова',403:'Нет разрешения на действие',404:'Запись недоступна',400:'Проверьте данные',409:'Запись изменилась. Обновите список',503:'Внешние сервисы ещё не подключены. Обратитесь к администратору'} as Record<number,string>)[status]||'Запрос не выполнен';
  const enMessage=({400:'Check the submitted details.',401:'Sign-in or session verification failed. Check your details or contact the administrator.',403:'This action is not allowed. Check your approved browser and account setup.',404:'The requested record is unavailable.',409:'The record changed. Refresh and try again.',429:'Too many attempts. Please try again later.',500:'The service is temporarily unavailable.',503:'The service is temporarily unavailable. Contact the administrator.'} as Record<number,string>)[status]||'The request could not be completed.';
- reply.code(status).send({error:en?enMessage:ru?ruMessage:kkMessage,code:(error as any).code|| (error instanceof z.ZodError?'INVALID_DATA':undefined)});
+ reply.code(status).send({error:en?enMessage:ru?ruMessage:kkMessage,code:status===500?'SERVICE_UNAVAILABLE':(error as any).code|| (error instanceof z.ZodError?'INVALID_DATA':undefined)});
 });
 app.get('/api/health',async(_req,reply)=>{
  if(!ready())return reply.code(503).send({ok:false});
