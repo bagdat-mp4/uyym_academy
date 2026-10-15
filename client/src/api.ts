@@ -13,11 +13,12 @@ export class ApiError extends Error {
   constructor(message: string, public status: number, public code?: string) { super(message); }
 }
 
-export async function api<T>(path: string, options: { method?: string; body?: unknown; proof?: string; signal?: AbortSignal; binary?: boolean } = {}): Promise<T> {
+export async function api<T>(path: string, options: { method?: string; body?: unknown; proof?: string; signal?: AbortSignal; binary?: boolean; playerTiming?:boolean } = {}): Promise<T> {
   const method = options.method ?? 'GET';
   // All mutations carry JSON; challenge hashes the exact bytes subsequently sent.
   const body = options.body === undefined ? (method === 'GET' || method === 'HEAD' ? undefined : '{}') : JSON.stringify(options.body);
   const headers: Record<string, string> = { accept: options.binary ? '*/*' : 'application/json', 'accept-language': currentLanguage() };
+  if(options.playerTiming)headers['x-player-timing']='1';
   if (body !== undefined) headers['content-type'] = 'application/json';
   if (csrfToken && method !== 'GET') headers['x-csrf-token'] = csrfToken;
   if (options.proof) {

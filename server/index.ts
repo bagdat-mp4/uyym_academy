@@ -11,6 +11,7 @@ import {HttpError,hash,opaque,publicJwk,normalizePhone,challengePayload,decrypt,
 import {authenticate,setPassword} from './supabase.js';
 import {context,csrf,setCookie,clearCookie,proof,requireLearning,lessonAllowed,admin,deniedBrowser} from './auth.js';
 import {validateDriveFile,streamPart} from './drive.js';
+import {PlayerTiming} from './player-timing.js';
 import {registerAccountRoutes} from './accounts.js';
 import {registerAcademicRoutes} from './academic.js';
 import {freshManagement} from './management.js';
@@ -20,6 +21,13 @@ import {registerEngagementRoutes} from './engagement.js';
 import {registerAdminInvitationRoutes} from './admin-invitations.js';
 import {publicFaq} from '../shared/public-faq.js';
 const uuid=z.string().uuid();
+// Opt-in diagnostic records contain only fixed phase names, numeric timings,
+// part index and status. No request URL (which contains a grant), user or Drive IDs.
+function playerTiming(req:any,reply:any,kind:'playback'|'media',part?:number){
+ const timing=new PlayerTiming(),start=performance.now();
+ if(req.headers['x-player-timing']==='1')reply.raw.once('finish',()=>console.info(JSON.stringify({event:'player_timing',kind,...(part!==undefined?{part}:{}),status:reply.statusCode,total_ms:Math.round(performance.now()-start),phases:timing.snapshot()})));
+ return timing;
+}
 // Five 5 MB files expand to roughly 33.4 MB in base64 JSON.
 export const app=Fastify({logger:false,bodyLimit:40*1024*1024,trustProxy:config.trustProxy?['127.0.0.1','::1']:false});
 await app.register(cookie);
@@ -168,11 +176,13 @@ app.get('/api/lessons',async(req)=>{
  const lessons=[];for(const l of candidates){try{await lessonAllowed(ctx,l.id);lessons.push(l);}catch(e){if(!(e instanceof HttpError&&e.statusCode===404))throw e;}}
  return {lessons};
 });
-app.post('/api/lessons/:id/playback',async(req)=>{
+app.post('/api/lessons/:id/playback',async(req,reply)=>{
+ const timing=playerTiming(req,reply,'playback'),start=performance.now();
  const ctx=await proof(req,'playback');const id=uuid.parse((req.params as any).id);const l=await lessonAllowed(ctx,id);
  const parts=(await pool.query('SELECT part_index,size_bytes,start_seconds,duration_seconds FROM private.lesson_video_parts WHERE lesson_id=$1 ORDER BY part_index',[id])).rows;
  if(!parts.length||parts[0].part_index!==-1||!l.video_duration_seconds)throw new HttpError(409,'Видео әлі дайын емес');
  const g=(await pool.query('INSERT INTO private.playback_grants(user_id,session_id,device_id,lesson_id,auth_epoch,expires_at) VALUES($1,$2,$3,$4,$5,now()+interval \'10 minutes\') RETURNING id',[ctx.user_id,ctx.id,ctx.device_id,id,ctx.auth_epoch])).rows[0];
+ timing.add('prepare',performance.now()-start);reply.header('Server-Timing',timing.header());
  return {grant_id:g.id,duration_seconds:Number(l.video_duration_seconds),mime:`video/mp4; codecs="${l.video_codec}"`,watermark:`${ctx.user.name} · ${ctx.user.phone.slice(0,3)}•••••${ctx.user.phone.slice(-4)}`,parts:parts.map(p=>({index:p.part_index,bytes:Number(p.size_bytes),start:Number(p.start_seconds),duration:Number(p.duration_seconds)}))};
 });
 async function playback(ctx:any,id:string) {
@@ -184,15 +194,19 @@ app.post('/api/playback/:id/heartbeat',async(req)=>{
  await pool.query('UPDATE private.playback_grants SET heartbeat_at=now(),expires_at=now()+interval \'10 minutes\' WHERE id=$1 AND revoked_at IS NULL',[id]);return {ok:true};
 });
 app.get('/api/media/:id',async(req,reply)=>{
+ const start=performance.now(),timing=playerTiming(req,reply,'media',Number((req.query as any)?.part));
+ const accessStart=performance.now();
  const ctx=await proof(req,'media');const id=uuid.parse((req.params as any).id);const query=z.object({grant:uuid,part:z.coerce.number().int().min(-1)}).parse(req.query);
  const g=await playback(ctx,query.grant);if(g.lesson_id!==id)throw new HttpError(404,'Видео қолжетімсіз');
  const p=(await pool.query('SELECT * FROM private.lesson_video_parts WHERE lesson_id=$1 AND part_index=$2',[id,query.part])).rows[0];if(!p)throw new HttpError(404,'Видео бөлігі табылмады');
- await validateDriveFile(p.drive_file_id,p.drive_folder_id,'part',Number(p.size_bytes));
+ timing.add('access',performance.now()-accessStart);
+ await timing.measure('drive_validate',()=>validateDriveFile(p.drive_file_id,p.drive_folder_id,'part',Number(p.size_bytes),timing));
  // Recheck after external API calls, immediately before issuing a bounded new part.
- const fresh=await context(req);await playback(fresh,query.grant);
- const stream=await streamPart(p.drive_file_id,Number(p.size_bytes));
- try{const finalContext=await context(req);await playback(finalContext,query.grant);}catch(e){stream.destroy();throw e;}
- reply.header('Content-Type','video/mp4').header('Content-Length',String(p.size_bytes)).header('X-Content-Type-Options','nosniff');return reply.send(stream);
+ await timing.measure('access',async()=>{const fresh=await context(req);await playback(fresh,query.grant);});
+ const stream=await streamPart(p.drive_file_id,Number(p.size_bytes),timing);
+ try{await timing.measure('access',async()=>{const finalContext=await context(req);await playback(finalContext,query.grant);});}catch(e){stream.destroy();throw e;}
+ timing.add('prepare',performance.now()-start);
+ reply.header('Server-Timing',timing.header()).header('Content-Type','video/mp4').header('Content-Length',String(p.size_bytes)).header('X-Content-Type-Options','nosniff');return reply.send(stream);
 });
 app.get('/api/admin/device-requests',async(req)=>{
  await admin(req);return {requests:(await pool.query("SELECT d.id,d.label,d.requested_at AS created_at,d.public_key,u.name,u.phone,u.role,EXISTS(SELECT 1 FROM private.device_bindings old WHERE old.user_id=d.user_id AND old.status='approved') AS replacement FROM private.device_bindings d JOIN private.app_users u ON u.id=d.user_id WHERE d.status='pending' ORDER BY d.requested_at")).rows.map(({public_key,...d})=>({...d,key_fingerprint:hash(JSON.stringify(publicJwk(public_key)))}))};

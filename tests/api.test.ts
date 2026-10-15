@@ -1,9 +1,10 @@
-import { after, before, test } from 'node:test';
+import { after, before, test, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID, webcrypto, createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import type { FastifyInstance, HTTPMethods, LightMyRequestResponse } from 'fastify';
 import { PGlite } from '@electric-sql/pglite';
+import {GoogleAuth} from 'google-auth-library';
 
 // Actual Fastify BFF routes + real PostgreSQL SQL + actual Web Crypto proofs.
 // ONLY Supabase Auth's remote HTTP responses are simulated here. This does not
@@ -20,6 +21,9 @@ let phoneCounter = 1;
 const sha = (value: string) => createHash('sha256').update(value).digest('hex');
 type Browser = { key: CryptoKeyPair; jwk: JsonWebKey; cookies: Map<string, string>; csrf: string; sessionId?: string;ip:string };
 let browserCounter=1;
+const driveFolder='TEST_MEDIA_FOLDER',driveFile='TEST_MEDIA_PART';
+let driveCase:{public?:boolean;checks:number;media:number;cancelled:boolean;afterChecks?:()=>Promise<void>;afterHeaders?:()=>Promise<void>}|undefined;
+const originalDriveClient=GoogleAuth.prototype.getClient;
 
 before(async () => {
   process.env.NODE_ENV = 'test';
@@ -30,6 +34,10 @@ before(async () => {
   process.env.SUPABASE_ANON_KEY = 'test-anon-key-never-production';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key-never-production';
   process.env.ADMIN_ENCRYPTION_KEY = 'ab'.repeat(32);
+  process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64='';
+  process.env.DRIVE_ALLOWED_FOLDER_IDS=driveFolder;
+  process.env.DRIVE_ALLOWED_PERMISSION_EMAILS='fixture@example.invalid';
+  (GoogleAuth.prototype as any).getClient=async()=>({getRequestHeaders:async()=>new Headers({authorization:'Bearer TEST_ONLY'})});
   db = new PGlite();
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
@@ -54,6 +62,19 @@ before(async () => {
   restoreFetch = globalThis.fetch;
   globalThis.fetch = async (input: any, init?: RequestInit) => {
     const url = String(input), body = init?.body ? JSON.parse(String(init.body)) : {};
+    if(url.startsWith('https://www.googleapis.com/drive/v3/')){
+      assert.ok(driveCase,'no unexpected live Drive access');const state=driveCase,u=new URL(url),id=u.pathname.split('/')[4];
+      if(u.searchParams.get('alt')==='media'){
+        state.media++;await state.afterHeaders?.();
+        return new Response(new ReadableStream({start(c){c.enqueue(Buffer.from('TEST_VIDEO_BYTES'));},cancel(){state.cancelled=true;}}),{status:206,headers:{'content-range':'bytes 0-15/16'}});
+      }
+      state.checks++;
+      if(u.pathname.endsWith('/permissions')){
+        if(id===driveFile)await state.afterChecks?.();
+        return Response.json({permissions:[state.public&&id===driveFile?{type:'anyone'}:{type:'user',emailAddress:'fixture@example.invalid'}]});
+      }
+      return Response.json(id===driveFolder?{mimeType:'application/vnd.google-apps.folder',trashed:false}:{mimeType:'video/mp4',size:16,parents:[driveFolder],trashed:false});
+    }
     if (url === 'https://supabase-test.example/auth/v1/token?grant_type=password' && init?.method === 'POST') {
       const account = accounts.get(body.phone);
       if (!account || account.password !== body.password) return new Response(JSON.stringify({ error: 'invalid_credentials' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
@@ -91,6 +112,7 @@ before(async () => {
 
 after(async () => {
   globalThis.fetch = restoreFetch;
+  GoogleAuth.prototype.getClient=originalDriveClient;
   await app?.close();
   await originalPoolEnd?.();
   await db?.close();
@@ -110,7 +132,7 @@ function remember(result: LightMyRequestResponse, b: Browser) {
     if (!pair) continue;
     if (/Max-Age=0/i.test(cookie) || !pair[2]) b.cookies.delete(pair[1]); else b.cookies.set(pair[1], pair[2]);
   }
-  if (result.statusCode === 200) {
+  if (result.statusCode === 200 && String(result.headers['content-type']).includes('application/json')) {
     const data = result.json();
     if (data.csrf_token) b.csrf = data.csrf_token;
     if (data.session_id) b.sessionId = data.session_id;
@@ -492,6 +514,51 @@ test('playback manifest hides Drive IDs; grants cannot transfer accounts and pau
   assert.equal((await request(first.b, 'GET', `/api/media/${lesson}?grant=${grant}&part=0`)).statusCode, 401);
   // No successful binary request was made here: remote Drive and actual video
   // playback remain outside the explicitly simulated Auth + local SQL suite.
+});
+
+test('each media part validates fresh Drive ACLs and rechecks grant/enrollment after external waits',async()=>{
+ const student=await approvedStudent(),course=(await db.query<{id:string}>("select id from private.courses where slug='pp1'")).rows[0].id,lesson=randomUUID();
+ await db.query("insert into private.enrollments(user_id,course_id,status,starts_at,expires_at,created_by) values($1,$2,'active',now()-interval '1 hour',now()+interval '1 hour',$3)",[student.a.id,course,student.owner.id]);
+ await db.query("insert into private.lessons(id,course_id,title,published,video_codec,video_duration_seconds) values($1,$2,'Measured local media',true,'avc1.42c01f',4)",[lesson,course]);
+ await db.query('insert into private.lesson_video_parts(lesson_id,part_index,drive_file_id,drive_folder_id,size_bytes,start_seconds,duration_seconds) values($1,-1,$2,$3,16,0,0),($1,0,$2,$3,16,0,4)',[lesson,driveFile,driveFolder]);
+ const grant=async()=>{const r=await signed(student.b,'POST',`/api/lessons/${lesson}/playback`,'playback',{});assert.equal(r.statusCode,200,r.body);assert.match(String(r.headers['server-timing']),/prepare;dur=\d/);return r.json().grant_id as string;};
+ let current=await grant();
+ // Finite response for successful admission; the cancellation cases below leave
+ // the upstream body pending so they also prove cancellation before disclosure.
+ const original=globalThis.fetch;
+ globalThis.fetch=async(input,init)=>{const r=await original(input,init);if(String(input).includes('alt=media')&&!driveCase?.afterHeaders){await r.body?.cancel();return new Response('TEST_VIDEO_BYTES',{status:206,headers:{'content-range':'bytes 0-15/16'}});}return r;};
+ try{
+  driveCase={checks:0,media:0,cancelled:false};
+  for(const part of [-1,0]){
+   const response=await signed(student.b,'GET',`/api/media/${lesson}?grant=${current}&part=${part}`,'media');assert.equal(response.statusCode,200,response.body);assert.equal(response.body,'TEST_VIDEO_BYTES');
+   const timing=String(response.headers['server-timing']);assert.match(timing,/drive_token;dur=\d/);assert.match(timing,/drive_permissions;dur=\d/);assert.ok(!timing.includes(driveFile)&&!timing.includes(current));assert.equal(response.headers['cache-control'],'private, no-store');
+  }
+  assert.equal(driveCase.checks,8);assert.equal(driveCase.media,2);
+  const diagnosticRows:string[]=[];const logging=mock.method(console,'info',(value:unknown)=>diagnosticRows.push(String(value)));
+  try{
+   const path=`/api/media/${lesson}?grant=${current}&part=0`;
+   const response=await request(student.b,'GET',path,undefined,{...await proofHeaders(student.b,'GET',path,'media'),'x-player-timing':'1'});assert.equal(response.statusCode,200);
+   await new Promise(r=>setImmediate(r));assert.equal(diagnosticRows.length,1);
+   const row=JSON.parse(diagnosticRows[0]);assert.deepEqual(Object.keys(row).sort(),['event','kind','part','phases','status','total_ms']);assert.equal(row.event,'player_timing');assert.equal(row.part,0);assert.equal(row.status,200);assert.ok(Number.isFinite(row.phases.drive_body));
+   for(const secret of [current,lesson,driveFile,driveFolder,student.a.id,student.a.phone])assert.ok(!diagnosticRows[0].includes(secret));
+  }finally{logging.mock.restore();}
+  driveCase={checks:0,media:0,cancelled:false,public:true};
+  assert.equal((await signed(student.b,'GET',`/api/media/${lesson}?grant=${current}&part=0`,'media')).statusCode,403);assert.equal(driveCase.media,0);
+  driveCase={checks:0,media:0,cancelled:false,afterChecks:async()=>{await db.query('update private.playback_grants set revoked_at=now() where id=$1',[current]);}};
+  const revoked=await signed(student.b,'GET',`/api/media/${lesson}?grant=${current}&part=0`,'media');assert.equal(revoked.statusCode,403);assert.equal(revoked.json().code,'MEDIA_GRANT_EXPIRED');assert.equal(driveCase.media,0);
+  for(const reason of ['grant','enrollment']){
+   current=await grant();driveCase={checks:0,media:0,cancelled:false,afterHeaders:async()=>{if(reason==='grant')await db.query('update private.playback_grants set revoked_at=now() where id=$1',[current]);else await db.query("update private.enrollments set status='paused' where user_id=$1 and course_id=$2",[student.a.id,course]);}};
+   const denied=await signed(student.b,'GET',`/api/media/${lesson}?grant=${current}&part=0`,'media');assert.equal(denied.statusCode,reason==='grant'?403:404);assert.ok(!denied.body.includes('TEST_VIDEO_BYTES'));
+   await new Promise(r=>setImmediate(r));assert.equal(driveCase.cancelled,true);
+  }
+ }finally{globalThis.fetch=original;driveCase=undefined;}
+});
+
+test('progress remains STUDENT-only even with a valid staff session and device proof',async()=>{
+ const owner=await administrator(),teacher=await approvedStudent();await db.query("update private.app_users set role='TEACHER' where id=$1",[teacher.a.id]);
+ for(const {b} of [owner,teacher]){
+  assert.equal((await signed(b,'PATCH',`/api/lessons/${randomUUID()}/progress`,'api',{position_seconds:8,completed:true})).statusCode,403);
+ }
 });
 
 test('student sees only published announcements and saves viewing progress with explicit completion', async()=>{
