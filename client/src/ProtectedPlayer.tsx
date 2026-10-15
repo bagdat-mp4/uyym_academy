@@ -54,6 +54,8 @@ export default function ProtectedPlayer({ lesson, lang, role }: { lesson: Lesson
   const savingProgress = useRef(false);
   const [started, setStarted] = useState(false);
   const startedAt=useRef(0);
+  const playbackLanguage=useRef(lang);
+  useEffect(()=>{playbackLanguage.current=lang;},[lang]);
   useEffect(() => { setStarted(false); setState('idle'); setError(''); }, [lesson.id]);
   useEffect(() => {
     const changed = () => setFullscreen(document.fullscreenElement === shell.current);
@@ -84,6 +86,9 @@ export default function ProtectedPlayer({ lesson, lang, role }: { lesson: Lesson
 
   useEffect(() => {
     if (!started) return;
+    // Translating controls must not destroy MSE, discard its buffer or issue a
+    // new grant. Async error text still reads the current selected language.
+    const t=(kk:string,ru:string)=>tr(playbackLanguage.current,[kk,ru]);
     const element = video.current!;
     const controller = new AbortController();
     const diagnostics=playerDiagnosticsEnabled();
@@ -210,7 +215,7 @@ export default function ProtectedPlayer({ lesson, lang, role }: { lesson: Lesson
       element.pause(); element.removeAttribute('src'); element.load();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [lesson.id, attempt, lang, started]);
+  }, [lesson.id, attempt, started]);
 
   useEffect(() => {
     if(role!=='STUDENT')return;
