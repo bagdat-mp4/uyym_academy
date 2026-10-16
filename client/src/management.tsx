@@ -10,6 +10,12 @@ export const message = interfaceError;
 export const newOperation = () => crypto.randomUUID();
 export const dateLabel = (date: unknown, lang: Lang) => {
   if (!date || !Number.isFinite(Date.parse(String(date)))) return '—';
+  if(lang==='kk'){
+    // Numeric parts avoid the "2026 M10" fallback in incomplete KK CLDR data.
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Almaty',year:'numeric',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(String(date))).map(part=>[part.type,part.value]));
+    const months=['қаң.','ақп.','нау.','сәу.','мам.','мау.','шіл.','там.','қыр.','қаз.','қар.','жел.'];
+    return `${parts.day} ${months[Number(parts.month)-1]} ${parts.year}, ${parts.hour}:${parts.minute}`;
+  }
   return new Intl.DateTimeFormat(locale(lang), { timeZone: 'Asia/Almaty', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(String(date)));
 };
 export const localDate = (date: unknown) => date && Number.isFinite(Date.parse(String(date))) ? new Date(Date.parse(String(date)) + 5 * 3600000).toISOString().slice(0, 16) : '';
@@ -34,7 +40,7 @@ export function usePage(path: string, query: Record<string, string>, change: num
 }
 
 export function Notice({ error, success }: { error?: string; success?: string }) { return <>{error && <div className="alert alert-error" role="alert">{error}</div>}{success && <div className="alert alert-success" role="status">{success}</div>}</>; }
-export function Empty({ lang, loading = false, text }: { lang: Lang; loading?: boolean; text?: Copy }) { return <div className="empty-state" role={loading?'status':undefined}>{loading ? <><span className="spinner" aria-hidden="true"/><p>{tr(lang, ['Деректер жүктелуде…', 'Загружаем данные…'])}</p></> : <><h3>{tr(lang, text ?? ['Бұл бөлімде жазбалар жоқ', 'В этом разделе пока нет записей'])}</h3><p>{tr(lang, ['Серверден алынған нақты деректер осы жерде көрсетіледі.', 'Здесь отображаются реальные данные сервера.'])}</p></>}</div>; }
+export function Empty({ lang, loading = false, text }: { lang: Lang; loading?: boolean; text?: Copy }) { return <div className="empty-state" role={loading?'status':undefined}>{loading ? <><span className="spinner" aria-hidden="true"/><p>{tr(lang, ['Деректер жүктелуде…', 'Загружаем данные…'])}</p></> : <><h3>{tr(lang, text ?? ['Бұл бөлімде жазбалар жоқ', 'В этом разделе пока нет записей'])}</h3><p>{text?tr(lang,['Контент қосылғаннан кейін осында көрсетіледі.','Содержимое появится после добавления.']):tr(lang,['Іздеу немесе сүзгілерді өзгертіп көріңіз.','Попробуйте изменить поиск или фильтры.'])}</p></>}</div>; }
 export function Pager({ data, lang, setPage, loading }: { data: Page; lang: Lang; setPage: (page: number) => void; loading: boolean }) {
   const pages = Math.max(1, Math.ceil(data.total / data.page_size));
   return <div className="manage-pagination"><span>{tr(lang, ['Барлығы', 'Всего'])}: {data.total} · {data.page} / {pages}</span><div><button className="button button-outline" disabled={loading || data.page <= 1} onClick={() => setPage(data.page - 1)}>← {tr(lang, ['Алдыңғы', 'Назад'])}</button><button className="button button-outline" disabled={loading || data.page >= pages} onClick={() => setPage(data.page + 1)}>{tr(lang, ['Келесі', 'Далее'])} →</button></div></div>;

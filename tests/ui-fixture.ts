@@ -42,6 +42,18 @@ await query('INSERT INTO private.teacher_assignments(teacher_id,course_id,group_
 users.set(teacherId,{id:teacherId,phone:teacherPhone,password:teacherPassword,app_metadata:{}});
 users.set(id,{id,phone,password,app_metadata:{}});
 users.set(studentId,{id:studentId,phone:studentPhone,password:studentPassword,app_metadata:{}});
+// Local UI-only recording metadata: no real media, token, or Drive URL.
+const previewLesson=String(((await query("INSERT INTO private.lessons(course_id,title,description,published,video_duration_seconds,created_by) VALUES($1,'LOCAL UI FIXTURE · Variables and input','Only a player UI fixture. Real private Drive playback is not configured.',true,120,$2) RETURNING id",[pp1Id,id])).rows[0] as any).id);
+await query("INSERT INTO private.lesson_video_parts(lesson_id,part_index,drive_file_id,drive_folder_id,size_bytes,start_seconds,duration_seconds) VALUES($1,-1,'LOCAL_ONLY_NO_MEDIA','LOCAL_ONLY_NO_FOLDER',16,0,0),($1,0,'LOCAL_ONLY_NO_MEDIA','LOCAL_ONLY_NO_FOLDER',16,0,4)",[previewLesson]);
+await query("INSERT INTO private.lesson_progress(user_id,lesson_id,position_seconds,last_opened_at) VALUES($1,$2,30,now())",[studentId,previewLesson]);
+await query("INSERT INTO private.lessons(course_id,group_id,title,description,scheduled_at,published,created_by) VALUES($1,$2,'LOCAL UI FIXTURE · Applications of derivatives','Local upcoming lesson, no recording yet.',now()+interval '2 days',true,$3)",[courseId,groupId,id]);
+await query("INSERT INTO private.teacher_assignments(teacher_id,course_id,group_id,created_by) VALUES($1,$2,NULL,$3)",[teacherId,pp1Id,id]);
+await query("INSERT INTO private.registration_applications(name,phone,course_id,status) VALUES('LOCAL UI FIXTURE · Ә Ғ Қ Ң Ө Ұ Ү Һ І · Very long applicant name for wrapping on small screens','+77070000005',$1,'rejected')",[courseId]);
+
+const completedLesson=String(((await query("INSERT INTO private.lessons(course_id,title,description,published,video_duration_seconds,created_by) VALUES($1,'LOCAL UI FIXTURE · Completed lesson','UI-only completed recording. No real Drive media.',true,120,$2) RETURNING id",[pp1Id,id])).rows[0] as any).id);
+await query("INSERT INTO private.lesson_video_parts(lesson_id,part_index,drive_file_id,drive_folder_id,size_bytes,start_seconds,duration_seconds) VALUES($1,-1,'LOCAL_ONLY_NO_MEDIA','LOCAL_ONLY_NO_FOLDER',16,0,0),($1,0,'LOCAL_ONLY_NO_MEDIA','LOCAL_ONLY_NO_FOLDER',16,0,4)",[completedLesson]);
+await query("INSERT INTO private.lesson_progress(user_id,lesson_id,position_seconds,last_opened_at,completed_at) VALUES($1,$2,120,now(),now())",[studentId,completedLesson]);
+
 globalThis.fetch=async(input:any,init?:RequestInit)=>{
  const url=String(input),body=init?.body?JSON.parse(String(init.body)):{};
  if(url==='https://local-auth.invalid/auth/v1/token?grant_type=password'){
@@ -59,9 +71,12 @@ globalThis.fetch=async(input:any,init?:RequestInit)=>{
 const {app}=await import('../server/index.js');
 // Exercise an actual failed dynamic import and subsequent browser reload using
 // the production build. This flag exists only in this loopback test entrypoint.
-let failNextAdminChunk=process.env.UYYM_UI_FAIL_CHUNK==='1';
+const failedChunk=process.env.UYYM_UI_FAIL_CHUNK==='chrome'?'WorkspaceChrome':'AdminPanel';
+let failNextAdminChunk=['1','chrome'].includes(process.env.UYYM_UI_FAIL_CHUNK??'');
+let courseReads=0;const failCourseRead=Number(process.env.UYYM_UI_FAIL_COURSES_READ??0);
 app.addHook('onRequest',async(req,reply)=>{
- if(failNextAdminChunk&&/^\/assets\/AdminPanel-[\w-]+\.js$/.test(req.url)){failNextAdminChunk=false;return reply.code(404).send('Local fixture: failed chunk');}
+ if(req.method==='GET'&&req.url==='/api/courses'&&++courseReads===failCourseRead)return reply.code(503).send({error:'Local UI test: retry the course list.',code:'LOCAL_UI_FAILURE'});
+ if(failNextAdminChunk&&new RegExp(`^/assets/${failedChunk}-[\\w-]+\\.js$`).test(req.url)){failNextAdminChunk=false;return reply.code(404).send('Local fixture: failed chunk');}
 });
 const samples:{route:string;status:number;ms:number}[]=[];
 const tracked=new Set(['/api/public','/api/auth/status','/api/courses','/api/courses/:id/content']);
@@ -72,9 +87,16 @@ app.get('/__ui/metrics',async()=>({local_fixture:true,samples}));
 app.addHook('onResponse',async req=>{
  if(req.url!=='/api/auth/login'||req.method!=='POST')return;
  const phone=(req.body as any)?.phone;
- const fixtureId=phone===studentPhone?studentId:phone===teacherPhone?teacherId:null;
+ const fixtureId=phone===studentPhone?studentId:phone===teacherPhone?teacherId:phone===users.get(id)?.phone?id:null;
  if(fixtureId)await (pool as any).query("UPDATE private.device_bindings SET status='approved',approved_at=now(),approved_by=$2 WHERE user_id=$1 AND status='pending'",[fixtureId,id]);
 });
+// Optional before/after evidence from an independently built, trusted Git ref.
+// Enumerated JS/CSS only; this local test entrypoint is never deployed.
+if(process.env.UYYM_UI_BASELINE==='1'){
+ const baseline=resolve('work/redesign/baseline-build');
+ app.get('/__ui/before/',async(_req,reply)=>reply.type('text/html').send(await readFile(resolve(baseline,'index.html'))));
+ for(const file of await readdir(resolve(baseline,'assets')))if(/^[A-Za-z0-9_-]+\.(js|css)$/.test(file))app.get(`/__ui/before/assets/${file}`,async(_req,reply)=>reply.type(file.endsWith('.js')?'text/javascript':'text/css').send(await readFile(resolve(baseline,'assets',file))));
+}
 await app.listen({host:'127.0.0.1',port:18878});
 console.info(`LOCAL TEST ONLY: embedded SQL + simulated Auth; Drive UNVERIFIED. UI ${testOrigin}/#account`);
 process.on('SIGINT',async()=>{await app.close();await db.close();process.exit(0);});

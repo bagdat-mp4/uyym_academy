@@ -1,0 +1,314 @@
+/* UYYM workspaces — tokens shared by every role; no media/security overrides. */
+:root{--ws-bg:#f3f5f9;--ws-panel:#ffffff;--ws-soft:#edf2f9;--ws-ink:#192f50;--ws-muted:#536780;--ws-line:#d8e1ec;--ws-input:#788ba8;--ws-brand:#24498e;--ws-brand-ink:#fff;--ws-selected:#e9effa;--ws-success:#216246;--ws-warning:#805900;--ws-radius:12px;--ws-shadow:0 16px 60px #162c4824}
+html[data-theme="dark"]{--ws-bg:#101927;--ws-panel:#172336;--ws-soft:#1d2c42;--ws-ink:#e9f0fb;--ws-muted:#b1c1d7;--ws-line:#344860;--ws-input:#7489a4;--ws-brand:#b6cfff;--ws-brand-ink:#14233b;--ws-selected:#263c5e;--ws-success:#a4dfc0;--ws-warning:#f4d78e;--ws-shadow:0 16px 60px #0004}
+html .uyym-ui.is-workspace{background:var(--ws-bg);font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;line-height:1.55}
+html .uyym-ui.is-workspace>:is(.announcement,.site-header,footer){display:none}
+html .uyym-ui.is-workspace .account-main{padding:0;min-height:100dvh}
+html .uyym-ui.is-workspace .account-main>.container{width:100%;max-width:none;margin:0}
+html .uyym-ui.is-workspace .account-breadcrumb{display:none}
+html .uyym-ui .workspace-frame{color:var(--ws-ink);min-height:100dvh;--ui-panel:var(--ws-panel);--ui-muted:var(--ws-muted);--ui-ink:var(--ws-ink);--ui-line:var(--ws-line);--ui-soft:var(--ws-soft)}
+html .uyym-ui .workspace-frame :is(h1,h2,h3,h4,strong,label,dd){color:var(--ws-ink)}
+html .uyym-ui .workspace-frame :is(p,small,dt){color:var(--ws-muted)}
+html .uyym-ui .workspace-frame :is(h1,h2,h3,h4,p){margin-top:0}
+html .uyym-ui .workspace-frame h2{font-size:clamp(24px,2.2vw,32px);font-weight:700;line-height:1.2;letter-spacing:-.025em;margin-bottom:8px}
+html .uyym-ui .workspace-frame h3{font-size:19px;font-weight:600;letter-spacing:-.015em;line-height:1.4}
+html .uyym-ui .workspace-frame h4{font-size:16px;font-weight:600;margin-bottom:6px}
+html .uyym-ui .workspace-frame .eyebrow{display:none}
+html .uyym-ui .workspace-rail{position:fixed;inset:0 auto 0 0;width:240px;background:var(--ws-panel);border-right:1px solid var(--ws-line);z-index:30}
+html .uyym-ui .workspace-brand{display:flex;align-items:center;gap:12px;margin:28px 24px;text-decoration:none;color:var(--ws-ink)}
+html .uyym-ui .workspace-brand img{border-radius:50%;flex-shrink:0}
+html .uyym-ui .workspace-brand span{display:grid;line-height:1.15}
+html .uyym-ui .workspace-brand strong{font-size:24px;letter-spacing:-.03em}
+html .uyym-ui .workspace-brand small{font-size:12px;letter-spacing:.06em;margin-top:4px}
+html .uyym-ui .workspace-rail-bottom{position:absolute;bottom:0;left:0;right:0;padding:16px;border-top:1px solid var(--ws-line);background:var(--ws-panel)}
+html .uyym-ui .workspace-rail-bottom>:is(a,button){display:flex;align-items:center;gap:10px;min-height:40px;width:100%;padding:8px;color:var(--ws-muted);font-size:14px;text-decoration:none;background:none;border:0;text-align:left;border-radius:6px}
+html .uyym-ui .workspace-rail-bottom>:is(a,button):hover{background:var(--ws-soft);color:var(--ws-ink)}
+html .uyym-ui .workspace-profile{display:flex;gap:10px;align-items:center;padding:12px 8px;min-width:0}
+html .uyym-ui .workspace-profile>span:last-child{display:grid;min-width:0;line-height:1.4}
+html .uyym-ui .workspace-profile strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html .uyym-ui .workspace-profile small{font-size:12px}
+html .uyym-ui .profile-avatar{background:var(--ws-selected);color:var(--ws-brand);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;flex-shrink:0;font-weight:700}
+html .uyym-ui .workspace-topbar{margin-left:240px;height:72px;padding:0 36px;display:flex;align-items:center;justify-content:space-between;gap:16px;background:var(--ws-panel);border-bottom:1px solid var(--ws-line)}
+html .uyym-ui .workspace-location{display:flex;gap:14px;align-items:center;min-width:0;font-size:13px}
+html .uyym-ui .workspace-location a{color:var(--ws-muted);text-decoration:none}
+html .uyym-ui .workspace-location h1{font-size:13px;font-weight:600;margin:0;letter-spacing:0}
+html .uyym-ui .workspace-location>span{color:var(--ws-muted)}
+html .uyym-ui .workspace-appearance{display:flex;gap:12px;align-items:center}
+html .uyym-ui .workspace-appearance .language-switch{background:var(--ws-soft);border:0;border-radius:7px;padding:3px;gap:0}
+html .uyym-ui .workspace-appearance .language-switch button{font-size:12px;min-width:40px;min-height:34px;padding:4px 8px;color:var(--ws-muted);border:0;background:none;border-radius:5px}
+html .uyym-ui .workspace-appearance .language-switch button[aria-pressed="true"]{background:var(--ws-panel);color:var(--ws-ink);box-shadow:0 1px 3px #0001}
+html .uyym-ui .workspace-appearance .theme-button{border:1px solid var(--ws-line);background:var(--ws-panel);color:var(--ws-ink);width:40px;height:40px;border-radius:8px;display:grid;place-items:center;padding:8px}
+html .uyym-ui .workspace-mobile-logout{display:none!important}
+html .uyym-ui .workspace-canvas{margin-left:240px;padding:24px 36px 64px;max-width:1700px}
+html .uyym-ui .workspace-security{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--ws-muted);margin-bottom:24px}
+html .uyym-ui .workspace-security strong{color:var(--ws-success);font-weight:500}
+html .uyym-ui .workspace-security .icon{width:15px;height:15px}
+html .uyym-ui .workspace-security .workspace-timezone{margin-left:auto}
+html .uyym-ui .workspace-navigation{position:fixed;top:108px;left:12px;width:216px;bottom:192px;overflow:auto;z-index:31;scrollbar-width:thin;scrollbar-color:var(--ws-line) transparent}
+html .uyym-ui :is(.workspace-navigation,.workspace-mobile-navigation) nav{display:grid;gap:4px}
+html .uyym-ui :is(.workspace-navigation,.workspace-mobile-navigation) nav button{display:flex;align-items:center;gap:11px;text-align:left;border:0;background:none;color:var(--ws-muted);border-radius:8px;padding:11px 12px;width:100%;font-size:14px;line-height:1.4;min-height:44px}
+html .uyym-ui :is(.workspace-navigation,.workspace-mobile-navigation) nav button:hover{background:var(--ws-soft);color:var(--ws-ink)}
+html .uyym-ui :is(.workspace-navigation,.workspace-mobile-navigation) nav button[aria-current]{background:var(--ws-selected);color:var(--ws-brand);font-weight:600}
+html .uyym-ui .nav-group-label{font-size:11px;font-weight:600;letter-spacing:.04em;padding:16px 12px 5px;margin:0}
+html .uyym-ui .nav-current-dot{width:5px;height:5px;background:#eab600;border-radius:50%;margin-left:auto;flex-shrink:0}
+html .uyym-ui .workspace-nav-home{display:none}
+html .uyym-ui .workspace-mobile-navigation .workspace-nav-home{display:flex;align-items:center;gap:11px;min-height:44px;padding:12px;color:var(--ws-brand);font-size:14px;text-decoration:none;border-top:1px solid var(--ws-line);margin-top:12px}
+html .uyym-ui .ui-button.workspace-mobile-trigger{display:none}
+html .uyym-ui .ui-icon{width:20px;height:20px;flex-shrink:0;vertical-align:middle}
+html .uyym-ui .ui-button{display:inline-flex;justify-content:center;align-items:center;gap:8px;min-height:40px;font:inherit;font-size:14px;font-weight:600;border:1px solid var(--ws-input);border-radius:8px;padding:9px 15px;background:var(--ws-panel);color:var(--ws-ink);cursor:pointer;line-height:1.4;text-decoration:none;transition:background .15s ease,border-color .15s ease}
+html .uyym-ui .ui-button:hover{background:var(--ws-soft)}
+html .uyym-ui .ui-button-primary{background:#ffcd2b;color:#182f50;border-color:#ffcd2b}
+html .uyym-ui .ui-button-primary:hover{background:#edbc16;border-color:#edbc16}
+html .uyym-ui .ui-button-ghost{background:none;border-color:transparent;color:var(--ws-brand)}
+html .uyym-ui .ui-button-destructive{background:#a42737;color:#fff;border-color:#a42737}
+html .uyym-ui .ui-button:disabled{opacity:.5;cursor:not-allowed}
+html .uyym-ui .ui-badge{display:inline-flex;border-radius:5px;background:var(--ws-soft);color:var(--ws-muted);padding:3px 8px;font-size:12px;font-weight:600;white-space:normal;line-height:1.5}
+html .uyym-ui .ui-badge-success{color:var(--ws-success)}
+html .uyym-ui .ui-badge-warning{color:var(--ws-warning)}
+html .uyym-ui .ui-page-header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:28px}
+html .uyym-ui .ui-page-header p{font-size:15px;margin:8px 0 0;max-width:65ch}
+html .uyym-ui .ui-page-actions{display:flex;gap:8px;flex-wrap:wrap}
+html .uyym-ui .workspace-frame :is(.dashboard-panel,.lesson-panel){padding:0;background:none;box-shadow:none;border:0;border-radius:0;margin:0;min-width:0}
+html .uyym-ui .workspace-frame .management-shell{display:block;margin:0}
+html .uyym-ui .workspace-frame .panel-heading{margin:0 0 24px;gap:20px;align-items:flex-start}
+html .uyym-ui .workspace-frame .panel-heading h2{margin-bottom:0}
+html .uyym-ui .workspace-frame .manage-toolbar{padding:16px 0;gap:16px;display:flex;border:0;margin:0 0 16px;align-items:flex-end}
+html .uyym-ui .workspace-frame .manage-toolbar>label:first-child{width:min(380px,100%)}
+html .uyym-ui .workspace-frame .manage-toolbar>label{display:grid;gap:6px;font-size:12px;font-weight:600;min-width:0}
+html .uyym-ui .workspace-frame :is(input,select,textarea){background:var(--ws-panel);color:var(--ws-ink);border:1px solid var(--ws-input);border-radius:7px;box-shadow:none;font:inherit;font-size:14px;min-height:42px;max-width:100%;width:100%;padding:10px 12px;line-height:1.5}
+html .uyym-ui .workspace-frame textarea{min-height:110px;resize:vertical}
+html .uyym-ui .workspace-frame input::placeholder,html .uyym-ui .workspace-frame textarea::placeholder{color:var(--ws-muted);opacity:1}
+html .uyym-ui .workspace-frame input[type="checkbox"]{accent-color:#24498e;min-height:20px;width:20px;height:20px;flex-shrink:0;padding:0}
+html .uyym-ui .workspace-frame .checkbox-field{display:flex;align-items:center;gap:12px;min-height:44px;font-weight:400}
+html .uyym-ui .workspace-frame .button{font-size:14px;line-height:1.45;min-height:40px;padding:9px 15px;gap:8px;border-radius:8px;box-shadow:none;transform:none}
+html .uyym-ui .workspace-frame .button-outline{background:var(--ws-panel);color:var(--ws-ink);border:1px solid var(--ws-input)}
+html .uyym-ui .workspace-frame .button-outline:hover{background:var(--ws-soft)}
+html .uyym-ui .workspace-frame .button-yellow{background:#ffcd2b;color:#182f50;border:1px solid #ffcd2b}
+html .uyym-ui .workspace-frame .button-yellow:hover{background:#edbc16;border-color:#edbc16}
+html .uyym-ui .workspace-frame .button-danger{background:#a42737;color:#fff;border:1px solid #a42737}
+html .uyym-ui .workspace-frame .manage-records{display:grid;gap:0;border:1px solid var(--ws-line);border-radius:var(--ws-radius);background:var(--ws-panel);overflow:hidden}
+html .uyym-ui .workspace-frame .manage-record{padding:22px 24px;border:0;border-bottom:1px solid var(--ws-line);border-radius:0;background:var(--ws-panel);display:flex;gap:20px;align-items:flex-start}
+html .uyym-ui .workspace-frame .manage-record:last-child{border:0}
+html .uyym-ui .workspace-frame .manage-record-info{min-width:0;flex:1}
+html .uyym-ui .workspace-frame .manage-record-title h3{font-size:16px;margin:0}
+html .uyym-ui .workspace-frame .manage-record-info dl{display:flex;flex-wrap:wrap;gap:10px 28px;margin:12px 0 0}
+html .uyym-ui .workspace-frame .manage-record-info dl>div{min-width:100px;max-width:100%}
+html .uyym-ui .workspace-frame .manage-record-info dt{font-size:12px;margin-bottom:3px}
+html .uyym-ui .workspace-frame .manage-record-info dd{font-size:14px;margin:0;overflow-wrap:anywhere}
+html .uyym-ui .workspace-frame .manage-record-actions{display:flex;gap:8px;flex-wrap:wrap;max-width:300px;justify-content:flex-end}
+html .uyym-ui .workspace-frame .manage-text-action{font-size:13px;min-height:40px;color:var(--ws-brand);padding:7px 0;background:none}
+html .uyym-ui .workspace-frame .manage-text-action.danger{color:#b63041}
+html[data-theme="dark"] .uyym-ui .workspace-frame .manage-text-action.danger{color:#ffadba}
+html .uyym-ui .workspace-frame .manage-status{font-size:12px;line-height:1.4;border-radius:5px;padding:4px 8px}
+html .uyym-ui .workspace-frame .manage-pagination{margin-top:20px;display:flex;gap:16px;justify-content:space-between;align-items:center;font-size:13px}
+html .uyym-ui .workspace-frame .manage-pagination>div{display:flex;gap:8px}
+html .uyym-ui .application-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--ws-panel);border:1px solid var(--ws-line);border-radius:var(--ws-radius);font-size:14px;overflow:hidden;text-align:left}
+html .uyym-ui .application-table th{padding:14px 18px;background:var(--ws-soft);font-size:12px;font-weight:600;color:var(--ws-muted)}
+html .uyym-ui .application-table td{padding:18px;border-top:1px solid var(--ws-line);vertical-align:middle;overflow-wrap:anywhere;max-width:240px}
+html .uyym-ui .application-table td strong{font-weight:600}
+html .uyym-ui .table-secondary{display:block;color:var(--ws-muted);font-size:12px;margin-top:4px}
+html .uyym-ui .application-table time{font-size:12px;white-space:normal;font-variant-numeric:tabular-nums}
+html .uyym-ui .workspace-frame :is(.modal,.manage-dialog){background:var(--ws-panel);color:var(--ws-ink);border:0;border-radius:16px;box-shadow:var(--ws-shadow);padding:32px;max-width:min(640px,calc(100vw - 32px));max-height:calc(100dvh - 48px)}
+html .uyym-ui .workspace-frame .manage-dialog-wide{max-width:min(1020px,calc(100vw - 32px))}
+html .uyym-ui .workspace-frame .modal-backdrop{background:#0b193a8c;padding:24px;z-index:1000}
+html .uyym-ui .workspace-frame .modal-close{color:var(--ws-muted);background:var(--ws-soft);border:0;border-radius:8px;min-width:36px;min-height:36px;top:18px;right:18px}
+html .uyym-ui .workspace-frame .manage-dialog h2{font-size:24px;padding-right:32px;margin-bottom:24px}
+html .uyym-ui .workspace-frame :is(.manage-form,.content-form){display:grid;gap:20px}
+html .uyym-ui .workspace-frame .manage-form label{font-size:14px;font-weight:600;display:grid;gap:7px}
+html .uyym-ui .workspace-frame .manage-form label.checkbox-field{display:flex}
+html .uyym-ui .workspace-frame .manage-dialog-actions{border-top:1px solid var(--ws-line);padding-top:20px;display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+html .uyym-ui .workspace-frame :is(.form-help,.field-hint,.manage-dialog-description,.panel-description){color:var(--ws-muted);font-size:13px;line-height:1.6;max-width:75ch;overflow-wrap:anywhere}
+/* Isolate the legacy .form-help !important declarations from working panels. */
+html .uyym-ui .workspace-frame .form-help{color:var(--ws-muted)!important;font-size:13px!important;margin:0!important}
+html .uyym-ui .workspace-frame .ui-details{display:grid;gap:16px;margin:0 0 28px}
+html .uyym-ui .workspace-frame .ui-details>div{display:grid;grid-template-columns:140px 1fr;gap:16px;border-bottom:1px solid var(--ws-line);padding-bottom:12px}
+html .uyym-ui .workspace-frame .ui-details dt{font-size:13px}
+html .uyym-ui .workspace-frame .ui-details dd{margin:0;overflow-wrap:anywhere}
+html .uyym-ui .workspace-frame .alert{border-radius:8px;padding:14px 18px;margin:0 0 20px;font-size:14px;display:flex;align-items:center;flex-wrap:wrap;gap:12px;overflow-wrap:anywhere}
+html .uyym-ui .workspace-frame .empty-state{padding:48px 24px;text-align:center;background:var(--ws-panel);border:1px dashed var(--ws-input);border-radius:var(--ws-radius);margin:12px 0}
+html .uyym-ui .workspace-frame .empty-state h3{font-size:17px;margin:0 0 10px}
+html .uyym-ui .workspace-frame .empty-state p{max-width:50ch;margin:0 auto;font-size:14px}
+html .uyym-ui .ui-skeleton{padding:28px;background:var(--ws-panel);border-radius:12px;display:grid;gap:18px}
+html .uyym-ui .ui-skeleton i{height:16px;width:70%;border-radius:4px;background:var(--ws-soft)}
+html .uyym-ui .ui-skeleton i:nth-child(3){width:90%}
+html .uyym-ui .study-section{margin:0 0 32px;min-width:0}
+html .uyym-ui .study-section>h3{margin:0 0 16px}
+html .uyym-ui .study-course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+html .uyym-ui .study-course{background:var(--ws-panel);border:1px solid var(--ws-line);border-radius:var(--ws-radius);overflow:hidden;display:flex;flex-direction:column;min-width:0}
+html .uyym-ui .study-course-cover{display:flex;align-items:center;justify-content:space-between;padding:24px 28px;background:#1e3d7a;color:#ffcd2b;height:112px}
+html .uyym-ui .study-course:nth-child(even) .study-course-cover{background:#244f71}
+html .uyym-ui .study-course-cover>.ui-icon{width:38px;height:38px;stroke-width:1.2}
+html .uyym-ui .study-course-cover>span{display:flex;gap:12px;align-items:baseline;font-size:12px;letter-spacing:.08em;color:#d7e5ff}
+html .uyym-ui .study-course-cover b{font-size:26px;letter-spacing:0;font-weight:400;color:#fff}
+html .uyym-ui .study-course-body{padding:24px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;flex:1}
+html .uyym-ui .study-course-body h3{margin:0;font-size:20px}
+html .uyym-ui .study-course-body p{font-size:14px;margin:0}
+html .uyym-ui .study-course-body small{font-size:12px}
+html .uyym-ui .study-course-body .ui-button{margin-top:auto}
+html .uyym-ui .study-course-description{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+html .uyym-ui .study-progress{display:grid;gap:6px;width:100%;font-size:12px;color:var(--ws-muted);margin:4px 0}
+html .uyym-ui .study-progress progress{width:100%;height:5px;accent-color:var(--ws-brand);border:0;border-radius:4px;overflow:hidden}
+html .uyym-ui .study-progress progress::-webkit-progress-bar{background:var(--ws-soft)}
+html .uyym-ui .study-progress progress::-webkit-progress-value{background:var(--ws-brand)}
+html .uyym-ui .resume-lesson{display:flex;align-items:center;justify-content:space-between;gap:24px;border:1px solid var(--ws-line);background:var(--ws-panel);padding:24px;border-radius:var(--ws-radius);margin-bottom:32px}
+html .uyym-ui .resume-lesson h3{margin:12px 0 4px;font-size:23px}
+html .uyym-ui .resume-lesson p{margin:0;font-size:14px}
+html .uyym-ui .resume-lesson>.ui-button{flex-shrink:0}
+html .uyym-ui .study-overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+html .uyym-ui .study-list-row{display:flex;align-items:center;gap:14px;text-align:left;background:var(--ws-panel);color:var(--ws-ink);border:0;border-bottom:1px solid var(--ws-line);width:100%;padding:20px 16px;font-size:14px;min-width:0}
+html .uyym-ui .study-list-row:hover{background:var(--ws-soft)}
+html .uyym-ui .study-list-row>span:not(.ui-badge){min-width:0;flex:1}
+html .uyym-ui .study-list-row :is(strong,small){display:block;overflow-wrap:anywhere}
+html .uyym-ui .study-list-row small{font-size:12px;margin-top:5px;font-weight:400}
+html .uyym-ui .study-list-row .ui-badge{margin-left:auto;font-size:11px}
+html .uyym-ui .study-list-row .study-row-icon{flex:0 0 auto!important;background:var(--ws-soft);padding:10px;border-radius:8px}
+html .uyym-ui .study-empty-copy{padding:20px;border:1px dashed var(--ws-input);border-radius:8px;font-size:14px;line-height:1.7}
+html .uyym-ui .study-announcement{padding:20px 0;border-bottom:1px solid var(--ws-line);max-width:75ch}
+html .uyym-ui .study-announcement small{font-size:12px;display:block;margin-bottom:8px}
+html .uyym-ui .study-announcement p{white-space:pre-wrap;font-size:14px;line-height:1.8;margin:0}
+html .uyym-ui .study-schedule-note{padding:20px 0}
+html .uyym-ui .workspace-frame .content-tabs{display:flex;gap:6px;border-bottom:1px solid var(--ws-line);padding:0 0 12px;background:none;margin:24px 0;flex-wrap:wrap}
+html .uyym-ui .workspace-frame .content-tabs button{background:none;border:0;border-radius:7px;color:var(--ws-muted);padding:10px 14px;min-height:44px;font-size:14px}
+html .uyym-ui .workspace-frame .content-tabs button.selected{background:var(--ws-selected);color:var(--ws-brand);font-weight:600}
+html .uyym-ui .workspace-frame .content-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+html .uyym-ui .workspace-frame .content-card{border:1px solid var(--ws-line);border-radius:var(--ws-radius);background:var(--ws-panel);padding:24px;box-shadow:none}
+html .uyym-ui .workspace-frame .content-card h3{font-size:18px;margin-bottom:14px}
+html .uyym-ui .workspace-frame .content-card p{font-size:14px;line-height:1.7;white-space:pre-wrap}
+html .uyym-ui .workspace-frame .content-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+html .uyym-ui .workspace-frame .content-actions{margin:0 0 20px}
+html .uyym-ui .workspace-frame .course-schedule{border:1px solid var(--ws-line);background:var(--ws-panel);border-radius:10px;padding:16px 20px;margin:20px 0;font-size:14px}
+html .uyym-ui .workspace-frame .course-schedule p{margin:8px 0 0}
+html .uyym-ui .workspace-frame .course-access-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+html .uyym-ui .workspace-frame .course-access-card{background:var(--ws-panel);border:1px solid var(--ws-line);border-radius:12px;box-shadow:none;padding:28px;color:var(--ws-ink);text-align:left}
+html .uyym-ui .workspace-frame .course-access-card>span{display:none}
+html .uyym-ui .workspace-frame .course-access-card h3{font-size:21px}
+html .uyym-ui .workspace-frame .course-access-card strong{color:var(--ws-brand)}
+html .uyym-ui .workspace-frame .course-access-card:hover{background:var(--ws-soft);transform:none}
+html .uyym-ui .workspace-frame .back-link{display:inline-flex;gap:8px;align-items:center;background:none;border:0;font-size:13px;color:var(--ws-brand);margin:0 0 20px;padding:8px 0;min-height:40px}
+html .uyym-ui .lesson-breadcrumb{display:flex;gap:12px;align-items:center;font-size:13px;margin-bottom:24px;color:var(--ws-muted)}
+html .uyym-ui .lesson-breadcrumb button{display:flex;align-items:center;gap:8px;min-width:0;color:var(--ws-brand);background:none;border:0;padding:0;text-align:left;font-size:13px;min-height:40px}
+html .uyym-ui .lesson-breadcrumb>span:last-child{white-space:nowrap}
+html .uyym-ui .lesson-workspace-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start}
+html .uyym-ui .lesson-main{min-width:0}
+html .uyym-ui .lesson-title{margin-bottom:24px}
+html .uyym-ui .lesson-title h2{font-size:clamp(24px,2vw,30px);margin-bottom:10px}
+html .uyym-ui .lesson-title time{font-size:13px;color:var(--ws-muted)}
+html .uyym-ui .lesson-notes{padding:28px 0;border-bottom:1px solid var(--ws-line)}
+html .uyym-ui .lesson-notes h3{margin-bottom:12px}
+html .uyym-ui .lesson-notes p{white-space:pre-wrap;line-height:1.8;margin:0;font-size:15px;max-width:75ch}
+html .uyym-ui .lesson-resources{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px 0}
+html .uyym-ui .lesson-resources h3{font-size:16px;margin:0 0 12px}
+html .uyym-ui .lesson-resources p{font-size:14px}
+html .uyym-ui .lesson-pagination{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--ws-line);padding-top:24px}
+html .uyym-ui .lesson-curriculum{background:var(--ws-panel);border:1px solid var(--ws-line);border-radius:var(--ws-radius);overflow:hidden;position:sticky;top:24px}
+html .uyym-ui .mobile-curriculum{display:none;background:var(--ws-panel);border:1px solid var(--ws-line);border-radius:12px;overflow:hidden;margin-bottom:24px}
+html .uyym-ui .mobile-curriculum summary{list-style:none;cursor:pointer;min-height:48px}
+html .uyym-ui .mobile-curriculum summary::-webkit-details-marker{display:none}
+html .uyym-ui .curriculum-toggle{display:flex;align-items:center;gap:10px;background:none;border:0;border-bottom:1px solid var(--ws-line);color:var(--ws-ink);padding:18px;width:100%;text-align:left;cursor:pointer;font-size:14px;font-weight:600;margin:0}
+html .uyym-ui .curriculum-toggle>span{margin-left:auto;color:var(--ws-muted);font-size:12px}
+html .uyym-ui .curriculum-item{display:flex;gap:12px;align-items:flex-start;width:100%;padding:18px 14px;background:none;color:var(--ws-ink);border:0;border-bottom:1px solid var(--ws-line);text-align:left}
+html .uyym-ui .curriculum-item:hover{background:var(--ws-soft)}
+html .uyym-ui .curriculum-item[aria-current]{background:var(--ws-selected)}
+html .uyym-ui .curriculum-item>span:nth-child(2){flex:1;min-width:0}
+html .uyym-ui .curriculum-item strong{font-size:13px;font-weight:600;display:block;overflow-wrap:anywhere}
+html .uyym-ui .curriculum-item small{display:block;font-size:11px;margin-top:6px}
+html .uyym-ui .curriculum-number{width:24px;height:24px;border-radius:50%;background:var(--ws-soft);color:var(--ws-muted);display:grid;place-items:center;flex-shrink:0;font-size:11px}
+html .uyym-ui .curriculum-number .ui-icon{width:14px;height:14px}
+html .uyym-ui .curriculum-item .ui-badge{font-size:10px;padding:2px 5px}
+html .uyym-ui .recording-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:16/9;background:#142746;border-radius:12px;padding:24px;text-align:center}
+html .uyym-ui .recording-empty>.ui-icon{width:36px;height:36px;color:#ffcd2b;margin-bottom:20px}
+html .uyym-ui .recording-empty h3{color:#edf4ff;font-size:18px;margin:0 0 10px}
+html .uyym-ui .recording-empty p{color:#b5c8e4;font-size:14px;margin:0;max-width:40ch}
+html .uyym-ui .workspace-frame .player-shell{margin:0;border-radius:12px;overflow:hidden}
+html .uyym-ui .workspace-frame .player-overlay p{color:#dceaff}
+html .uyym-ui .workspace-frame .player-tools{padding:12px;gap:10px;flex-wrap:wrap;background:var(--ws-panel);color:var(--ws-muted);font-size:12px}
+html .uyym-ui .workspace-frame .speed-control select{min-height:32px;font-size:12px;padding:3px 6px;width:auto}
+html .uyym-ui .workspace-frame .player-tools button{min-height:38px;color:var(--ws-ink);font-size:12px;border-color:var(--ws-input);background:var(--ws-panel)}
+html .uyym-ui .workspace-frame .player-shell .privacy-note{font-size:11px;padding:12px;background:var(--ws-panel);margin:0}
+html .uyym-ui .workspace-frame .review-layout{gap:24px}
+html .uyym-ui .workspace-frame :is(.review-student,.submission-version,.review-form){background:var(--ws-panel);border-color:var(--ws-line);color:var(--ws-ink)}
+html .uyym-ui .workspace-frame .review-student.selected{background:var(--ws-selected)}
+html .uyym-ui .workspace-frame .auth-operations{margin-top:40px;padding-top:24px;border-top:1px solid var(--ws-line)}
+html .uyym-ui .workspace-frame .settings-section{border:1px solid var(--ws-line);padding:24px;border-radius:12px;background:var(--ws-panel);margin-bottom:24px}
+html .uyym-ui .workspace-frame .manage-settings>:is(.manage-form-grid,.settings-repeat){background:var(--ws-panel);border:1px solid var(--ws-line);border-radius:12px;padding:24px}
+html .uyym-ui .workspace-frame .settings-repeat-row{border-color:var(--ws-line);padding:20px 0}
+html .uyym-ui .workspace-frame .settings-repeat-row:last-child{border-bottom:0;padding-bottom:0}
+html .uyym-ui .workspace-frame *{scroll-margin-top:24px}
+html .uyym-ui .workspace-frame :is(a,button,input,textarea,select,summary):focus-visible{outline:3px solid #4e80e9;outline-offset:3px}
+html .uyym-ui .workspace-frame ::selection{background:#bcd1ff;color:#112442}
+html .uyym-ui .workspace-frame :is(p,dd,td,h2,h3,h4){overflow-wrap:anywhere}
+html .uyym-ui .workspace-frame :is(button,a){touch-action:manipulation;-webkit-tap-highlight-color:#24498e22}
+/* Theme colors change together; avoid a low-contrast text/background crossfade. */
+html .uyym-ui .workspace-frame :is(button,a){transition:none}
+html .uyym-ui .workspace-frame :is(time,dd){font-variant-numeric:tabular-nums}
+@media(min-width:1800px){html .uyym-ui .workspace-canvas{margin-right:auto}}
+@media(max-width:1200px){html .uyym-ui .lesson-workspace-grid{grid-template-columns:minmax(0,1fr) 250px;gap:20px}html .uyym-ui .workspace-canvas{padding:24px}html .uyym-ui .application-table :is(td,th){padding:14px 12px}html .uyym-ui .workspace-frame .content-grid{grid-template-columns:1fr}}
+@media(max-width:1000px){html .uyym-ui .workspace-rail{width:210px}html .uyym-ui .workspace-navigation{width:186px}html .uyym-ui .workspace-topbar,html .uyym-ui .workspace-canvas{margin-left:210px}html .uyym-ui .workspace-topbar{padding:0 24px}html .uyym-ui .study-course-grid{gap:16px}html .uyym-ui .study-overview-grid{grid-template-columns:1fr;gap:0}html .uyym-ui .lesson-workspace-grid{grid-template-columns:1fr}html .uyym-ui .lesson-curriculum{display:none}html .uyym-ui .mobile-curriculum{display:block}html .uyym-ui .curriculum-toggle{cursor:pointer}html .uyym-ui .workspace-frame .manage-record{flex-wrap:wrap}html .uyym-ui .workspace-frame .manage-record-actions{max-width:none;justify-content:flex-start}}
+@media(max-width:850px){
+ html .uyym-ui .workspace-rail,html .uyym-ui .workspace-navigation{display:none}
+ html .uyym-ui .workspace-topbar,html .uyym-ui .workspace-canvas{margin-left:0}
+ html .uyym-ui .workspace-topbar{padding:0 20px;height:68px}
+ html .uyym-ui .workspace-mobile-logout{display:grid!important}
+ html .uyym-ui .ui-button.workspace-mobile-trigger{display:flex;margin-bottom:24px;width:100%;justify-content:flex-start;color:var(--ws-brand);border-color:var(--ws-line)}
+ html .uyym-ui .workspace-frame .application-table :is(td,th){padding:16px}
+ html .uyym-ui .workspace-frame .course-access-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:600px){
+ html .uyym-ui .workspace-topbar{padding:12px 16px;height:auto;min-height:68px;gap:10px;flex-wrap:wrap}
+ html .uyym-ui .workspace-location{gap:8px;font-size:11px;flex:1}
+ html .uyym-ui .workspace-location>a{display:none}
+ html .uyym-ui .workspace-location>span{display:none}
+ html .uyym-ui .workspace-location h1{font-size:12px}
+ html .uyym-ui .workspace-appearance{gap:8px}
+ html .uyym-ui .workspace-appearance .language-switch button{min-height:38px;min-width:36px}
+ html .uyym-ui .workspace-appearance .language-switch button{min-width:44px;min-height:44px}
+ html .uyym-ui .workspace-appearance .theme-button{width:44px;height:44px}
+ html .uyym-ui .workspace-canvas{padding:18px 16px 40px}
+ html .uyym-ui .workspace-security{margin-bottom:16px;font-size:11px;gap:6px}
+ html .uyym-ui .workspace-security>span{margin-left:auto}
+ html .uyym-ui .workspace-security .workspace-timezone{flex-basis:100%;margin-left:0}
+ html .uyym-ui .workspace-frame h2{font-size:26px}
+ html .uyym-ui .ui-page-header,html .uyym-ui .workspace-frame .panel-heading{gap:16px;flex-wrap:wrap;margin-bottom:20px}
+ html .uyym-ui .ui-page-header p{font-size:14px}
+ html .uyym-ui .study-course-grid,html .uyym-ui .workspace-frame .course-access-grid{grid-template-columns:1fr}
+ html .uyym-ui .study-course-cover{height:96px;padding:20px 24px}
+ html .uyym-ui .study-course-body{padding:20px}
+ html .uyym-ui .study-course-body .ui-button{width:100%}
+ html .uyym-ui .resume-lesson{padding:20px;align-items:flex-start;flex-direction:column;gap:20px}
+ html .uyym-ui .resume-lesson>.ui-button{width:100%}
+ html .uyym-ui .workspace-frame .manage-toolbar{flex-wrap:wrap;align-items:stretch;gap:14px}
+ html .uyym-ui .workspace-frame .manage-toolbar>label{width:100%!important}
+ html .uyym-ui .workspace-frame :is(input,select,textarea){font-size:16px;min-height:44px}
+ html .uyym-ui .workspace-frame :is(.button,.ui-button){min-height:44px}
+ html .uyym-ui .application-table{display:block;background:none;border:0;overflow:visible}
+ html .uyym-ui .application-table thead{display:none}
+ html .uyym-ui .application-table tbody{display:grid;gap:16px}
+ html .uyym-ui .application-table tr{display:grid;background:var(--ws-panel);border:1px solid var(--ws-line);border-radius:12px;padding:16px;gap:14px}
+ html .uyym-ui .workspace-frame .application-table td{display:block;border:0;padding:0;max-width:none;font-size:14px}
+ html .uyym-ui .application-table td[data-label]::before{content:attr(data-label);display:block;font-size:11px;font-weight:500;color:var(--ws-muted);margin-bottom:5px}
+ html .uyym-ui .application-table td .ui-button{width:100%}
+ html .uyym-ui .workspace-frame .manage-record{padding:20px;gap:16px}
+ html .uyym-ui .workspace-frame .manage-record-info dl{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+ html .uyym-ui .workspace-frame .manage-record-actions{width:100%}
+ html .uyym-ui .workspace-frame .manage-pagination{align-items:flex-start;flex-direction:column}
+ html .uyym-ui .workspace-frame .manage-pagination>div{width:100%}
+ html .uyym-ui .workspace-frame .manage-pagination button{flex:1}
+ html .uyym-ui .workspace-frame :is(.modal,.manage-dialog){padding:24px 20px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 32px)}
+ html .uyym-ui .workspace-frame .modal-backdrop{padding:16px 12px}
+ html .uyym-ui .workspace-frame .manage-dialog h2{font-size:23px}
+ html .uyym-ui .workspace-frame .modal-close{min-height:44px;min-width:44px;top:12px;right:12px}
+ html .uyym-ui .workspace-frame .manage-dialog-actions{flex-direction:column}
+ html .uyym-ui .workspace-frame .ui-details>div{grid-template-columns:1fr;gap:4px}
+ html .uyym-ui .workspace-frame .content-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:20px 0;padding-bottom:16px}
+ html .uyym-ui .workspace-frame .content-tabs button{text-align:center;line-height:1.4;padding:10px 8px;font-size:13px}
+ html .uyym-ui .workspace-frame .content-card{padding:20px}
+ html .uyym-ui .study-list-row{padding:16px 12px;gap:10px;flex-wrap:wrap}
+ html .uyym-ui .study-list-row>.ui-badge{margin-left:48px}
+ html .uyym-ui .lesson-resources{grid-template-columns:1fr}
+ html .uyym-ui .lesson-pagination .ui-button{flex:1;font-size:12px;padding:10px}
+ html .uyym-ui .lesson-breadcrumb{gap:8px;margin:0 0 16px}
+ html .uyym-ui .lesson-breadcrumb button{font-size:12px}
+ html .uyym-ui .recording-empty h3{font-size:16px}
+ html .uyym-ui .recording-empty p{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){html .uyym-ui .workspace-frame *,html .uyym-ui .workspace-frame *::before,html .uyym-ui .workspace-frame *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
