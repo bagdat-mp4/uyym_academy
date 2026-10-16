@@ -1,0 +1,10 @@
+import {useState} from 'react';
+import {dateLabel,Dialog,Status,tr,value,type Lang,type Row} from './management';
+import {Button,UiIcon} from './ui';
+
+export default function ApplicationList({items,lang,onReview}:{items:Row[];lang:Lang;onReview:(row:Row)=>void}){
+ const [detail,setDetail]=useState<Row|null>(null);
+ return <><table className="application-table"><caption className="sr-only">{tr(lang,['Курс өтінімдері','Заявки на курсы'])}</caption><thead><tr>{[['Өтініш беруші','Заявитель'],['Курс','Курс'],['Күйі','Статус'],['Өтінім уақыты','Дата заявки'],['Әрекеттер','Действия']].map(label=><th scope="col" key={label[1]}>{tr(lang,label as [string,string])}</th>)}</tr></thead><tbody>{items.map(row=><tr key={row.id}><td data-label={tr(lang,['Өтініш беруші','Заявитель'])}><strong>{value(row,'name')}</strong><span className="table-secondary">{value(row,'phone')}</span></td><td data-label={tr(lang,['Курс','Курс'])}>{value(row,'course_title')}</td><td data-label={tr(lang,['Күйі','Статус'])}><Status status={row.status} lang={lang}/></td><td data-label={tr(lang,['Өтінім уақыты','Дата заявки'])}><time dateTime={value(row,'created_at')}>{dateLabel(row.created_at,lang)}</time></td><td><Button onClick={()=>setDetail(row)}>{tr(lang,['Толығырақ','Подробнее'])}<UiIcon name="arrow"/></Button></td></tr>)}</tbody></table>
+ {detail&&<Dialog title={tr(lang,['Курс өтінімі','Заявка на курс'])} lang={lang} onClose={()=>setDetail(null)}><dl className="ui-details"><div><dt>{tr(lang,['Нақты аты','Настоящее имя'])}</dt><dd>{value(detail,'name')}</dd></div><div><dt>{tr(lang,['Телефон','Телефон'])}</dt><dd>{value(detail,'phone')}</dd></div><div><dt>{tr(lang,['Курс','Курс'])}</dt><dd>{value(detail,'course_title')}</dd></div><div><dt>{tr(lang,['Өтінім уақыты','Дата заявки'])}</dt><dd>{dateLabel(detail.created_at,lang)}</dd></div><div><dt>{tr(lang,['Күйі','Статус'])}</dt><dd><Status status={detail.status} lang={lang}/></dd></div></dl>{['pending','processing'].includes(value(detail,'status'))&&<Button variant="primary" onClick={()=>{onReview(detail);setDetail(null);}}>{tr(lang,['Тексеру және мақұлдау','Проверить и одобрить'])}</Button>}</Dialog>}
+ </>;
+}

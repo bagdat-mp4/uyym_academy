@@ -19,3 +19,14 @@ test('light and dark design tokens meet text and input-boundary contrast require
  }
  assert.ok(contrast('#142c50','#ffcd2b')>=4.5,'Enrollment button text must meet 4.5:1');
 });
+
+test('workspace typography, muted metadata and form boundaries meet contrast in both themes',async()=>{
+ const css=await readFile(new URL('../client/src/workspace.css',import.meta.url),'utf8');
+ const blocks=[css.match(/:root\s*\{([^}]+)\}/)![1],css.match(/html\[data-theme="dark"\]\s*\{([^}]+)\}/)![1]];
+ for(const block of blocks){
+  const tokens=Object.fromEntries([...block.matchAll(/--ws-([\w-]+):\s*(#[a-f0-9]{3,6})/gi)].map(match=>[match[1],match[2]]));
+  for(const surface of ['bg','panel','soft'])for(const text of ['ink','muted'])assert.ok(contrast(tokens[text],tokens[surface])>=4.5,`${text} on ${surface}`);
+  assert.ok(contrast(tokens.input,tokens.panel)>=3,'Form boundary');
+ }
+ assert.ok(contrast('#dceaff','#142746')>=4.5,'Player overlay needs its own light text even in light theme');
+});

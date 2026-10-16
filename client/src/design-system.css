@@ -278,3 +278,9 @@ html .uyym-ui .speed-control { font-size:13px; }
  html .uyym-ui *,html .uyym-ui *::before,html .uyym-ui *::after { animation:none !important; transition:none !important; }
  html .uyym-ui .course-card:hover { transform:none; }
 }
+
+/* Reserve the account shell while its private styles/chunks load. */
+html .uyym-ui.is-workspace>:is(.announcement,.site-header,footer){display:none}
+html .uyym-ui.is-workspace .account-main{padding:0;min-height:100dvh}
+html .uyym-ui.is-workspace .account-main>.container{width:100%;max-width:none;margin:0}
+html .uyym-ui.is-workspace .account-breadcrumb{display:none}
