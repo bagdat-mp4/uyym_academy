@@ -34,9 +34,11 @@ test('workspace typography, muted metadata and form boundaries meet contrast in 
 test('course hero text, actions and focus meet contrast in both themes',async()=>{
  const css=await readFile(new URL('../client/src/course-hero.css',import.meta.url),'utf8');
  const blocks=[css.match(/\.course-hero\s*\{([^}]+)\}/)![1],css.match(/html\[data-theme="dark"\][^{]+\{([^}]+)\}/)![1]];
+ let tokens:Record<string,string>={};
  for(const block of blocks){
-  const tokens=Object.fromEntries([...block.matchAll(/--hero-([\w-]+):\s*(#[a-f0-9]{6})/gi)].map(m=>[m[1],m[2]]));
-  assert.ok(contrast(tokens.ink,tokens.surface)>=4.5,'Hero text and inverse action');
+  tokens={...tokens,...Object.fromEntries([...block.matchAll(/--hero-([\w-]+):\s*(#[a-f0-9]{6})/gi)].map(m=>[m[1],m[2]]))};
+  assert.ok(contrast(tokens.ink,tokens.surface)>=4.5,'Hero text');
+  assert.ok(contrast(tokens['action-ink'],tokens.action)>=4.5,'Yellow action text');
   assert.ok(contrast(tokens.focus,tokens.surface)>=3,'Visible focus ring');
  }
 });
