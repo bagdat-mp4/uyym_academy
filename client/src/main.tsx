@@ -6,6 +6,7 @@ import './management.css';
 import './dark-surfaces.css';
 import './appearance.css';
 import './design-system.css';
+import './course-hero.css';
 import {savedLanguage,savedTheme,preferenceStorage} from './i18n';
 
 document.documentElement.lang=savedLanguage(preferenceStorage);
