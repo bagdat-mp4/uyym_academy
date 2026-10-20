@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {savedTheme} from '../client/src/i18n';
+import {savedTheme,tr} from '../client/src/i18n';
 import {resolveTheme,applyTheme} from '../client/src/theme';
 import ThemeControl from '../client/src/ThemeControl';
 
@@ -18,5 +18,6 @@ test('theme preference preserves explicit modes and resolves system without over
  }finally{if(previous)Object.defineProperty(globalThis,'document',previous);else Reflect.deleteProperty(globalThis,'document');}
 });
 test('all locales have a labelled keyboard-native three-mode theme selector',()=>{
- for(const lang of ['en','kk','ru'] as const){const html=renderToStaticMarkup(createElement(ThemeControl,{lang,value:'system',onChange(){}}));assert.ok(html.includes('<label')&&html.includes('<select'));assert.equal((html.match(/<option /g)||[]).length,3);assert.ok(html.includes('value="system" selected=""'));}
+ for(const [lang,label] of [['en','Theme'],['kk','Көрініс тақырыбы'],['ru','Тема оформления']] as const){const html=renderToStaticMarkup(createElement(ThemeControl,{lang,value:'system',onChange(){}}));assert.ok(html.includes('<label')&&html.includes('<select'));assert.equal((html.match(/<option /g)||[]).length,3);assert.ok(html.includes('value="system" selected=""'));assert.ok(html.includes(`<span class="sr-only">${label}</span>`));}
+ assert.equal(tr('en',['Тақырып','Тема']),'Topic','Academic topic must retain its distinct label');
 });
