@@ -35,7 +35,7 @@ globalThis.fetch=async(input,init)=>{
 };
 const drive=(baseline?await import(new URL('../work/player-benchmark/baseline-drive.ts',import.meta.url).href):await import('../server/drive.js')) as typeof import('../server/drive.js');
 const lesson='00000000-0000-4000-8000-000000000000',grant='00000000-0000-4000-8000-000000000001';
-let patches=0;const requests:{name:string;ms:number;phases?:Record<string,number>}[]=[];
+let patches=0,scenario='normal';const requests:{name:string;ms:number;phases?:Record<string,number>}[]=[];
 const server=await createServer({configFile:false,root:resolve('client'),plugins:[react(),tailwind(),{
  name:'local-measured-player',configureServer(vite){vite.middlewares.use(async(req,res,next)=>{
   const url=new URL(req.url||'/','http://localhost');
@@ -45,18 +45,32 @@ const server=await createServer({configFile:false,root:resolve('client'),plugins
   }
   if(url.pathname==='/__benchmark/stats'){res.setHeader('content-type','application/json');return res.end(JSON.stringify({patches,requests}));}
   if(url.pathname==='/__benchmark/reset'){patches=0;requests.length=0;return res.end('{}');}
+  if(url.pathname==='/__benchmark/scenario'){
+   const chosen=url.searchParams.get('mode')||'normal';
+   if(!['normal','slow','network-error','access-denied','session-expired','unavailable','grant-expired'].includes(chosen)){res.statusCode=400;return res.end('{}');}
+   scenario=chosen;return res.end('{}');
+  }
   if(!url.pathname.startsWith('/api/'))return next();
   const start=performance.now();let name='';const timing=new PlayerTiming();res.setHeader('cache-control','private, no-store');res.setHeader('content-type','application/json');
   res.once('finish',()=>{if(name)requests.push({name,ms:Math.round(performance.now()-start),phases:timing.snapshot()});});
   try{
    if(url.pathname==='/api/proof/challenge'){await delay(10);return res.end(JSON.stringify({id:crypto.randomUUID(),payload:'LOCAL_BENCHMARK_ONLY'}));}
-   if(url.pathname===`/api/lessons/${lesson}/playback`){name='playback';await delay(80);return res.end(JSON.stringify({...manifest,grant_id:grant,watermark:'LOCAL TEST PATTERN'}));}
-   if(url.pathname===`/api/playback/${grant}/heartbeat`){await delay(20);return res.end('{"ok":true}');}
+   if(url.pathname===`/api/lessons/${lesson}/playback`){
+    name='playback';await delay(scenario==='slow'?4000:80);
+    const status=scenario==='access-denied'?403:scenario==='session-expired'?401:scenario==='unavailable'?404:200;
+    if(status!==200){res.statusCode=status;return res.end('{"error":"Local test failure"}');}
+    return res.end(JSON.stringify({...manifest,grant_id:grant,watermark:'LOCAL TEST PATTERN'}));
+   }
+   if(url.pathname===`/api/playback/${grant}/heartbeat`){await delay(20);if(scenario==='grant-expired'){res.statusCode=403;return res.end('{"error":"Local expired grant","code":"MEDIA_GRANT_EXPIRED"}');}return res.end('{"ok":true}');}
    if(url.pathname===`/api/media/${lesson}`){
+    if(scenario==='network-error'){res.statusCode=503;return res.end('{"error":"Local media test failure"}');}
     const part=Number(url.searchParams.get('part')),file=files.get(`TEST_PART_${part+1}`);if(!file)throw new Error('Unknown test part');name=`media ${part}`;
     const stream=await activeTiming.run(timing,async()=>{await timing.measure('drive_validate',()=>drive.validateDriveFile(`TEST_PART_${part+1}`,folder,'part',file.bytes,timing));return drive.streamPart(`TEST_PART_${part+1}`,file.bytes,timing);});res.setHeader('server-timing',timing.header());res.setHeader('content-type','video/mp4');res.setHeader('content-length',file.bytes);stream.pipe(res);return;
    }
-   if(url.pathname.endsWith('/progress')&&req.method==='PATCH'){patches++;return res.end('{"position_seconds":8,"completed_at":"2026-10-15T00:00:00Z"}');}
+   if(url.pathname.endsWith('/progress')&&req.method==='PATCH'){
+    patches++;let body='';for await(const chunk of req)body+=chunk;
+    const input=JSON.parse(body||'{}');return res.end(JSON.stringify({position_seconds:input.position_seconds??0,completed_at:input.completed?'2026-10-15T00:00:00Z':null}));
+   }
    res.statusCode=404;res.end('{}');
   }catch{res.statusCode=503;res.end('{"error":"Local fixture failed"}');}
  });}

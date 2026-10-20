@@ -1,0 +1,46 @@
+/* All controls belong to the existing protected HTMLVideoElement, never a second engine. */
+html .uyym-ui .player-shell.uyym-player .uyym-video-controls{position:absolute;inset:0;z-index:3;color:#fff;pointer-events:none;font-family:inherit;opacity:1;transition:opacity .18s ease}
+html .uyym-ui .player-shell.uyym-player .uyym-control-bar{position:absolute;inset:auto 0 0;padding:25px 16px 5px;background:linear-gradient(transparent,rgba(3,9,20,.85) 48%,rgba(3,9,20,.96));pointer-events:auto}
+html .uyym-ui .player-shell.uyym-player .uyym-control-row{display:flex;align-items:center;gap:3px;min-width:0}
+html .uyym-ui .player-shell.uyym-player .uyym-control-button,html .uyym-ui .player-shell.uyym-player .uyym-center-play,html .uyym-ui .player-shell.uyym-player .uyym-rate-option{appearance:none;display:inline-flex;align-items:center;justify-content:center;border:0;box-shadow:none;text-shadow:none;transform:none;color:#fff;background:transparent;cursor:pointer;font:inherit;line-height:1.25;letter-spacing:normal;transition:background .15s ease,color .15s ease}
+html .uyym-ui .player-shell.uyym-player .uyym-control-button{flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;padding:10px;border-radius:8px}
+html .uyym-ui .player-shell.uyym-player .uyym-control-button svg{width:24px;height:24px;flex-shrink:0}
+html .uyym-ui .player-shell.uyym-player .uyym-control-button:hover,html .uyym-ui .player-shell.uyym-player .uyym-control-button[aria-expanded=true],html .uyym-ui .player-shell.uyym-player .uyym-rate-option:hover{background:#244d88;color:#fff;transform:none;box-shadow:none}
+html .uyym-ui .player-shell.uyym-player .uyym-control-button:disabled{opacity:.45;cursor:default;pointer-events:none}
+html .uyym-ui .player-shell.uyym-player .uyym-control-button[aria-pressed=true]::after{content:"";position:absolute;bottom:4px;width:16px;height:3px;background:#ffcf58;border-radius:2px}
+html .uyym-ui .player-shell.uyym-player .uyym-control-button[aria-pressed=true]{position:relative}
+html .uyym-ui .player-shell.uyym-player .uyym-control-button:focus-visible,html .uyym-ui .player-shell.uyym-player .uyym-center-play:focus-visible,html .uyym-ui .player-shell.uyym-player .uyym-rate-option:focus-visible,html .uyym-ui .player-shell.uyym-player .uyym-seek:focus-visible,html .uyym-ui .player-shell.uyym-player .uyym-volume:focus-visible{outline:3px solid #b5d3ff;outline-offset:2px}
+html .uyym-ui .player-shell.uyym-player .uyym-time{white-space:nowrap;min-width:0;font-size:12px;font-variant-numeric:tabular-nums;font-weight:500;margin-inline:5px;line-height:1.2;color:#fff}
+html .uyym-ui .player-shell.uyym-player .uyym-time>span{color:#d9e2ef}
+html .uyym-ui .player-shell.uyym-player .uyym-control-spacer{flex:1;min-width:0}
+html .uyym-ui .player-shell.uyym-player .uyym-volume-group{display:flex;align-items:center;gap:1px;min-width:0}
+html .uyym-ui .player-shell.uyym-player .uyym-volume{appearance:auto;accent-color:#ffcf58;display:block;background:transparent;border:0;box-shadow:none;width:66px;min-width:0;height:44px;min-height:44px;padding:0;margin:0 4px 0 1px;cursor:pointer}
+html .uyym-ui .player-shell.uyym-player .uyym-timeline{position:relative;height:44px;margin-top:-7px;margin-bottom:-8px;display:flex;align-items:center}
+html .uyym-ui .player-shell.uyym-player .uyym-timeline-rail{position:absolute;inset-inline:0;top:20px;height:4px;background:#758094;border-radius:3px;overflow:hidden;pointer-events:none}
+html .uyym-ui .player-shell.uyym-player .uyym-timeline-rail i{position:absolute;inset-block:0;display:block;pointer-events:none}
+html .uyym-ui .player-shell.uyym-player .uyym-buffered{background:#b0b9c7}
+html .uyym-ui .player-shell.uyym-player .uyym-played{left:0;background:#ffcf58}
+html .uyym-ui .player-shell.uyym-player .uyym-seek{appearance:none;-webkit-appearance:none;position:relative;z-index:1;display:block;width:100%;height:44px;min-height:44px;min-width:0;padding:0;border:0;border-radius:3px;background:transparent;box-shadow:none;outline-offset:0;margin:0;cursor:pointer;accent-color:#ffcf58}
+html .uyym-ui .player-shell.uyym-player .uyym-seek::-webkit-slider-runnable-track{height:4px;background:transparent;border:0;box-shadow:none}
+html .uyym-ui .player-shell.uyym-player .uyym-seek::-moz-range-track{height:4px;background:transparent;border:0;box-shadow:none}
+html .uyym-ui .player-shell.uyym-player .uyym-seek::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:12px;height:12px;margin-top:-4px;background:#ffcf58;border:0;border-radius:50%;box-shadow:0 0 0 2px #07132499}
+html .uyym-ui .player-shell.uyym-player .uyym-seek::-moz-range-thumb{width:12px;height:12px;background:#ffcf58;border:0;border-radius:50%;box-shadow:0 0 0 2px #07132499}
+html .uyym-ui .player-shell.uyym-player .uyym-seek:disabled{cursor:default;opacity:.45}
+html .uyym-ui .player-shell.uyym-player .uyym-seek-preview{position:absolute;bottom:43px;transform:translateX(-50%);background:#0d192c;color:#fff;border:1px solid #74849c;border-radius:5px;padding:5px 8px;font-size:12px;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none}
+html .uyym-ui .player-shell.uyym-player .uyym-settings-wrap{position:static;flex:0 0 auto}
+html .uyym-ui .player-shell.uyym-player .uyym-settings-panel{position:absolute;right:16px;bottom:61px;width:190px;max-height:min(340px,calc(var(--uyym-video-height,180px) - 80px));overflow-y:auto;overscroll-behavior:contain;border:1px solid #697a94;border-radius:12px;padding:8px;background:#101e32f5;color:#fff;box-shadow:0 12px 30px #0005;pointer-events:auto}
+html .uyym-ui .player-shell.uyym-player .uyym-settings-panel p{margin:4px 10px 8px;color:#d9e2ef;font-size:12px;line-height:1.45;font-weight:600}
+html .uyym-ui .player-shell.uyym-player .uyym-rate-option{width:100%;justify-content:space-between;padding:10px;min-height:44px;border-radius:6px;font-size:13px}
+html .uyym-ui .player-shell.uyym-player .uyym-rate-option[aria-pressed=true]{color:#ffdb82;background:#203b61}
+html .uyym-ui .player-shell.uyym-player .uyym-rate-option>svg,html .uyym-ui .player-shell.uyym-player .uyym-rate-option>span:last-child{width:18px;height:18px}
+html .uyym-ui .player-shell.uyym-player .uyym-center-play{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:68px;height:68px;min-height:44px;border-radius:50%;background:#132b54e8;border:1px solid #aac7ed;box-shadow:0 5px 25px #0005;pointer-events:auto}
+html .uyym-ui .player-shell.uyym-player .uyym-center-play svg{height:32px;width:32px;margin-left:3px}
+html .uyym-ui .player-shell.uyym-player .uyym-center-play:hover{background:#244d88;transform:translate(-50%,-50%);box-shadow:0 5px 25px #0005}
+html .uyym-ui .player-shell.uyym-player .uyym-player-play-error{position:absolute;inset:18% 16px auto;text-align:center;background:#101e32e8;color:#fff;border-radius:7px;padding:10px;font-size:12px;line-height:1.45;margin:0}
+html .uyym-ui .player-shell.uyym-player .uyym-buffering{position:absolute;left:50%;top:45%;width:40px;height:40px;border:3px solid #dce8fb66;border-top-color:#ffcf58;border-radius:50%;transform:translate(-50%,-50%);animation:uyym-player-spin .8s linear infinite;pointer-events:none}
+@keyframes uyym-player-spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+html .uyym-ui .player-shell.uyym-player .uyym-controls-hidden{opacity:0}
+html .uyym-ui .player-shell.uyym-player .uyym-controls-hidden .uyym-control-bar{pointer-events:none}
+@media(min-width:740px){html .uyym-ui .player-shell.uyym-player .uyym-control-bar{padding-inline:20px}html .uyym-ui .player-shell.uyym-player .uyym-time{font-size:13px;margin-inline:8px}html .uyym-ui .player-shell.uyym-player .uyym-volume{width:76px}}
+@media(max-width:539px){html .uyym-ui .player-shell.uyym-player .uyym-control-bar{padding-inline:7px;padding-top:18px;padding-bottom:3px}html .uyym-ui .player-shell.uyym-player .uyym-volume{display:none}html .uyym-ui .player-shell.uyym-player .uyym-control-row{gap:0}html .uyym-ui .player-shell.uyym-player .uyym-time{font-size:10px;margin-inline:3px}html .uyym-ui .player-shell.uyym-player .uyym-center-play{width:54px;height:54px;top:40%}html .uyym-ui .player-shell.uyym-player .uyym-center-play svg{width:26px;height:26px}html .uyym-ui .player-shell.uyym-player .uyym-settings-panel{right:7px;max-height:min(285px,calc(var(--uyym-video-height,180px) - 72px));bottom:58px}html .uyym-ui .player-shell.uyym-player .uyym-timeline{margin-top:-2px}}
+@media(prefers-reduced-motion:reduce){html .uyym-ui .player-shell.uyym-player .uyym-video-controls,html .uyym-ui .player-shell.uyym-player .uyym-control-button,html .uyym-ui .player-shell.uyym-player .uyym-center-play,html .uyym-ui .player-shell.uyym-player .uyym-rate-option{transition:none}html .uyym-ui .player-shell.uyym-player .uyym-buffering{animation:none}}
