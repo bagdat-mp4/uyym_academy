@@ -573,5 +573,19 @@
   "Сейчас нет опубликованных курсов.": "There are no published courses right now.",
   "Не удалось обновить список курсов.": "The course list could not be refreshed.",
   "Где посмотреть стоимость и длительность?": "Where can I find the price and duration?",
-  "В карточке каждого курса указаны цена, число занятий, длительность и размер группы. Расписание уточните у академии.": "Each course card lists its price, number of classes, duration and group size. Contact the academy to confirm the schedule."
+  "В карточке каждого курса указаны цена, число занятий, длительность и размер группы. Расписание уточните у академии.": "Each course card lists its price, number of classes, duration and group size. Contact the academy to confirm the schedule.",
+  "Меню аккаунта": "Account menu",
+  "Финансы": "Finance",
+  "Рассматривайте заявки на курсы и принимайте решения. Аккаунт открывается только после проверки личности.": "Review course applications and decide what happens next. Accounts open only after identity verification.",
+  "Сбросить фильтры": "Reset filters",
+  "Контакт": "Contact",
+  "Подходящих заявок не найдено": "No matching applications",
+  "Пока нет заявок": "No applications yet",
+  "Попробуйте другое имя, телефон или курс. Можно также сбросить фильтры.": "Try another name, phone number or course, or reset the filters.",
+  "Заявки из формы курса на сайте появятся здесь.": "Applications submitted through the public course form appear here.",
+  "Найдено": "Results",
+  "Загрузка…": "Loading…",
+  "Все заявки": "All applications",
+  "Результаты поиска": "Search results",
+  "Не удалось загрузить часть показателей. Повторите попытку.": "Some counts could not be loaded. Please try again."
 }
