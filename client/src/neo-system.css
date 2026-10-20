@@ -1,12 +1,16 @@
 /* Semantic source of truth. Legacy public/workspace names are aliases so all
    existing forms, gates and role panels use the same surfaces and ink. */
 :root{
- --neo-brand:#203f85;--neo-brand-hover:#19346f;--neo-on-brand:#ffffff;
- --neo-deep:#0f1720;--neo-charcoal:#0f1720;--neo-feature:#203f85;--neo-on-feature:#ffffff;
- --neo-tint:#eaf0fc;--neo-on-tint:#203f85;--neo-link:#203f85;
+ --brand-blue:#1b3b8b;--brand-blue-dark:#142b61;--brand-blue-light:#eaf0fc;
+ --brand-yellow:#ffc72c;--brand-yellow-soft:#fff4d5;
+ --neo-brand:var(--brand-blue);--neo-brand-hover:var(--brand-blue-dark);--neo-on-brand:#ffffff;
+ --neo-accent:var(--brand-yellow);--neo-accent-hover:#ffd561;--neo-on-accent:#0f1720;
+ --neo-accent-soft:var(--brand-yellow-soft);--neo-on-accent-soft:#0f1720;
+ --neo-deep:#0f1720;--neo-on-deep-muted:#c0cde0;--neo-charcoal:#0f1720;--neo-feature:var(--brand-blue);--neo-on-feature:#ffffff;
+ --neo-tint:var(--brand-blue-light);--neo-on-tint:var(--brand-blue);--neo-link:var(--brand-blue);
  --neo-bg:#f7f9fc;--neo-panel:#ffffff;--neo-soft:#edf2fa;
  --neo-ink:#0f1720;--neo-muted:#4b5a70;--neo-border:#0f1720;--neo-divider:#96a3b8;
- --neo-focus:#203f85;--neo-selected:#203f85;--neo-selected-ink:#ffffff;
+ --neo-focus:var(--brand-blue);--neo-selected:var(--brand-blue);--neo-selected-ink:#ffffff;
  --neo-shadow-ink:#000000;--neo-shadow:4px 4px 0 var(--neo-shadow-ink);--neo-shadow-small:2px 2px 0 var(--neo-shadow-ink);--neo-shadow-large:8px 8px 0 var(--neo-shadow-ink);
  --neo-success:#205b39;--neo-warning:#714b0c;--neo-error:#9b2830;
  --neo-radius:20px;--neo-control-radius:10px;--neo-font:"Segoe UI Variable Text","Segoe UI",Arial,sans-serif;
@@ -17,6 +21,7 @@
 html[data-theme="dark"]{
  --neo-bg:#0f1720;--neo-panel:#182333;--neo-soft:#213146;--neo-ink:#f4f7fc;--neo-muted:#c0cde0;--neo-border:#9cacc4;--neo-divider:#657a98;
  --neo-feature:#172f63;--neo-tint:#1e3151;--neo-on-tint:#d8e6ff;--neo-link:#b9d1ff;
+ --neo-accent-soft:#3c3420;--neo-on-accent-soft:#fff4d5;
  --neo-focus:#9dbfff;--neo-shadow-ink:#000000;--neo-success:#b8e6c7;--neo-warning:#f3d499;--neo-error:#ffb8ba;
  --ui-bg:var(--neo-bg);--ui-panel:var(--neo-panel);--ui-soft:var(--neo-soft);--ui-ink:var(--neo-ink);--ui-muted:var(--neo-muted);--ui-line:var(--neo-divider);--ui-control:var(--neo-border);--ui-brand:var(--neo-link);--ui-shadow:var(--neo-shadow);
 }
@@ -73,7 +78,7 @@ html .uyym-ui .neo-approach p{font-size:16px;line-height:1.75;max-width:54ch}
 html .uyym-ui .course-grid{gap:28px}
 html .uyym-ui .course-card{border:2px solid var(--neo-border);border-radius:var(--neo-radius);box-shadow:var(--neo-shadow-large);padding:28px;background:var(--neo-panel)}
 html .uyym-ui .course-card:hover{transform:none;border-color:var(--neo-border)}
-html .uyym-ui .course-symbol{background:var(--neo-selected);border:2px solid var(--neo-border);color:var(--neo-on-tint);border-radius:12px;font-size:30px;width:60px;height:60px}
+html .uyym-ui .course-symbol{background:var(--neo-accent);border:2px solid var(--neo-border);color:var(--neo-on-accent);border-radius:12px;font-size:30px;width:60px;height:60px}
 html .uyym-ui .course-1 .course-symbol{background:var(--neo-tint);color:var(--neo-on-tint)}
 html .uyym-ui .course-2 .course-symbol{background:var(--neo-charcoal);color:#fff}
 html .uyym-ui .course-card h3{min-height:0;font-size:27px;line-height:1.2;margin-bottom:16px}

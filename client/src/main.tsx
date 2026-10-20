@@ -8,6 +8,7 @@ import './appearance.css';
 import './design-system.css';
 import './course-hero.css';
 import './neo-system.css';
+import './landing-flow.css';
 import {savedLanguage,savedTheme,preferenceStorage} from './i18n';
 import {applyTheme} from './theme';
 

@@ -83,3 +83,49 @@ tinted panels, selection, secondary actions and focus in both themes. Local
 HTTP smoke: **17/17 PASS**. No production deployment was performed. Browser
 visual/approved-session acceptance remains BLOCKED as described above; no new
 browser access attempt or workaround was made for this color-only follow-up.
+
+## Logo accents and continuous page flow — latest follow-up, 20 October 2026
+
+This subsequent brief restores controlled gold accents while retaining blue as
+the primary brand. It supersedes the blue-only styling notes immediately above.
+The existing logo provides the exact blue **#1B3B8B** and gold **#FFC72C**.
+`neo-system.css` centralizes brand/accent/hover/soft roles. `landing-flow.css`
+adds whitespace, floating subject navigation, soft FAQ cards and two shallow
+decorative edges; page-level border dividers are removed. Gold stays on small
+objects and the final CTA, not full-width section backgrounds. The navy footer
+and the preceding privacy note no longer introduce a dividing line or white gap.
+
+Confirmed defects corrected: the first course symbol had effectively blue ink
+on blue (1:1), and a legacy important helper-text color defeated the semantic
+palette (2.97:1 on white). New contrast checks cover the actual symbol rule,
+the helper-text override, gold actions/hover/soft surfaces, footer metadata and
+gold focus on blue/navy. Public and workspace language selection use the same
+dark-on-gold pair. A legacy zero-width nav underline is explicitly reset so
+keyboard focus can display it as well as hover.
+
+- Full suite: **110 PASS, 1 SKIP, 0 FAIL** (111 tests). The dedicated PostgreSQL
+  test remains skipped; no separate test DB was provided.
+- TypeScript and Vite production build: **PASS**. No lint script exists.
+- New subject navigation SSR checks: three locales, real encoded fragment
+  targets, exact author text escaped, no invented current enrolment, no empty bar.
+- Local HTTP smoke: **17/17 PASS** after restarting the isolated fixture with
+  its network permission. Earlier attempts were blocked by sandbox `EACCES`;
+  those attempts were not counted as app failures or visual evidence.
+- Current entry JS: **330.99 kB / 102.56 kB gzip**. No dependency was added and
+  no speed improvement is claimed.
+- Backend, schema, authorization, enrolment/proof/grant/Drive logic, provider
+  settings and real data are unchanged. No secret/environment file was read.
+- Protected pre-existing file hashes are unchanged. `init.mp4` was not written,
+  regenerated, staged or committed; OneDrive recovery remains a separate task.
+
+**BLOCKED:** full-page screenshots and top-to-bottom visual/keyboard review at
+1440px, 1024px and 390px, both themes and all locales. The existing Browser Use
+rejection quoted above remains unresolved; no new attempt or alternate browser,
+driver or screenshot route was used. CSS/SSR/contrast tests do not prove rendered
+layout, absence of overflow, native focus, glyph rendering or motion behavior.
+No screenshot artifact is claimed or included.
+
+The local preview at http://localhost:18878/ serves this updated built UI with
+isolated fixture data. Review it manually before publishing. This follow-up has
+not been pushed or deployed; real STUDENT PP1 and owner acceptance remain outside
+the verified local scope.

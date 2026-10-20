@@ -15,7 +15,8 @@ test('course hero translates its heading and real navigation in all three langua
   ] as const) {
     const html = renderToStaticMarkup(createElement(CourseHero, { lang, courses: [course] }));
     assert.equal((html.match(/<h1\b/g) || []).length, 1);
-    assert.ok(html.includes(heading) && html.includes(action));
+    const headingText=html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)![1].replace(/<[^>]+>/g,'');
+    assert.ok(headingText.includes(heading) && html.includes(action));
     assert.ok(html.includes('aria-labelledby="course-hero-title"'));
     assert.ok(html.includes('href="#courses"') && html.includes('href="#account"'));
     // An explicitly labelled illustration never pretends to be the real account.

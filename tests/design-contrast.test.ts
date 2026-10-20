@@ -61,7 +61,31 @@ test('neo semantic surfaces, states, selection and controls meet AA in light and
   assert.ok(contrast(get('on-tint'),get('tint'))>=4.5,'Highlighted panels');
   assert.ok(contrast(get('on-feature'),get('feature'))>=4.5,'Hero and contact sections');
   assert.ok(contrast(get('link'),get('panel'))>=4.5,'Secondary actions');
-  assert.equal(get('brand'),'#203f85','Brand fill remains UYYM blue in both themes');
+  assert.equal(get('brand'),'#1b3b8b','Brand fill matches the original logo');
+  assert.equal(get('accent'),'#ffc72c','Accent matches the original logo');
+  for(const fill of ['accent','accent-hover'])assert.ok(contrast(get('on-accent'),get(fill))>=4.5,`Accent label on ${fill}`);
+  assert.ok(contrast(get('on-accent-soft'),get('accent-soft'))>=4.5,'FAQ hover/focus');
+  assert.ok(contrast(get('on-deep-muted'),get('deep'))>=4.5,'Footer metadata');
+  for(const surface of ['feature','deep'])assert.ok(contrast(get('accent'),get(surface))>=3,`Gold focus on ${surface}`);
+  // Regression: first course symbol formerly inherited blue on the same blue.
+  const symbol=css.match(/html \.uyym-ui \.course-symbol\s*\{([^}]+)\}/)![1];
+  const resolve=(property:string)=>color(tokens,symbol.match(new RegExp(`(?:^|;)${property}:var\\((--[\\w-]+)\\)`))![1]);
+  assert.ok(contrast(resolve('color'),resolve('background'))>=4.5,'First course symbol is visible');
  }
  assert.ok(!/linear-gradient|radial-gradient|backdrop-filter:\s*blur/.test(css));
+});
+
+test('public form helper copy is not trapped by a legacy important low-contrast color',async()=>{
+ const [legacy,semantic]=await Promise.all([
+  readFile(new URL('../client/src/styles.css',import.meta.url),'utf8'),
+  readFile(new URL('../client/src/neo-system.css',import.meta.url),'utf8'),
+ ]);
+ const oldColor=legacy.match(/(?:^|\n)\.form-help\s*\{[^}]*color:\s*(#[a-f\d]+)\s*(!important)?/i)!;
+ const newColor=semantic.match(/html \.uyym-ui \.form-help\s*\{[^}]*color:var\((--[\w-]+)\)/)![1];
+ const light=declarations(semantic.match(/:root\s*\{([^}]+)\}/)![1]);
+ const dark=declarations(semantic.match(/html\[data-theme="dark"\]\s*\{([^}]+)\}/)![1]);
+ for(const tokens of [light,{...light,...dark}]){
+  const effective=oldColor[2]?oldColor[1]:color(tokens,newColor);
+  assert.ok(contrast(effective,color(tokens,'--neo-panel'))>=4.5,'Application and login helper text must meet AA');
+ }
 });
