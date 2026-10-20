@@ -1,19 +1,24 @@
 /* Semantic source of truth. Legacy public/workspace names are aliases so all
    existing forms, gates and role panels use the same surfaces and ink. */
 :root{
- --neo-yellow:#ffe17c;--neo-charcoal:#171e19;--neo-sage:#b7c6c2;
- --neo-bg:#faf9f4;--neo-panel:#ffffff;--neo-soft:#eef1ed;
- --neo-ink:#171e19;--neo-muted:#505951;--neo-border:#000000;--neo-divider:#a1aaa2;
- --neo-focus:#244bbb;--neo-selected:#ffe17c;--neo-selected-ink:#171e19;
+ --neo-brand:#203f85;--neo-brand-hover:#19346f;--neo-on-brand:#ffffff;
+ --neo-deep:#0f1720;--neo-charcoal:#0f1720;--neo-feature:#203f85;--neo-on-feature:#ffffff;
+ --neo-tint:#eaf0fc;--neo-on-tint:#203f85;--neo-link:#203f85;
+ --neo-bg:#f7f9fc;--neo-panel:#ffffff;--neo-soft:#edf2fa;
+ --neo-ink:#0f1720;--neo-muted:#4b5a70;--neo-border:#0f1720;--neo-divider:#96a3b8;
+ --neo-focus:#203f85;--neo-selected:#203f85;--neo-selected-ink:#ffffff;
  --neo-shadow-ink:#000000;--neo-shadow:4px 4px 0 var(--neo-shadow-ink);--neo-shadow-small:2px 2px 0 var(--neo-shadow-ink);--neo-shadow-large:8px 8px 0 var(--neo-shadow-ink);
  --neo-success:#205b39;--neo-warning:#714b0c;--neo-error:#9b2830;
  --neo-radius:20px;--neo-control-radius:10px;--neo-font:"Segoe UI Variable Text","Segoe UI",Arial,sans-serif;
- --ui-bg:var(--neo-bg);--ui-panel:var(--neo-panel);--ui-soft:var(--neo-soft);--ui-ink:var(--neo-ink);--ui-muted:var(--neo-muted);--ui-line:var(--neo-divider);--ui-control:var(--neo-border);--ui-brand:var(--neo-ink);--ui-yellow:var(--neo-yellow);--ui-shadow:var(--neo-shadow);
+ --ui-bg:var(--neo-bg);--ui-panel:var(--neo-panel);--ui-soft:var(--neo-soft);--ui-ink:var(--neo-ink);--ui-muted:var(--neo-muted);--ui-line:var(--neo-divider);--ui-control:var(--neo-border);--ui-brand:var(--neo-link);--ui-yellow:var(--neo-brand);--ui-shadow:var(--neo-shadow);
+ /* Compatibility with existing component class names; yellow is no longer a primary fill. */
+ --yellow:var(--neo-brand);--blue:var(--neo-brand);--navy:var(--neo-link);
 }
 html[data-theme="dark"]{
- --neo-bg:#171e19;--neo-panel:#232b25;--neo-soft:#303b33;--neo-ink:#faf9f4;--neo-muted:#c1cbc2;--neo-border:#b7c6c2;--neo-divider:#6f8074;
- --neo-focus:#ffe17c;--neo-shadow-ink:#000000;--neo-success:#b8e6c7;--neo-warning:#ffe17c;--neo-error:#ffb8ba;
- --ui-bg:var(--neo-bg);--ui-panel:var(--neo-panel);--ui-soft:var(--neo-soft);--ui-ink:var(--neo-ink);--ui-muted:var(--neo-muted);--ui-line:var(--neo-divider);--ui-control:var(--neo-border);--ui-brand:var(--neo-ink);--ui-shadow:var(--neo-shadow);
+ --neo-bg:#0f1720;--neo-panel:#182333;--neo-soft:#213146;--neo-ink:#f4f7fc;--neo-muted:#c0cde0;--neo-border:#9cacc4;--neo-divider:#657a98;
+ --neo-feature:#172f63;--neo-tint:#1e3151;--neo-on-tint:#d8e6ff;--neo-link:#b9d1ff;
+ --neo-focus:#9dbfff;--neo-shadow-ink:#000000;--neo-success:#b8e6c7;--neo-warning:#f3d499;--neo-error:#ffb8ba;
+ --ui-bg:var(--neo-bg);--ui-panel:var(--neo-panel);--ui-soft:var(--neo-soft);--ui-ink:var(--neo-ink);--ui-muted:var(--neo-muted);--ui-line:var(--neo-divider);--ui-control:var(--neo-border);--ui-brand:var(--neo-link);--ui-shadow:var(--neo-shadow);
 }
 html{scroll-padding-top:100px}
 html body,html .uyym-ui{font-family:var(--neo-font);background:var(--neo-bg);color:var(--neo-ink)}
@@ -37,14 +42,14 @@ html .uyym-ui .language-switch button{min-width:36px;min-height:40px;font-size:1
 html .uyym-ui .language-switch button[aria-pressed="true"]{background:var(--neo-selected);color:var(--neo-selected-ink);box-shadow:none}
 html .uyym-ui .theme-control{display:block;margin:0;min-width:100px;max-width:128px;flex-shrink:0}
 html .uyym-ui .theme-control select{min-height:48px;width:100%;font-size:13px;font-weight:600;padding:8px 24px 8px 10px;border:2px solid var(--neo-border);border-radius:10px;background:var(--neo-panel);color:var(--neo-ink);cursor:pointer}
-html .uyym-ui :is(.button,.ui-button,.course-link){border:2px solid var(--neo-border);border-radius:var(--neo-control-radius);box-shadow:var(--neo-shadow);font-weight:700;min-height:46px;color:var(--neo-ink);background:var(--neo-panel);transform:none}
+html .uyym-ui :is(.button,.ui-button,.course-link){border:2px solid var(--neo-link);border-radius:var(--neo-control-radius);box-shadow:var(--neo-shadow);font-weight:700;min-height:46px;color:var(--neo-link);background:var(--neo-panel);transform:none}
 html .uyym-ui :is(.button,.ui-button,.course-link):hover:not(:disabled){transform:translate(2px,2px);box-shadow:var(--neo-shadow-small);background:var(--neo-soft)}
 html .uyym-ui :is(.button,.ui-button,.course-link):active:not(:disabled){transform:translate(4px,4px);box-shadow:none}
-html .uyym-ui :is(.button-yellow,.ui-button-primary,.course-link){background:var(--neo-yellow);color:#171e19}
-html .uyym-ui :is(.button-yellow,.ui-button-primary,.course-link):hover:not(:disabled){background:var(--neo-sage)}
+html .uyym-ui :is(.button-yellow,.ui-button-primary,.course-link){background:var(--neo-brand);color:var(--neo-on-brand)}
+html .uyym-ui :is(.button-yellow,.ui-button-primary,.course-link):hover:not(:disabled){background:var(--neo-brand-hover);color:var(--neo-on-brand)}
 html .uyym-ui :is(.button-danger,.ui-button-destructive){background:var(--neo-error);color:var(--neo-panel)}
-html .uyym-ui .button-white{background:#ffffff;color:#171e19}
-html .uyym-ui .button-white:hover:not(:disabled){background:var(--neo-sage);color:#171e19}
+html .uyym-ui .button-white{background:#ffffff;color:var(--neo-brand)}
+html .uyym-ui .button-white:hover:not(:disabled){background:var(--neo-brand-hover);color:var(--neo-on-brand)}
 html .uyym-ui :is(.button-danger,.ui-button-destructive):hover:not(:disabled){background:var(--neo-error);color:var(--neo-panel)}
 html .uyym-ui .header-login{font-size:13px;white-space:nowrap;gap:10px;padding-inline:14px;min-height:44px}
 html .uyym-ui :is(input,textarea,select,.management-shell select,.manage-dialog select,.manage-form textarea,.manage-form input){border:2px solid var(--neo-border);border-radius:var(--neo-control-radius);background:var(--neo-panel);color:var(--neo-ink);box-shadow:none}
@@ -56,20 +61,20 @@ html .uyym-ui .section h2{font-size:clamp(32px,3.6vw,46px);line-height:1.1;lette
 html .uyym-ui .exam-band{background:var(--neo-charcoal);border-bottom:2px solid #000;padding:20px 0}
 html .uyym-ui .exam-band .container{display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap}
 html .uyym-ui .exam-band span{color:#faf9f4;font-size:15px}
-html .uyym-ui .exam-band .container>div{color:#ffe17c;font-weight:650;font-size:18px}
-html .uyym-ui .exam-band i{color:#b7c6c2}
+html .uyym-ui .exam-band .container>div{color:var(--neo-on-feature);font-weight:650;font-size:18px}
+html .uyym-ui .exam-band i{color:var(--neo-on-feature)}
 html .uyym-ui .neo-approach{padding-bottom:0}
 html .uyym-ui .neo-approach-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 html .uyym-ui .neo-approach article{border:2px solid var(--neo-border);border-radius:var(--neo-radius);padding:32px;background:var(--neo-panel)}
-html .uyym-ui .neo-approach article:last-child{background:var(--neo-sage);color:#171e19;box-shadow:var(--neo-shadow)}
-html .uyym-ui .neo-approach article:last-child :is(h2,p){color:#171e19}
+html .uyym-ui .neo-approach article:last-child{background:var(--neo-tint);color:var(--neo-on-tint);box-shadow:var(--neo-shadow)}
+html .uyym-ui .neo-approach article:last-child :is(h2,p){color:var(--neo-on-tint)}
 html .uyym-ui .neo-approach h2{font-size:28px;margin:0 0 18px}
 html .uyym-ui .neo-approach p{font-size:16px;line-height:1.75;max-width:54ch}
 html .uyym-ui .course-grid{gap:28px}
 html .uyym-ui .course-card{border:2px solid var(--neo-border);border-radius:var(--neo-radius);box-shadow:var(--neo-shadow-large);padding:28px;background:var(--neo-panel)}
 html .uyym-ui .course-card:hover{transform:none;border-color:var(--neo-border)}
-html .uyym-ui .course-symbol{background:var(--neo-yellow);border:2px solid var(--neo-border);color:#171e19;border-radius:12px;font-size:30px;width:60px;height:60px}
-html .uyym-ui .course-1 .course-symbol{background:var(--neo-sage);color:#171e19}
+html .uyym-ui .course-symbol{background:var(--neo-selected);border:2px solid var(--neo-border);color:var(--neo-on-tint);border-radius:12px;font-size:30px;width:60px;height:60px}
+html .uyym-ui .course-1 .course-symbol{background:var(--neo-tint);color:var(--neo-on-tint)}
 html .uyym-ui .course-2 .course-symbol{background:var(--neo-charcoal);color:#fff}
 html .uyym-ui .course-card h3{min-height:0;font-size:27px;line-height:1.2;margin-bottom:16px}
 html .uyym-ui .course-card>p{min-height:0;margin-bottom:16px}
@@ -80,20 +85,22 @@ html .uyym-ui .format-section :is(p,span,.eyebrow){color:#d9e3dc}
 html .uyym-ui .format-facts{border-color:#6f8074}
 html .uyym-ui .format-facts>div{border-color:#6f8074}
 html .uyym-ui .format-step{border-color:#6f8074}
-html .uyym-ui .format-step .step-number{background:#ffe17c;color:#171e19;border:2px solid #000;border-radius:12px;width:52px;height:52px;display:grid;place-items:center;font-size:20px}
-html .uyym-ui .access-panel{border:2px solid var(--neo-border);background:var(--neo-sage);border-radius:var(--neo-radius);box-shadow:var(--neo-shadow)}
-html .uyym-ui .access-panel :is(h2,p,.eyebrow){color:#171e19}
-html .uyym-ui .access-icon{color:#171e19;background:transparent}
+html .uyym-ui .format-step .step-number{background:var(--neo-tint);color:var(--neo-on-tint);border:2px solid #000;border-radius:12px;width:52px;height:52px;display:grid;place-items:center;font-size:20px}
+html .uyym-ui .access-panel{border:2px solid var(--neo-border);background:var(--neo-tint);border-radius:var(--neo-radius);box-shadow:var(--neo-shadow)}
+html .uyym-ui .access-panel :is(h2,p,.eyebrow){color:var(--neo-on-tint)}
+html .uyym-ui .access-icon{color:var(--neo-on-tint);background:transparent}
 html .uyym-ui .teacher-empty{border:2px solid var(--neo-border);border-radius:var(--neo-radius);box-shadow:none}
 html .uyym-ui .faq-list details{border-bottom:2px solid var(--neo-border)}
 html .uyym-ui .faq-list summary{min-height:64px}
 html .uyym-ui .faq-list summary span{color:var(--neo-ink)}
-html .uyym-ui .contact-section{background:var(--neo-yellow);border-block:2px solid var(--neo-border)}
-html .uyym-ui .contact-section :is(h2,p,.eyebrow,.text-link){color:#171e19}
+html .uyym-ui .contact-section{background:var(--neo-feature);--neo-focus:var(--neo-on-feature);border-block:2px solid var(--neo-border)}
+html .uyym-ui .contact-section :is(h2,p,.eyebrow,.text-link){color:var(--neo-on-feature)}
+html .uyym-ui .contact-section .button-yellow{background:var(--neo-deep);color:var(--neo-on-feature);border-color:var(--neo-on-feature)}
+html .uyym-ui .contact-section .button-yellow:hover:not(:disabled){background:var(--neo-brand-hover);color:var(--neo-on-feature)}
 html .uyym-ui footer{background:var(--neo-panel);border:0}
 html .uyym-ui .footer-bottom{border-top:1px solid var(--neo-divider)}
 html .uyym-ui :is(.auth-card,.gate-card,.modal,.state-card,.manage-dialog){border:2px solid var(--neo-border);border-radius:var(--neo-radius);box-shadow:var(--neo-shadow-large);background:var(--neo-panel)}
-html .uyym-ui .modal-backdrop{background:#171e19b3;backdrop-filter:none}
+html .uyym-ui .modal-backdrop{background:#0f1720b3;backdrop-filter:none}
 html .uyym-ui .modal-close{border:2px solid var(--neo-border);color:var(--neo-ink);width:44px;height:44px;background:var(--neo-soft);border-radius:10px}
 html .uyym-ui .modal-info{background:var(--neo-soft);border:1px solid var(--neo-divider)}
 html .uyym-ui .auth-story{padding-top:20px}
@@ -106,11 +113,11 @@ html .uyym-ui .alert-error{color:var(--neo-error);background:var(--neo-panel)}
 html .uyym-ui .alert-success{color:var(--neo-success);background:var(--neo-panel)}
 html .uyym-ui .alert-warning{color:var(--neo-warning);background:var(--neo-panel)}
 /* Shared role panels: retain their established layouts and scope checks. */
-html .uyym-ui .workspace-frame{--ws-bg:var(--neo-bg);--ws-panel:var(--neo-panel);--ws-soft:var(--neo-soft);--ws-ink:var(--neo-ink);--ws-muted:var(--neo-muted);--ws-line:var(--neo-divider);--ws-input:var(--neo-border);--ws-brand:var(--neo-ink);--ws-brand-ink:var(--neo-panel);--ws-selected:var(--neo-selected);--ws-success:var(--neo-success);--ws-warning:var(--neo-warning);--ws-radius:var(--neo-radius);--ws-shadow:var(--neo-shadow);font-family:var(--neo-font)}
-html .uyym-ui .workspace-frame :is(.ui-button,.button){border:2px solid var(--neo-border);border-radius:10px;box-shadow:var(--neo-shadow-small);min-height:44px;background:var(--neo-panel);color:var(--neo-ink);font-weight:650;transition:transform .16s,box-shadow .16s,background .16s}
+html .uyym-ui .workspace-frame{--ws-bg:var(--neo-bg);--ws-panel:var(--neo-panel);--ws-soft:var(--neo-soft);--ws-ink:var(--neo-ink);--ws-muted:var(--neo-muted);--ws-line:var(--neo-divider);--ws-input:var(--neo-border);--ws-brand:var(--neo-link);--ws-brand-ink:var(--neo-panel);--ws-selected:var(--neo-selected);--ws-success:var(--neo-success);--ws-warning:var(--neo-warning);--ws-radius:var(--neo-radius);--ws-shadow:var(--neo-shadow);font-family:var(--neo-font)}
+html .uyym-ui .workspace-frame :is(.ui-button,.button){border:2px solid var(--neo-link);border-radius:10px;box-shadow:var(--neo-shadow-small);min-height:44px;background:var(--neo-panel);color:var(--neo-link);font-weight:650;transition:transform .16s,box-shadow .16s,background .16s}
 html .uyym-ui .workspace-frame :is(.ui-button,.button):hover:not(:disabled){box-shadow:none;transform:translate(2px,2px);background:var(--neo-soft)}
-html .uyym-ui .workspace-frame :is(.ui-button-primary,.button-yellow){background:var(--neo-yellow);color:#171e19}
-html .uyym-ui .workspace-frame :is(.ui-button-primary,.button-yellow):hover:not(:disabled){background:var(--neo-sage);color:#171e19}
+html .uyym-ui .workspace-frame :is(.ui-button-primary,.button-yellow){background:var(--neo-brand);color:var(--neo-on-brand)}
+html .uyym-ui .workspace-frame :is(.ui-button-primary,.button-yellow):hover:not(:disabled){background:var(--neo-brand-hover);color:var(--neo-on-brand)}
 html .uyym-ui .workspace-frame :is(.ui-button-destructive,.button-danger){background:var(--neo-error);color:var(--neo-panel)}
 html .uyym-ui .workspace-frame :is(.ui-button-destructive,.button-danger):hover:not(:disabled){background:var(--neo-error);color:var(--neo-panel)}
 html .uyym-ui .workspace-frame .ui-button-ghost{box-shadow:none;border-color:transparent;background:none}
@@ -120,27 +127,27 @@ html .uyym-ui .workspace-frame .workspace-rail{border-right:2px solid var(--neo-
 html .uyym-ui .workspace-frame .workspace-topbar,html .uyym-ui .workspace-frame .workspace-canvas{margin-left:256px}
 html .uyym-ui .workspace-frame .workspace-topbar{border-bottom:2px solid var(--neo-border);min-height:80px;height:auto;padding-block:16px}
 html .uyym-ui .workspace-frame .workspace-location h1{font-size:15px}
-html .uyym-ui .workspace-frame .workspace-appearance .language-switch button[aria-pressed="true"]{background:var(--neo-yellow);color:#171e19;box-shadow:none}
+html .uyym-ui .workspace-frame .workspace-appearance .language-switch button[aria-pressed="true"]{background:var(--neo-brand);color:var(--neo-on-brand);box-shadow:none}
 html .uyym-ui .workspace-frame .workspace-navigation{width:228px;left:14px}
 html .uyym-ui .workspace-frame .workspace-navigation nav{gap:8px}
 html .uyym-ui .workspace-frame :is(.workspace-navigation,.workspace-mobile-navigation) nav button{border:2px solid transparent;border-radius:10px;color:var(--neo-ink);min-height:48px}
-html .uyym-ui .workspace-frame :is(.workspace-navigation,.workspace-mobile-navigation) nav button[aria-current]{border-color:var(--neo-border);background:var(--neo-yellow);color:#171e19;box-shadow:var(--neo-shadow-small)}
+html .uyym-ui .workspace-frame :is(.workspace-navigation,.workspace-mobile-navigation) nav button[aria-current]{border-color:var(--neo-link);background:var(--neo-selected);color:var(--neo-selected-ink);box-shadow:var(--neo-shadow-small)}
 html .uyym-ui .workspace-frame .nav-current-dot{display:none}
-html .uyym-ui .workspace-frame .workspace-profile .profile-avatar{background:var(--neo-sage);color:#171e19;border:2px solid var(--neo-border);border-radius:12px}
+html .uyym-ui .workspace-frame .workspace-profile .profile-avatar{background:var(--neo-tint);color:var(--neo-on-tint);border:2px solid var(--neo-border);border-radius:12px}
 html .uyym-ui .workspace-frame .workspace-security{font-size:12px;padding-bottom:16px;border-bottom:1px solid var(--neo-divider)}
 html .uyym-ui .workspace-frame .study-course{border:2px solid var(--neo-border);border-radius:var(--neo-radius);box-shadow:var(--neo-shadow);overflow:hidden}
-html .uyym-ui .workspace-frame .study-course-cover{background:var(--neo-sage);color:#171e19;height:88px;border-bottom:2px solid var(--neo-border)}
-html .uyym-ui .workspace-frame .study-course:nth-child(even) .study-course-cover{background:var(--neo-yellow)}
-html .uyym-ui .workspace-frame .study-course-cover :is(span,b){color:#171e19;letter-spacing:0}
+html .uyym-ui .workspace-frame .study-course-cover{background:var(--neo-tint);color:var(--neo-on-tint);height:88px;border-bottom:2px solid var(--neo-border)}
+html .uyym-ui .workspace-frame .study-course:nth-child(even) .study-course-cover{background:var(--neo-tint)}
+html .uyym-ui .workspace-frame .study-course-cover :is(span,b){color:var(--neo-on-tint);letter-spacing:0}
 html .uyym-ui .workspace-frame .study-course-cover b{font-weight:700}
 html .uyym-ui .workspace-frame .study-course-body{padding:24px;gap:16px}
 html .uyym-ui .workspace-frame .study-course-body small{font-size:13px}
 html .uyym-ui .workspace-frame .study-course-description{display:block;overflow:visible}
 html .uyym-ui .workspace-frame .study-progress progress{height:8px;accent-color:var(--neo-ink)}
-html .uyym-ui .workspace-frame .resume-lesson{border:2px solid var(--neo-border);border-radius:var(--neo-radius);background:var(--neo-sage);color:#171e19;box-shadow:var(--neo-shadow);padding:32px;margin-bottom:24px}
-html .uyym-ui .workspace-frame .resume-lesson :is(h3,p,small){color:#171e19}
+html .uyym-ui .workspace-frame .resume-lesson{border:2px solid var(--neo-border);border-radius:var(--neo-radius);background:var(--neo-tint);color:var(--neo-on-tint);box-shadow:var(--neo-shadow);padding:32px;margin-bottom:24px}
+html .uyym-ui .workspace-frame .resume-lesson :is(h3,p,small){color:var(--neo-on-tint)}
 html .uyym-ui .workspace-frame .resume-lesson h3{font-size:28px;max-width:30ch}
-html .uyym-ui .workspace-frame .resume-lesson .ui-badge{color:#171e19;background:#fff;border:1px solid #000}
+html .uyym-ui .workspace-frame .resume-lesson .ui-badge{color:var(--neo-brand);background:#fff;border:1px solid #000}
 html .uyym-ui .workspace-frame .learning-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:0 0 32px}
 html .uyym-ui .workspace-frame .learning-metrics>div{border:2px solid var(--neo-border);border-radius:16px;padding:20px;background:var(--neo-panel)}
 html .uyym-ui .workspace-frame .learning-metrics dt{font-size:13px;margin-bottom:8px}
@@ -153,14 +160,15 @@ html .uyym-ui .workspace-frame .ui-badge{border:1px solid var(--neo-divider);bor
 html .uyym-ui .workspace-frame :is(.content-card,.course-access-card,.settings-section,.manage-records,.application-table,.lesson-curriculum,.mobile-curriculum){border:2px solid var(--neo-border);border-radius:var(--neo-radius);box-shadow:none}
 html .uyym-ui .workspace-frame :is(.manage-dialog,.modal){border:2px solid var(--neo-border);border-radius:var(--neo-radius);box-shadow:var(--neo-shadow-large)}
 html .uyym-ui .workspace-frame .content-tabs button{border:2px solid transparent;color:var(--neo-ink)}
-html .uyym-ui .workspace-frame .content-tabs button.selected{background:var(--neo-yellow);color:#171e19;border-color:var(--neo-border)}
-html .uyym-ui .workspace-frame .curriculum-item[aria-current]{background:var(--neo-yellow);color:#171e19}
-html .uyym-ui .workspace-frame .curriculum-item[aria-current] :is(strong,small){color:#171e19}
-html .uyym-ui .workspace-frame .curriculum-item[aria-current] .ui-badge{background:#fff;color:#171e19}
-html .uyym-ui .workspace-frame .recording-empty{background:#171e19;border:2px solid var(--neo-border);border-radius:16px}
+html .uyym-ui .workspace-frame .content-tabs button.selected{background:var(--neo-brand);color:var(--neo-on-brand);border-color:var(--neo-border)}
+html .uyym-ui .workspace-frame .curriculum-item[aria-current]{background:var(--neo-brand);color:var(--neo-on-brand)}
+html .uyym-ui .workspace-frame .curriculum-item[aria-current] :is(strong,small){color:var(--neo-selected-ink)}
+html .uyym-ui .workspace-frame .curriculum-item[aria-current] .ui-badge{background:#fff;color:var(--neo-brand)}
+html .uyym-ui .workspace-frame .recording-empty{background:var(--neo-deep);border:2px solid var(--neo-border);border-radius:16px}
 html .uyym-ui .workspace-frame .recording-empty :is(h3,p){color:#faf9f4}
-html .uyym-ui .player-idle{background:#171e19}
-html .uyym-ui .workspace-frame .player-overlay{background:#171e19;color:#faf9f4}
+html .uyym-ui .player-idle{background:var(--neo-deep)}
+html .uyym-ui .player-lock{background:var(--neo-brand);color:var(--neo-on-brand)}
+html .uyym-ui .workspace-frame .player-overlay{background:var(--neo-deep);color:#faf9f4}
 html .uyym-ui .workspace-frame .player-shell{border:2px solid var(--neo-border);border-radius:16px}
 html .uyym-ui .workspace-frame .player-shell .player-tools button{min-height:44px}
 html .uyym-ui .workspace-frame .player-shell .privacy-note{font-size:12px}

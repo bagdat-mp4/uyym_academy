@@ -66,3 +66,20 @@ recording; retry/empty states; EN/KK/RU and Light/Dark/System persistence. Inspe
 Only after those visual gates and an independently approved STUDENT acceptance
 should this branch be considered for deployment through the existing PR/Render
 process. Prior release authorization does not publish this new redesign.
+
+## Blue brand follow-up — 20 October 2026
+
+The owner's subsequent color brief supersedes the yellow palette. Shared brand,
+hover, on-brand, feature, tint, link and selected-state tokens now drive UYYM blue
+(`#203F85`); yellow is not a large surface or primary action. Layout, type,
+responsive rules, authentication and data flows are unchanged. The hero and
+footer contact section use white-on-blue; supporting cards use blue tints.
+Lazy workspace button rules consume the same semantic tokens, so loading a role
+chunk does not bring back yellow buttons. Amber remains only for warning states.
+
+Full tests: **107 PASS, 1 SKIP, 0 FAIL**; TypeScript/build PASS. Contrast/theme
+regressions: **6/6 PASS**, including primary and hover actions, feature sections,
+tinted panels, selection, secondary actions and focus in both themes. Local
+HTTP smoke: **17/17 PASS**. No production deployment was performed. Browser
+visual/approved-session acceptance remains BLOCKED as described above; no new
+browser access attempt or workaround was made for this color-only follow-up.

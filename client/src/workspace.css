@@ -57,8 +57,8 @@ html .uyym-ui .ui-button.workspace-mobile-trigger{display:none}
 html .uyym-ui .ui-icon{width:20px;height:20px;flex-shrink:0;vertical-align:middle}
 html .uyym-ui .ui-button{display:inline-flex;justify-content:center;align-items:center;gap:8px;min-height:40px;font:inherit;font-size:14px;font-weight:600;border:1px solid var(--ws-input);border-radius:8px;padding:9px 15px;background:var(--ws-panel);color:var(--ws-ink);cursor:pointer;line-height:1.4;text-decoration:none;transition:background .15s ease,border-color .15s ease}
 html .uyym-ui .ui-button:hover{background:var(--ws-soft)}
-html .uyym-ui .ui-button-primary{background:#ffcd2b;color:#182f50;border-color:#ffcd2b}
-html .uyym-ui .ui-button-primary:hover{background:#edbc16;border-color:#edbc16}
+html .uyym-ui .ui-button-primary{background:var(--neo-brand);color:var(--neo-on-brand);border-color:var(--neo-link)}
+html .uyym-ui .ui-button-primary:hover{background:var(--neo-brand-hover);border-color:var(--neo-link)}
 html .uyym-ui .ui-button-ghost{background:none;border-color:transparent;color:var(--ws-brand)}
 html .uyym-ui .ui-button-destructive{background:#a42737;color:#fff;border-color:#a42737}
 html .uyym-ui .ui-button:disabled{opacity:.5;cursor:not-allowed}
@@ -81,10 +81,10 @@ html .uyym-ui .workspace-frame input::placeholder,html .uyym-ui .workspace-frame
 html .uyym-ui .workspace-frame input[type="checkbox"]{accent-color:#24498e;min-height:20px;width:20px;height:20px;flex-shrink:0;padding:0}
 html .uyym-ui .workspace-frame .checkbox-field{display:flex;align-items:center;gap:12px;min-height:44px;font-weight:400}
 html .uyym-ui .workspace-frame .button{font-size:14px;line-height:1.45;min-height:40px;padding:9px 15px;gap:8px;border-radius:8px;box-shadow:none;transform:none}
-html .uyym-ui .workspace-frame .button-outline{background:var(--ws-panel);color:var(--ws-ink);border:1px solid var(--ws-input)}
+html .uyym-ui .workspace-frame .button-outline{background:var(--ws-panel);color:var(--neo-link);border:1px solid var(--neo-link)}
 html .uyym-ui .workspace-frame .button-outline:hover{background:var(--ws-soft)}
-html .uyym-ui .workspace-frame .button-yellow{background:#ffcd2b;color:#182f50;border:1px solid #ffcd2b}
-html .uyym-ui .workspace-frame .button-yellow:hover{background:#edbc16;border-color:#edbc16}
+html .uyym-ui .workspace-frame .button-yellow{background:var(--neo-brand);color:var(--neo-on-brand);border:1px solid var(--neo-link)}
+html .uyym-ui .workspace-frame .button-yellow:hover{background:var(--neo-brand-hover);border-color:var(--neo-link)}
 html .uyym-ui .workspace-frame .button-danger{background:#a42737;color:#fff;border:1px solid #a42737}
 html .uyym-ui .workspace-frame .manage-records{display:grid;gap:0;border:1px solid var(--ws-line);border-radius:var(--ws-radius);background:var(--ws-panel);overflow:hidden}
 html .uyym-ui .workspace-frame .manage-record{padding:22px 24px;border:0;border-bottom:1px solid var(--ws-line);border-radius:0;background:var(--ws-panel);display:flex;gap:20px;align-items:flex-start}
@@ -216,7 +216,7 @@ html .uyym-ui .curriculum-number{width:24px;height:24px;border-radius:50%;backgr
 html .uyym-ui .curriculum-number .ui-icon{width:14px;height:14px}
 html .uyym-ui .curriculum-item .ui-badge{font-size:10px;padding:2px 5px}
 html .uyym-ui .recording-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:16/9;background:#142746;border-radius:12px;padding:24px;text-align:center}
-html .uyym-ui .recording-empty>.ui-icon{width:36px;height:36px;color:#ffcd2b;margin-bottom:20px}
+html .uyym-ui .recording-empty>.ui-icon{width:36px;height:36px;color:var(--neo-link);margin-bottom:20px}
 html .uyym-ui .recording-empty h3{color:#edf4ff;font-size:18px;margin:0 0 10px}
 html .uyym-ui .recording-empty p{color:#b5c8e4;font-size:14px;margin:0;max-width:40ch}
 html .uyym-ui .workspace-frame .player-shell{margin:0;border-radius:12px;overflow:hidden}

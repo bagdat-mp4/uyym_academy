@@ -1,17 +1,15 @@
 /* Expressive public surface; the illustration is explicitly not an account. */
-.course-hero{--hero-surface:#ffe17c;--hero-ink:#171e19;--hero-action:#171e19;--hero-action-ink:#ffffff;--hero-focus:#244bbb;background:var(--hero-surface);border-bottom:2px solid var(--neo-border);padding:80px 0 96px;color:var(--hero-ink)}
-html[data-theme="dark"] .course-hero{--hero-surface:#232b25;--hero-ink:#faf9f4;--hero-action:#ffe17c;--hero-action-ink:#171e19;--hero-focus:#ffe17c}
+.course-hero{--hero-surface:var(--neo-feature);--hero-ink:var(--neo-on-feature);--hero-action:var(--neo-deep);--hero-action-ink:var(--neo-on-brand);--hero-focus:var(--neo-on-feature);--neo-focus:var(--hero-focus);background:var(--hero-surface);border-bottom:2px solid var(--neo-border);padding:80px 0 96px;color:var(--hero-ink)}
 .course-hero{position:relative;isolation:isolate}
-.course-hero::before{content:'';position:absolute;inset:0 0 0 55%;z-index:-1;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23171e19' opacity='.18'/%3E%3C/svg%3E");pointer-events:none}
-html[data-theme="dark"] .course-hero::before{filter:invert(1)}
+.course-hero::before{content:'';position:absolute;inset:0 0 0 55%;z-index:-1;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23ffffff' opacity='.16'/%3E%3C/svg%3E");pointer-events:none}
 html .uyym-ui .neo-hero-grid{display:grid;grid-template-columns:1.05fr 1fr;align-items:center;gap:64px}
 html .uyym-ui .course-hero-copy{max-width:620px}
 html .uyym-ui .course-hero-label{display:inline-flex;border:2px solid currentColor;border-radius:24px;padding:7px 14px;font-size:14px;font-weight:650;color:var(--hero-ink);margin:0 0 24px}
 html .uyym-ui .course-hero h1{font-size:clamp(48px,5.8vw,80px);line-height:1.03;letter-spacing:-.055em;font-weight:800;color:var(--hero-ink);text-wrap:balance;overflow-wrap:normal;margin:0}
 html .uyym-ui .course-hero-description{font-size:18px;line-height:1.7;max-width:44ch;color:var(--hero-ink);margin:28px 0}
 html .uyym-ui .course-hero-actions{display:flex;align-items:center;flex-wrap:wrap;gap:24px}
-html .uyym-ui .course-hero-primary{display:inline-flex;gap:24px;justify-content:space-between;align-items:center;min-height:56px;padding:14px 22px;border:2px solid var(--neo-border);border-radius:10px;background:var(--hero-action);color:var(--hero-action-ink);box-shadow:var(--neo-shadow);font-weight:700;transition:transform .16s,box-shadow .16s}
-html .uyym-ui .course-hero-primary:hover{transform:translate(2px,2px);box-shadow:var(--neo-shadow-small)}
+html .uyym-ui .course-hero-primary{display:inline-flex;gap:24px;justify-content:space-between;align-items:center;min-height:56px;padding:14px 22px;border:2px solid var(--neo-on-feature);border-radius:10px;background:var(--hero-action);color:var(--hero-action-ink);box-shadow:var(--neo-shadow);font-weight:700;transition:transform .16s,box-shadow .16s}
+html .uyym-ui .course-hero-primary:hover{background:var(--neo-brand-hover);transform:translate(2px,2px);box-shadow:var(--neo-shadow-small)}
 html .uyym-ui .course-hero-primary:active{transform:translate(4px,4px);box-shadow:none}
 html .uyym-ui .course-hero-secondary{color:var(--hero-ink);font-size:15px;font-weight:650;text-decoration:underline;text-underline-offset:5px;padding:12px 0}
 html .uyym-ui .course-hero-note{font-size:13px;font-weight:600;color:var(--hero-ink);margin:32px 0 0}
@@ -19,7 +17,7 @@ html .uyym-ui .hero-browser{position:relative;min-width:0;margin:0 12px 0 0;bord
 html .uyym-ui .hero-browser::after{content:'✦';position:absolute;right:-24px;top:-46px;color:var(--hero-ink);font-size:74px;line-height:1}
 html .uyym-ui .hero-browser figcaption{font-size:12px;font-weight:600;position:absolute;bottom:-48px;right:0;transform:rotate(-2deg);color:var(--hero-ink)}
 html .uyym-ui .hero-browser-bar{padding:18px;display:flex;gap:7px;border-bottom:2px solid var(--neo-border);align-items:center}
-html .uyym-ui .hero-browser-bar i{width:9px;height:9px;background:var(--neo-sage);border:1px solid var(--neo-border);border-radius:50%}
+html .uyym-ui .hero-browser-bar i{width:9px;height:9px;background:var(--neo-tint);border:1px solid var(--neo-border);border-radius:50%}
 html .uyym-ui .hero-browser-bar span{margin-left:auto;font-size:13px;font-weight:700}
 html .uyym-ui .hero-browser-body{padding:28px}
 html .uyym-ui .hero-browser-label{color:var(--neo-ink);font-weight:750;font-size:24px;line-height:1.2;margin:0 0 24px;max-width:15ch}
@@ -27,8 +25,8 @@ html .uyym-ui .hero-demo-courses{display:grid;gap:12px}
 html .uyym-ui .hero-demo-course{border:2px solid var(--neo-border);border-radius:12px;padding:14px;display:grid;grid-template-columns:40px 1fr;gap:2px 12px;background:var(--neo-bg);min-width:0}
 html .uyym-ui .hero-demo-course strong{color:var(--neo-ink);font-size:15px;line-height:1.4;overflow-wrap:anywhere}
 html .uyym-ui .hero-demo-course>span:last-child{color:var(--neo-muted);font-size:12px;grid-column:2}
-html .uyym-ui .hero-demo-symbol{grid-row:1/3;border-radius:8px;border:1px solid var(--neo-border);background:var(--neo-sage);color:#171e19;display:grid;place-items:center;font-size:23px;font-weight:600}
-html .uyym-ui .hero-demo-action{margin-top:22px;display:flex;gap:16px;align-items:center;justify-content:space-between;padding:16px;background:var(--neo-yellow);color:#171e19;border:2px solid var(--neo-border);border-radius:10px;font-weight:700;font-size:14px}
+html .uyym-ui .hero-demo-symbol{grid-row:1/3;border-radius:8px;border:1px solid var(--neo-border);background:var(--neo-tint);color:var(--neo-on-tint);display:grid;place-items:center;font-size:23px;font-weight:600}
+html .uyym-ui .hero-demo-action{margin-top:22px;display:flex;gap:16px;align-items:center;justify-content:space-between;padding:16px;background:var(--neo-brand);color:var(--neo-on-brand);border:2px solid var(--neo-border);border-radius:10px;font-weight:700;font-size:14px}
 html .uyym-ui .hero-demo-note{font-size:13px;display:flex;justify-content:space-between;align-items:center;margin-top:18px;color:var(--neo-muted)}
 html .uyym-ui .hero-demo-note>span{font-size:24px}
 @media(max-width:1000px){html .uyym-ui .neo-hero-grid{gap:36px}.course-hero{padding:64px 0 88px}html .uyym-ui .course-hero h1{font-size:56px}html .uyym-ui .hero-browser-body{padding:20px}}

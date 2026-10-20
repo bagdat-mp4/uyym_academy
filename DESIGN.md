@@ -6,8 +6,9 @@ This is a local review build; the production site has not been changed.
 ## Visual rules
 
 The homepage is expressive; the learning workspace gives priority to the next
-lesson. The original blue UYYM logo remains intact. The supplied new brief
-explicitly specifies a yellow hero, replacing the previous blue collage.
+lesson. The original blue UYYM logo remains intact. The latest color brief uses UYYM blue as the primary identity: blue hero and
+contact surfaces, white-on-blue primary actions and quiet blue-tinted panels.
+The layout, typography, outlines and hard shadows remain unchanged.
 
 `client/src/neo-system.css` owns the semantic tokens. Existing `--ui-*` and
 `--ws-*` names are compatibility aliases so established role forms retain their
@@ -15,19 +16,26 @@ layout and use the same colors. Components consume semantic variables.
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Background | `#FAF9F4` | `#171E19` |
-| Panel | `#FFFFFF` | `#232B25` |
-| Quiet panel | `#EEF1ED` | `#303B33` |
-| Text | `#171E19` | `#FAF9F4` |
-| Secondary text | `#505951` | `#C1CBC2` |
-| Outline | `#000000` | `#B7C6C2` |
-| Focus | `#244BBB` | `#FFE17C` |
-| Selection | `#FFE17C`, charcoal text | same |
-| Accent surfaces | `#FFE17C`, `#B7C6C2` | same |
+| Background | `#F7F9FC` | `#0F1720` |
+| Panel | `#FFFFFF` | `#182333` |
+| Quiet panel | `#EDF2FA` | `#213146` |
+| Text | `#0F1720` | `#F4F7FC` |
+| Secondary text | `#4B5A70` | `#C0CDE0` |
+| Outline | `#0F1720` | `#9CACC4` |
+| Focus | `#203F85` | `#9DBFFF` |
+| Selection | `#203F85`, white text | same |
+| Supporting panels | `#EAF0FC`, blue text | `#1E3151`, light blue text |
+| Primary / hover | `#203F85` / `#19346F`, white text | same |
+| Hero / contact | `#203F85`, white text | `#172F63`, white text |
 
 Status tokens are used only with actual state labels: success green, warning
 brown/yellow, error red. Contrast tests cover every text/status token on all
-three surfaces, control outlines, focus, yellow selection and sage panels.
+three surfaces, control outlines, focus, blue selection, primary/hover actions, hero/contact surfaces and tinted panels.
+`--neo-brand`, `--neo-brand-hover`, `--neo-on-brand`, `--neo-tint`,
+`--neo-on-tint`, `--neo-feature` and `--neo-on-feature` drive these roles.
+Existing `.button-yellow`, `--ui-yellow` and `--yellow` names remain compatibility
+hooks mapped to blue; they no longer introduce yellow branding. Amber is kept
+only for actual warning states.
 
 - Major cards and controls: 2px outlines; minor dividers: 1px.
 - Shadows: `2px 2px 0`, `4px 4px 0`, marketing `8px 8px 0`.

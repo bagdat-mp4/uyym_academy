@@ -6,7 +6,7 @@ export function applyTheme(choice:ThemePreference,systemDark=systemIsDark()){
  const resolved=resolveTheme(choice,systemDark);
  document.documentElement.dataset.theme=resolved;
  document.documentElement.dataset.themePreference=choice;
- document.querySelector('meta[name="theme-color"]')?.setAttribute('content',resolved==='dark'?'#171e19':'#faf9f4');
+ document.querySelector('meta[name="theme-color"]')?.setAttribute('content',resolved==='dark'?'#0f1720':'#f7f9fc');
 }
 export function useTheme(){
  const [theme,setTheme]=useState<ThemePreference>(()=>savedTheme(preferenceStorage));

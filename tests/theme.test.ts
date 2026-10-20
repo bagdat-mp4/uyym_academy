@@ -13,7 +13,7 @@ test('theme preference preserves explicit modes and resolves system without over
  const dataset:Record<string,string>={};let color='';
  try{
   Object.defineProperty(globalThis,'document',{configurable:true,value:{documentElement:{dataset},querySelector:()=>({setAttribute(_key:string,value:string){color=value;}})}});
-  applyTheme('system',true);assert.equal(dataset.theme,'dark');assert.equal(dataset.themePreference,'system');assert.equal(color,'#171e19');
+  applyTheme('system',true);assert.equal(dataset.theme,'dark');assert.equal(dataset.themePreference,'system');assert.equal(color,'#0f1720');
   applyTheme('system',false);assert.equal(dataset.theme,'light');assert.equal(dataset.themePreference,'system');
  }finally{if(previous)Object.defineProperty(globalThis,'document',previous);else Reflect.deleteProperty(globalThis,'document');}
 });
