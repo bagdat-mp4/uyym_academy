@@ -89,3 +89,16 @@ test('public form helper copy is not trapped by a legacy important low-contrast 
   assert.ok(contrast(effective,color(tokens,'--neo-panel'))>=4.5,'Application and login helper text must meet AA');
  }
 });
+
+test('admin text, status badges, input boundaries and focus retain AA contrast in each theme',async()=>{
+ const css=await readFile(new URL('../client/src/admin-workspace.css',import.meta.url),'utf8');
+ const light=declarations(css.match(/html \.uyym-ui \.workspace-frame\.workspace-admin\s*\{([^}]+)\}/)![1]);
+ const dark=declarations(css.match(/html\[data-theme="dark"\] \.uyym-ui \.workspace-frame\.workspace-admin\s*\{([^}]+)\}/)![1]);
+ for(const tokens of [light,{...light,...dark}]){
+  const get=(name:string)=>color(tokens,'--admin-'+name);
+  for(const surface of ['bg','panel','soft'])for(const ink of ['ink','muted','link'])assert.ok(contrast(get(ink),get(surface))>=4.5,`Admin ${ink} on ${surface}`);
+  for(const state of ['info','success','warning','danger'])assert.ok(contrast(get(state),get(state+'-soft'))>=4.5,`Admin ${state} label`);
+  assert.ok(contrast(get('control'),get('panel'))>=3,'Admin input boundary');
+  assert.ok(contrast(get('focus'),get('panel'))>=3,'Admin focus');
+ }
+});

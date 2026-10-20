@@ -7,6 +7,8 @@ import '../client/src/management.css';
 import '../client/src/dark-surfaces.css';
 import '../client/src/appearance.css';
 import '../client/src/design-system.css';
+import '../client/src/player-controls.css';
+import '../client/src/protected-player.css';
 import type {Lang} from '../client/src/i18n';
 function Preview(){
  const [lang,setLang]=useState<Lang>('en'),[dark,setDark]=useState(false);

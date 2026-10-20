@@ -1,0 +1,36 @@
+/* Presentation only: the authenticated fragment transport remains in ProtectedPlayer. */
+html .uyym-ui .player-shell.uyym-player{--player-panel:var(--ws-panel,#fff);--player-muted:var(--ws-muted,#52647b);--player-line:var(--ws-line,#d8e1ed);background:var(--player-panel);border:1px solid var(--player-line);border-radius:14px;box-shadow:none;min-width:0;isolation:isolate}
+html[data-theme="dark"] .uyym-ui .player-shell.uyym-player{--player-panel:var(--ws-panel,#142132);--player-muted:var(--ws-muted,#afbed2);--player-line:var(--ws-line,#2e425b)}
+html .uyym-ui .player-shell.uyym-player .video-stage{background:#070f1c;position:relative;min-width:0;aspect-ratio:16/9;outline-offset:-3px}
+html .uyym-ui .player-shell.uyym-player .video-stage:focus-visible{outline:3px solid #b5d3ff}
+html .uyym-ui .player-shell.uyym-player video{width:100%;height:100%;object-fit:contain;background:#070f1c}
+html .uyym-ui .player-shell.uyym-player .video-watermark{z-index:2;color:#dbe9ffb8;font-size:11px;text-shadow:0 1px 4px #000;pointer-events:none}
+html .uyym-ui .player-shell.uyym-player .player-overlay{z-index:4;background:#0b172a;color:#fff;display:flex;flex-direction:column;gap:14px;padding:20px;line-height:1.5}
+html .uyym-ui .player-shell.uyym-player .player-overlay p{color:#e1eaf8;line-height:1.55;font-size:13px;margin:0;max-width:55ch}
+html .uyym-ui .player-shell.uyym-player .uyym-player-idle{background:radial-gradient(ellipse at 50% 80%,#193764,#0b172a 76%)}
+html .uyym-ui .player-shell.uyym-player .uyym-player-start,html .uyym-ui .player-shell.uyym-player .uyym-player-retry{display:inline-flex;justify-content:center;align-items:center;appearance:none;font-family:inherit;border:1px solid #97b8ed;background:#203f85;color:#fff;box-shadow:none;transform:none;cursor:pointer;pointer-events:auto;min-height:44px;line-height:1.3}
+html .uyym-ui .player-shell.uyym-player .uyym-player-start{width:76px;height:76px;padding:20px;border-radius:50%}
+html .uyym-ui .player-shell.uyym-player .uyym-player-start svg{width:34px;height:34px}
+html .uyym-ui .player-shell.uyym-player .uyym-player-retry{padding:10px 20px;border-radius:8px;font-size:13px}
+html .uyym-ui .player-shell.uyym-player .uyym-player-exit{position:absolute;top:12px;left:12px;z-index:6;display:flex;align-items:center;gap:8px;min-height:44px;padding:10px 14px;border:1px solid #97b8ed;border-radius:8px;background:#142b4a;color:#fff;font:inherit;font-size:13px;cursor:pointer}
+html .uyym-ui .player-shell.uyym-player .uyym-player-exit:focus-visible{outline:3px solid #ffcf58;outline-offset:2px}
+html .uyym-ui .player-shell.uyym-player :is(.uyym-player-start,.uyym-player-retry):hover{background:#2c55a3;transform:none;box-shadow:none}
+html .uyym-ui .player-shell.uyym-player :is(.uyym-player-start,.uyym-player-retry):focus-visible{outline:3px solid #ffcf58;outline-offset:4px}
+html .uyym-ui .player-shell.uyym-player .uyym-player-loading{pointer-events:none;font-size:13px}
+html .uyym-ui .player-shell.uyym-player .uyym-player-loading .spinner{border-color:#607491;border-top-color:#ffcf58}
+html .uyym-ui .player-shell.uyym-player .player-tools{padding:12px 16px;gap:10px;display:flex;align-items:center;flex-wrap:wrap;font-size:12px;background:var(--player-panel);color:var(--player-muted)}
+html .uyym-ui .player-shell.uyym-player .complete-button{margin-left:auto;min-height:44px}
+html .uyym-ui .player-shell.uyym-player .player-privacy{padding:0 16px 12px;background:var(--player-panel);color:var(--player-muted);font-size:12px;line-height:1.6}
+html .uyym-ui .player-shell.uyym-player .player-privacy summary{cursor:pointer;padding:7px 0;min-height:36px}
+html .uyym-ui .player-shell.uyym-player .player-privacy summary:focus-visible{outline:3px solid var(--ws-focus,#203f85);outline-offset:2px}
+html .uyym-ui .player-shell.uyym-player .player-privacy .privacy-note{font-size:12px;line-height:1.65;padding:8px 0 0;background:none;color:inherit;margin:0}
+html .uyym-ui .player-shell.uyym-player:is(:fullscreen,.player-expanded) .video-stage{aspect-ratio:auto;flex:1;min-height:0}
+html .uyym-ui .player-shell.uyym-player:is(:fullscreen,.player-expanded) .player-tools{background:#0b172a;color:#c7d7ed}
+html .uyym-ui .player-shell.uyym-player:is(:fullscreen,.player-expanded) .player-privacy{display:none}
+@media(max-width:539px){
+ html .uyym-ui .player-shell.uyym-player .uyym-player-start{width:60px;height:60px;padding:15px}
+ html .uyym-ui .player-shell.uyym-player .player-overlay{gap:10px;padding:14px}
+ html .uyym-ui .player-shell.uyym-player .player-overlay p{font-size:12px}
+ html .uyym-ui .player-shell.uyym-player .video-watermark{font-size:9px;top:10px;right:10px}
+}
+@media(prefers-reduced-motion:reduce){html .uyym-ui .player-shell.uyym-player .spinner{animation:none}}

@@ -1,0 +1,245 @@
+/* Daily operations have a quieter hierarchy than the public learning page.
+   These tokens and overrides are scoped to ADMIN; other roles keep their UI. */
+html .uyym-ui .workspace-frame.workspace-admin{
+ --admin-bg:#f4f7fb;--admin-panel:#ffffff;--admin-soft:#eef3fa;
+ --admin-ink:#18283f;--admin-muted:#52647b;--admin-line:#dce4ef;--admin-control:#7d8fa8;
+ --admin-focus:#1b3b8b;--admin-link:#1b3b8b;--admin-selected:#eaf0fc;
+ --admin-info:#214c8d;--admin-info-soft:#eaf0fc;
+ --admin-success:#216347;--admin-success-soft:#e8f5ed;
+ --admin-warning:#815308;--admin-warning-soft:#fff4d7;
+ --admin-danger:#9f2f43;--admin-danger-soft:#ffedf0;
+ --admin-shadow:0 3px 14px #18283f06;
+ --ws-bg:var(--admin-bg);--ws-panel:var(--admin-panel);--ws-soft:var(--admin-soft);--ws-ink:var(--admin-ink);--ws-muted:var(--admin-muted);--ws-line:var(--admin-line);--ws-input:var(--admin-control);--ws-brand:var(--admin-link);--ws-selected:var(--admin-selected);--ws-success:var(--admin-success);--ws-warning:var(--admin-warning);--ws-shadow:var(--admin-shadow);
+ --neo-bg:var(--admin-bg);--neo-panel:var(--admin-panel);--neo-soft:var(--admin-soft);--neo-ink:var(--admin-ink);--neo-muted:var(--admin-muted);--neo-border:var(--admin-control);--neo-divider:var(--admin-line);--neo-link:var(--admin-link);--neo-focus:var(--admin-focus);--neo-shadow:none;--neo-shadow-small:none;--neo-shadow-large:var(--admin-shadow);--neo-radius:14px;--neo-success:var(--admin-success);--neo-warning:var(--admin-warning);--neo-error:var(--admin-danger);
+ background:var(--admin-bg);line-height:1.55;
+}
+html[data-theme="dark"] .uyym-ui .workspace-frame.workspace-admin{
+ --admin-bg:#0d1623;--admin-panel:#142132;--admin-soft:#1d2d43;
+ --admin-ink:#edf4ff;--admin-muted:#afbed2;--admin-line:#2e425b;--admin-control:#7f93af;
+ --admin-focus:#a9c7ff;--admin-link:#b8d1ff;--admin-selected:#1e3453;
+ --admin-info:#b8d1ff;--admin-info-soft:#1e3453;
+ --admin-success:#91d7b2;--admin-success-soft:#17362e;
+ --admin-warning:#edce80;--admin-warning-soft:#3b311e;
+ --admin-danger:#f7adba;--admin-danger-soft:#3d2432;
+ --admin-shadow:0 3px 14px #00000010;
+}
+
+/* Shell: a fixed operations rail, a compact toolbar and a fluid working canvas. */
+html .uyym-ui .workspace-frame.workspace-admin .workspace-rail{width:248px;border-right:1px solid var(--admin-line);background:var(--admin-panel)}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-brand{margin:28px 24px 24px;gap:12px}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-brand strong{font-size:23px;letter-spacing:-.035em}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-brand small{font-size:11px;font-weight:600;letter-spacing:.03em}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-topbar{margin-left:248px;position:sticky;top:0;z-index:40;min-height:80px;height:auto;padding:14px 32px;border-bottom:1px solid var(--admin-line);background:var(--admin-panel);gap:20px}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-location{gap:10px;min-width:0;flex:1}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-location h1{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0;min-width:0}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-location a{white-space:nowrap;font-size:12px;color:var(--admin-muted)}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-canvas{margin-left:248px;max-width:1840px;padding:24px 32px 56px}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-security{border:0;padding:0;margin-bottom:24px;gap:8px;color:var(--admin-muted);font-size:11px}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-security strong{font-weight:550;color:var(--admin-success)}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-appearance{gap:12px;flex-shrink:0}
+html .uyym-ui .workspace-frame.workspace-admin .language-switch{background:var(--admin-soft);border:1px solid var(--admin-line);padding:3px;border-radius:9px;gap:0}
+html .uyym-ui .workspace-frame.workspace-admin .language-switch button{min-width:36px;min-height:36px;font-size:11px;border-radius:6px}
+html .uyym-ui .workspace-frame.workspace-admin .theme-control{min-width:104px;width:104px;max-width:104px}
+html .uyym-ui .workspace-frame.workspace-admin .theme-control select{min-height:44px;font-size:12px;padding:8px 24px 8px 10px;border:1px solid var(--admin-control);border-radius:9px;background:var(--admin-panel)}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-rail-bottom{padding:12px 16px;border-top:1px solid var(--admin-line)}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-rail-bottom>:is(a,button){min-height:38px;font-size:12px;gap:10px;border-radius:8px}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-profile{padding-block:10px}
+html .uyym-ui .workspace-frame.workspace-admin .profile-avatar{background:var(--admin-info-soft);color:var(--admin-info);border:1px solid var(--admin-line);border-radius:50%;width:34px;height:34px;font-size:13px;font-weight:650}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-navigation{top:104px;bottom:140px;left:14px;width:220px;scrollbar-gutter:stable}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-navigation nav{gap:3px}
+html .uyym-ui .workspace-frame.workspace-admin .nav-group-label{padding:18px 12px 7px;font-size:11px;font-weight:550;letter-spacing:0}
+html .uyym-ui .workspace-frame.workspace-admin .nav-group-label:first-child{padding-top:10px}
+html .uyym-ui .workspace-frame.workspace-admin :is(.workspace-navigation,.workspace-mobile-navigation) nav button{min-height:44px;padding:10px 12px;border:1px solid transparent;border-radius:8px;color:var(--admin-muted);font-size:13px;gap:10px;box-shadow:none;position:relative}
+html .uyym-ui .workspace-frame.workspace-admin :is(.workspace-navigation,.workspace-mobile-navigation) nav button:hover{background:var(--admin-soft);color:var(--admin-ink)}
+html .uyym-ui .workspace-frame.workspace-admin :is(.workspace-navigation,.workspace-mobile-navigation) nav button[aria-current]{background:var(--admin-selected);color:var(--admin-link);border-color:transparent;font-weight:650;box-shadow:none}
+html .uyym-ui .workspace-frame.workspace-admin .nav-current-dot{display:block;width:7px;height:7px;background:var(--neo-accent);border:1px solid var(--admin-info);margin-left:auto}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-navigation .ui-icon{width:19px;height:19px}
+
+/* Native account disclosure uses only the existing identity and logout action. */
+html .uyym-ui .workspace-frame.workspace-admin .workspace-account-menu{position:relative;min-width:0}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-account-menu summary{display:flex;align-items:center;gap:8px;min-height:44px;border-radius:9px;padding:4px;cursor:pointer;list-style:none}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-account-menu summary::-webkit-details-marker{display:none}
+html .uyym-ui .workspace-frame.workspace-admin .workspace-account-menu summary:hover{background:var(--admin-soft)}
+html .uyym-ui .workspace-frame.workspace-admin .account-menu-name{max-width:104px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:600}
+html .uyym-ui .workspace-frame.workspace-admin .account-menu-panel{position:absolute;right:0;top:calc(100% + 12px);display:grid;gap:5px;width:240px;max-width:calc(100vw - 32px);padding:18px;background:var(--admin-panel);border:1px solid var(--admin-line);border-radius:12px;box-shadow:0 10px 30px #00000024;overflow-wrap:anywhere}
+html .uyym-ui .workspace-frame.workspace-admin .account-menu-panel strong{font-size:14px}
+html .uyym-ui .workspace-frame.workspace-admin .account-menu-panel small{font-size:12px}
+html .uyym-ui .workspace-frame.workspace-admin .account-menu-panel button{display:flex;align-items:center;gap:9px;min-height:44px;padding:10px 0;background:transparent;color:var(--admin-link);font-size:13px;text-align:left}
+
+/* Shared admin controls retain all existing handlers, disabled states and focus. */
+html .uyym-ui .workspace-frame.workspace-admin :is(.button,.ui-button){border:1px solid var(--admin-control);border-radius:9px;box-shadow:none;transform:none;min-height:42px;background:var(--admin-panel);color:var(--admin-link);padding:10px 15px;font-size:13px;font-weight:600;gap:8px}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button,.ui-button):hover:not(:disabled){background:var(--admin-soft);box-shadow:none;transform:none}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button,.ui-button):active:not(:disabled){transform:none;box-shadow:none}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button-yellow,.ui-button-primary){background:var(--neo-brand);color:var(--neo-on-brand);border-color:var(--neo-brand)}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button-yellow,.ui-button-primary) :is(span,svg){color:inherit}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button-yellow,.ui-button-primary):hover:not(:disabled){background:var(--neo-brand-hover);color:var(--neo-on-brand)}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button-accent,.ui-button-accent){background:var(--neo-accent);color:var(--neo-on-accent);border-color:var(--neo-deep)}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button-accent,.ui-button-accent):hover:not(:disabled){background:var(--neo-accent-hover);color:var(--neo-on-accent)}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button-danger,.ui-button-destructive){background:var(--admin-danger-soft);color:var(--admin-danger);border-color:var(--admin-danger)}
+html .uyym-ui .workspace-frame.workspace-admin :is(.button-danger,.ui-button-destructive):hover:not(:disabled){background:var(--admin-danger-soft);color:var(--admin-danger);border-color:var(--admin-danger)}
+html .uyym-ui .workspace-frame.workspace-admin .ui-button-ghost{border-color:transparent;background:transparent;box-shadow:none;color:var(--admin-muted)}
+html .uyym-ui .workspace-frame.workspace-admin :is(input,select,textarea){min-height:44px;font-size:14px;border:1px solid var(--admin-control);border-radius:9px;background:var(--admin-panel);color:var(--admin-ink);box-shadow:none;margin-top:0}
+html .uyym-ui .workspace-frame.workspace-admin :is(input,select,textarea):focus{border-color:var(--admin-focus);box-shadow:none}
+html .uyym-ui .workspace-frame.workspace-admin :is(input,textarea)::placeholder{color:var(--admin-muted)}
+html .uyym-ui .workspace-frame.workspace-admin input[type="checkbox"]{width:20px;min-height:20px;height:20px;border-radius:4px;accent-color:var(--neo-brand)}
+html .uyym-ui .workspace-frame.workspace-admin .ui-page-header{margin:0 0 26px;gap:24px;align-items:flex-start}
+html .uyym-ui .workspace-frame.workspace-admin .ui-page-header h2{font-size:clamp(26px,2.6vw,34px);letter-spacing:-.035em;font-weight:700;margin:0;line-height:1.2}
+html .uyym-ui .workspace-frame.workspace-admin .ui-page-header p{font-size:14px;line-height:1.65;max-width:72ch;margin-top:10px}
+html .uyym-ui .workspace-frame.workspace-admin .ui-page-actions{padding-top:2px;flex-shrink:0}
+
+/* Truthful per-status totals: no invented trends or count of visible rows. */
+html .uyym-ui .workspace-frame.workspace-admin .application-overview{margin-bottom:28px}
+html .uyym-ui .workspace-frame.workspace-admin .admin-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+html .uyym-ui .workspace-frame.workspace-admin .admin-stat-card{display:grid;grid-template-columns:minmax(0,1fr) 36px;grid-template-rows:40px auto auto;gap:3px 12px;min-width:0;padding:20px;text-align:left;background:var(--admin-panel);border:1px solid var(--admin-line);border-radius:14px;box-shadow:var(--admin-shadow);color:var(--admin-ink);cursor:pointer;transition:border-color .16s,background .16s}
+html .uyym-ui .workspace-frame.workspace-admin .admin-stat-card:hover{border-color:var(--admin-control);background:var(--admin-panel)}
+html .uyym-ui .workspace-frame.workspace-admin .admin-stat-card[aria-pressed="true"]{border-color:var(--admin-focus);box-shadow:0 0 0 1px var(--admin-focus)}
+html .uyym-ui .workspace-frame.workspace-admin .admin-stat-value{grid-column:1;grid-row:1;font-size:32px;line-height:1.1;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+html .uyym-ui .workspace-frame.workspace-admin .admin-stat-icon{grid-column:2;grid-row:1;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--admin-info-soft);color:var(--admin-info)}
+html .uyym-ui .workspace-frame.workspace-admin .admin-stat-label{grid-column:1/-1;font-size:13px;line-height:1.45;font-weight:600;margin-top:10px}
+html .uyym-ui .workspace-frame.workspace-admin .admin-stat-note{grid-column:1/-1;font-size:11px;line-height:1.5;color:var(--admin-muted)}
+html .uyym-ui .workspace-frame.workspace-admin [data-tone="warning"] .admin-stat-icon{background:var(--admin-warning-soft);color:var(--admin-warning)}
+html .uyym-ui .workspace-frame.workspace-admin [data-tone="success"] .admin-stat-icon{background:var(--admin-success-soft);color:var(--admin-success)}
+html .uyym-ui .workspace-frame.workspace-admin [data-tone="danger"] .admin-stat-icon{background:var(--admin-danger-soft);color:var(--admin-danger)}
+html .uyym-ui .workspace-frame.workspace-admin .application-overview-error{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px}
+html .uyym-ui .workspace-frame.workspace-admin .application-overview-error p{font-size:13px;margin:0}
+
+/* One data surface ties filters, results, records and pagination together. */
+html .uyym-ui .workspace-frame.workspace-admin .admin-list-surface{background:var(--admin-panel);border:1px solid var(--admin-line);border-radius:14px;box-shadow:var(--admin-shadow);overflow:visible;min-width:0}
+html .uyym-ui .workspace-frame.workspace-admin .admin-filterbar{display:flex;align-items:flex-end;gap:16px;padding:20px 24px;margin:0;background:var(--admin-panel);border-radius:14px 14px 0 0;flex-wrap:wrap}
+html .uyym-ui .workspace-frame.workspace-admin .admin-filterbar>label{margin:0;gap:7px;min-width:140px;font-size:12px;color:var(--admin-muted)}
+html .uyym-ui .workspace-frame.workspace-admin .admin-filterbar>label:first-child{width:auto;flex:1;min-width:min(260px,100%)}
+html .uyym-ui .workspace-frame.workspace-admin .admin-filterbar>.ui-button{margin-left:auto;min-height:44px;padding-inline:8px}
+html .uyym-ui .workspace-frame.workspace-admin .admin-table-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:8px 24px 18px}
+html .uyym-ui .workspace-frame.workspace-admin .admin-table-heading h3{font-size:15px;font-weight:650;margin:0}
+html .uyym-ui .workspace-frame.workspace-admin .admin-table-heading>span{font-size:12px;color:var(--admin-muted);font-variant-numeric:tabular-nums}
+html .uyym-ui .workspace-frame.workspace-admin :is(.manage-records,.application-table){border:0;border-radius:0;box-shadow:none}
+html .uyym-ui .workspace-frame.workspace-admin .application-table{table-layout:fixed;font-size:13px;overflow:visible}
+html .uyym-ui .workspace-frame.workspace-admin .application-table th{padding:12px 16px;background:var(--admin-soft);color:var(--admin-muted);font-size:11px;font-weight:600;line-height:1.5}
+html .uyym-ui .workspace-frame.workspace-admin .application-table td{padding:20px 16px;border-top:1px solid var(--admin-line);max-width:none;overflow-wrap:anywhere;line-height:1.55}
+html .uyym-ui .workspace-frame.workspace-admin .application-table th:first-child{width:22%;padding-left:24px}
+html .uyym-ui .workspace-frame.workspace-admin .application-table td:first-child{padding-left:24px}
+html .uyym-ui .workspace-frame.workspace-admin .application-table th:nth-child(2){width:15%}
+html .uyym-ui .workspace-frame.workspace-admin .application-table th:nth-child(3){width:19%}
+html .uyym-ui .workspace-frame.workspace-admin .application-table th:nth-child(4){width:12%}
+html .uyym-ui .workspace-frame.workspace-admin .application-table th:nth-child(5){width:15%}
+html .uyym-ui .workspace-frame.workspace-admin .application-table th:last-child{width:144px}
+html .uyym-ui .workspace-frame.workspace-admin .application-table tbody tr:hover{background:var(--admin-soft)}
+html .uyym-ui .workspace-frame.workspace-admin .application-table tbody tr:focus-within{background:var(--admin-soft)}
+html .uyym-ui .workspace-frame.workspace-admin .application-person{display:flex;align-items:center;gap:12px;min-width:0}
+html .uyym-ui .workspace-frame.workspace-admin .application-person strong{font-size:13px;font-weight:600}
+html .uyym-ui .workspace-frame.workspace-admin .applicant-avatar{display:grid;place-items:center;flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--admin-info-soft);color:var(--admin-info);font-size:11px;font-weight:650}
+html .uyym-ui .workspace-frame.workspace-admin .application-contact{color:var(--admin-muted);font-variant-numeric:tabular-nums;font-size:12px}
+html .uyym-ui .workspace-frame.workspace-admin .application-table time{font-size:12px;color:var(--admin-muted)}
+html .uyym-ui .workspace-frame.workspace-admin .application-table .ui-button{padding:8px 10px;gap:6px;min-height:38px;font-size:12px;border-color:var(--admin-line);white-space:nowrap}
+html .uyym-ui .workspace-frame.workspace-admin .application-table .ui-button .ui-icon{width:15px;height:15px}
+html .uyym-ui .workspace-frame.workspace-admin .manage-pagination{margin:0;padding:18px 24px;gap:16px;font-size:12px}
+html .uyym-ui .workspace-frame.workspace-admin .manage-pagination button{min-height:38px;font-size:12px}
+html .uyym-ui .workspace-frame.workspace-admin .manage-record{padding:22px 24px;background:transparent;border-bottom:1px solid var(--admin-line)}
+html .uyym-ui .workspace-frame.workspace-admin .manage-record:hover{background:var(--admin-soft)}
+html .uyym-ui .workspace-frame.workspace-admin .manage-record-actions{flex-direction:row;align-items:center;width:340px;max-width:42%;gap:8px}
+html .uyym-ui .workspace-frame.workspace-admin .manage-record-actions .button{font-size:12px;min-height:40px;padding:9px 12px}
+html .uyym-ui .workspace-frame.workspace-admin .manage-status{display:inline-flex;align-items:center;min-height:26px;padding:4px 9px;border:1px solid transparent;border-radius:999px;background:var(--admin-soft);color:var(--admin-muted);font-size:11px;font-weight:600;line-height:1.4}
+html .uyym-ui .workspace-frame.workspace-admin :is(.status-approved,.status-active,.status-posted,.status-paid){background:var(--admin-success-soft);color:var(--admin-success)}
+html .uyym-ui .workspace-frame.workspace-admin :is(.status-pending,.status-paused){background:var(--admin-warning-soft);color:var(--admin-warning)}
+html .uyym-ui .workspace-frame.workspace-admin .status-processing{background:var(--admin-info-soft);color:var(--admin-info)}
+html .uyym-ui .workspace-frame.workspace-admin :is(.status-rejected,.status-revoked,.status-expired,.status-voided){background:var(--admin-danger-soft);color:var(--admin-danger)}
+html .uyym-ui .workspace-frame.workspace-admin .admin-empty-state{padding:40px 24px;max-width:560px;margin:0 auto;text-align:center}
+html .uyym-ui .workspace-frame.workspace-admin .admin-empty-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--admin-soft);color:var(--admin-link);margin:0 auto 16px}
+html .uyym-ui .workspace-frame.workspace-admin .admin-empty-state h3{font-size:17px;margin-bottom:8px}
+html .uyym-ui .workspace-frame.workspace-admin .admin-empty-state p{font-size:13px;line-height:1.7;margin:0}
+html .uyym-ui .workspace-frame.workspace-admin :is(.manage-retry,.empty-state){padding:32px 24px}
+html .uyym-ui .workspace-frame.workspace-admin .admin-list-surface>.alert{margin:0 24px 16px}
+
+/* Existing forms, details and content editors get the same quiet object borders. */
+html .uyym-ui .workspace-frame.workspace-admin :is(.content-card,.settings-section,.course-access-card){border:1px solid var(--admin-line);border-radius:14px;background:var(--admin-panel);box-shadow:none}
+html .uyym-ui .workspace-frame.workspace-admin :is(.modal,.manage-dialog){border:1px solid var(--admin-line);border-radius:16px;box-shadow:0 20px 70px #0000003d}
+html .uyym-ui .workspace-frame.workspace-admin .modal-close{border:1px solid var(--admin-line);min-width:40px;min-height:40px;background:var(--admin-soft);color:var(--admin-ink);border-radius:9px}
+html .uyym-ui .workspace-frame.workspace-admin .ui-details{margin-bottom:24px}
+html .uyym-ui .workspace-frame.workspace-admin .ui-details>div{padding-block:14px;border-color:var(--admin-line);gap:16px}
+html .uyym-ui .workspace-frame.workspace-admin .ui-details dd{font-size:14px}
+html .uyym-ui .workspace-frame.workspace-admin .manage-text-action.danger{color:var(--admin-danger)}
+html .uyym-ui .workspace-frame.workspace-admin :is(a,button,input,select,textarea,summary):focus-visible{outline:3px solid var(--admin-focus);outline-offset:3px}
+
+/* Tablet keeps the complete module list as named icons; phone uses the same Dialog. */
+@media(min-width:768px) and (max-width:1100px){
+ html .uyym-ui .workspace-frame.workspace-admin .manage-record-actions{width:100%;max-width:none;justify-content:flex-start}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-rail{display:block;width:80px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-brand{margin:24px 20px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-brand span{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-topbar,html .uyym-ui .workspace-frame.workspace-admin .workspace-canvas{margin-left:80px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-topbar{padding-inline:24px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-navigation{display:block;left:12px;width:56px;bottom:124px}
+ html .uyym-ui .workspace-frame.workspace-admin .nav-group-label{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-navigation nav button{justify-content:center;padding:12px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-navigation nav button>span:not(.nav-current-dot){position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+ html .uyym-ui .workspace-frame.workspace-admin .nav-current-dot{position:absolute;top:7px;right:7px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-rail-bottom{padding:12px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-rail-bottom>:is(a,button){justify-content:center;padding:8px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-rail-bottom>:is(a,button)>span,html .uyym-ui .workspace-frame.workspace-admin .workspace-profile>span:last-child{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-profile{justify-content:center;padding-inline:0}
+ html .uyym-ui .workspace-frame.workspace-admin .ui-button.workspace-mobile-trigger{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-location a,html .uyym-ui .workspace-frame.workspace-admin .workspace-location>span{display:none}
+}
+@media(max-width:1250px){
+ html .uyym-ui .workspace-frame.workspace-admin .admin-stat-grid{gap:12px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-stat-card{padding:18px 16px}
+ html .uyym-ui .workspace-frame.workspace-admin .account-menu-name{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table .ui-button{white-space:normal}
+}
+@media(max-width:1250px){
+ html .uyym-ui .workspace-frame.workspace-admin .application-table{display:block;border:0;background:none}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table thead{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table tbody{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:0 20px 8px}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table tr{display:grid;gap:12px;padding:20px;border:1px solid var(--admin-line);border-radius:12px;background:var(--admin-panel);min-width:0}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table td,html .uyym-ui .workspace-frame.workspace-admin .application-table td:first-child{display:block;padding:0;border:0;font-size:13px}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table td[data-label]::before{content:attr(data-label);display:block;font-size:11px;color:var(--admin-muted);margin-bottom:5px}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table td .ui-button{width:100%;min-height:44px}
+}
+@media(max-width:767px){
+ html .uyym-ui .workspace-frame.workspace-admin .manage-record-actions{width:100%;max-width:none;justify-content:flex-start}
+ html .uyym-ui .workspace-frame.workspace-admin .manage-record-actions :is(.button,.manage-text-action){min-height:44px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-rail,html .uyym-ui .workspace-frame.workspace-admin .workspace-navigation{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-topbar{margin-left:0;min-height:120px;padding:16px;gap:12px;flex-wrap:wrap}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-location{flex-basis:100%;min-height:40px;padding-left:56px;align-items:center}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-location a,html .uyym-ui .workspace-frame.workspace-admin .workspace-location>span{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-location h1{font-size:14px;white-space:normal}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-appearance{width:100%;justify-content:space-between;flex-wrap:nowrap;gap:8px}
+ html .uyym-ui .workspace-frame.workspace-admin .language-switch button{min-width:44px;min-height:44px}
+ html .uyym-ui .workspace-frame.workspace-admin :is(.button,.ui-button,.modal-close){min-height:44px}
+ html .uyym-ui .workspace-frame.workspace-admin .modal-close{min-width:44px}
+ html .uyym-ui .workspace-frame.workspace-admin :is(input,select,textarea){font-size:16px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-account-menu summary{min-width:44px;justify-content:center}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-account-menu summary>span:last-child{display:none}
+ html .uyym-ui .workspace-frame.workspace-admin .theme-control{width:110px;max-width:110px;min-width:0}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-mobile-trigger{display:grid;place-items:center;position:fixed;top:16px;left:16px;z-index:45;margin:0;width:44px;min-width:44px;min-height:44px;padding:8px;border-color:var(--admin-line)}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-mobile-trigger>span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-canvas{margin-left:0;padding:20px 16px 40px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-security{margin-bottom:20px;font-size:11px}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-security .workspace-timezone{margin-left:0;flex-basis:100%}
+ html .uyym-ui .workspace-frame.workspace-admin .ui-page-header{flex-direction:column;gap:16px;margin-bottom:24px}
+ html .uyym-ui .workspace-frame.workspace-admin .ui-page-header h2{font-size:28px}
+ html .uyym-ui .workspace-frame.workspace-admin .ui-page-header p{font-size:13px}
+ html .uyym-ui .workspace-frame.workspace-admin .ui-page-actions{width:100%}
+ html .uyym-ui .workspace-frame.workspace-admin .ui-page-actions>.ui-button{min-height:44px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-stat-card{grid-template-columns:minmax(0,1fr) 30px;padding:16px;gap:3px 6px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-stat-icon{width:30px;height:30px;border-radius:8px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-stat-value{font-size:28px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-stat-label{font-size:12px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-stat-note{font-size:10px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-filterbar{padding:18px 16px;gap:14px;flex-direction:column;align-items:stretch}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-filterbar>label,html .uyym-ui .workspace-frame.workspace-admin .admin-filterbar>label:first-child{width:100%;min-width:0;flex:auto}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-filterbar>.ui-button{margin:0;align-self:flex-start;min-height:44px}
+ html .uyym-ui .workspace-frame.workspace-admin .admin-table-heading{padding:4px 16px 16px;align-items:flex-start;flex-wrap:wrap;gap:6px}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table tbody{grid-template-columns:1fr;padding:0 16px 4px;gap:14px}
+ html .uyym-ui .workspace-frame.workspace-admin .application-table tr{padding:18px}
+ html .uyym-ui .workspace-frame.workspace-admin .manage-pagination{padding:18px 16px;align-items:flex-start;flex-direction:column}
+ html .uyym-ui .workspace-frame.workspace-admin .manage-pagination button{min-height:44px}
+ html .uyym-ui .workspace-frame.workspace-admin .application-overview-error{align-items:flex-start;flex-direction:column;gap:10px}
+ html .uyym-ui .workspace-frame.workspace-admin .modal-backdrop:has(.workspace-mobile-navigation){justify-content:flex-start;align-items:stretch;padding:12px}
+ html .uyym-ui .workspace-frame.workspace-admin .manage-dialog:has(.workspace-mobile-navigation){margin:0;width:min(320px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 24px);border-radius:14px;padding:28px 16px;overflow-y:auto}
+ html .uyym-ui .workspace-frame.workspace-admin .workspace-mobile-navigation{padding-top:8px}
+}
+@media(prefers-reduced-motion:reduce){
+ html .uyym-ui .workspace-frame.workspace-admin *{transition:none!important;animation:none!important}
+}
