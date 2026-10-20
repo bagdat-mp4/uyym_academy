@@ -9,20 +9,29 @@ const course: Course = { id: 'own', title: 'PP1 <script>unsafe()</script>', summ
 
 test('course hero translates its heading and real navigation in all three languages', () => {
   for (const [lang, heading, action] of [
-    ['en', 'learning clear.', 'Explore courses'],
-    ['kk', 'Сенімді бол.', 'Курстарды көру'],
-    ['ru', 'Учись уверенно.', 'Посмотреть курсы'],
+    ['en', 'More understanding.', 'Explore courses'],
+    ['kk', 'Түсініп үйрен.', 'Курстарды көру'],
+    ['ru', 'Больше понимания.', 'Посмотреть курсы'],
   ] as const) {
     const html = renderToStaticMarkup(createElement(CourseHero, { lang, courses: [course] }));
     assert.equal((html.match(/<h1\b/g) || []).length, 1);
-    assert.ok(html.includes(heading) && html.includes(action));
+    const headingText=html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/)![1].replace(/<[^>]+>/g,'');
+    assert.ok(headingText.includes(heading) && html.includes(action));
     assert.ok(html.includes('aria-labelledby="course-hero-title"'));
-    assert.ok(html.includes('href="#courses"') && html.includes('href="#format"'));
-    // Repeated art does not add duplicate destinations or expose author HTML.
-    assert.ok(html.includes('class="course-hero-collage" aria-hidden="true"'));
+    assert.ok(html.includes('href="#courses"') && html.includes('href="#account"'));
+    // An explicitly labelled illustration never pretends to be the real account.
+    assert.ok(html.includes('<figcaption>'));
     assert.ok(html.includes('&lt;script&gt;unsafe()&lt;/script&gt;'));
     assert.ok(!html.includes('<script>') && !html.includes('<button'));
   }
+});
+
+test('hero names the actual learning entry point and never invents course offerings',()=>{
+ const student=renderToStaticMarkup(createElement(CourseHero,{lang:'en',courses:[course],role:'STUDENT'}));
+ assert.ok(student.includes('Open dashboard')&&student.includes('Illustration · not your account'));
+ assert.ok(!student.includes('Physics')&&!student.includes('GPA')&&!student.includes('streak'));
+ assert.equal((student.match(/PP1 &lt;script&gt;/g)||[]).length,1);
+ const teacher=renderToStaticMarkup(createElement(CourseHero,{lang:'en',courses:[],role:'TEACHER'}));assert.ok(teacher.includes('Open workspace'));
 });
 
 test('empty course catalogue does not invent covers or load external imagery', () => {

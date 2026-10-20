@@ -13,7 +13,7 @@ type ReviewRow={user_id:string;student_name:string;phone:string;enrollment_statu
 type Version={id:string;version:number;answer:string;is_late:boolean;submitted_at:string;files:FileItem[]};
 type SubmissionDetail=SubmissionSummary&{assignment_id:string;user_id:string;max_grade?:number;versions:Version[]};
 
-export default function LearningHub({lang,role}:{lang:Lang;role:Role}){
+export default function LearningHub({lang,role,studentName}:{lang:Lang;role:Role;studentName?:string}){
  const editable=role!=='STUDENT';
  const [view,setView]=useState<StudentView>('overview'),[overview,setOverview]=useState<Content[]>([]),[overviewBusy,setOverviewBusy]=useState(false),[overviewFailed,setOverviewFailed]=useState(0);
  const selectedId=useRef<string|null>(null);
@@ -35,7 +35,7 @@ export default function LearningHub({lang,role}:{lang:Lang;role:Role}){
  },[courses,editable]);
  const selectCourse=(course:Course,nextTab:typeof tab='lessons')=>{setSelected(course);setContent(null);setTab(nextTab);setVideo(null);setSuccess('');};
  const studentNavigation=!editable?<WorkspaceNav lang={lang} current={selected?'courses':view} onSelect={id=>{if(selected)void loadCourses();setView(id as StudentView);setSelected(null);selectedId.current=null;setContent(null);setVideo(null);setError('');}} items={[
- {id:'overview',label:['Оқу кеңістігі','Учебное пространство'],icon:'home'},
+ {id:'overview',label:['Оқу кабинеті','Учебный кабинет'],icon:'home'},
  {id:'courses',label:['Менің курстарым','Мои курсы'],icon:'book'},
  {id:'assignments',label:['Үй тапсырмасы','Домашние задания'],icon:'file'},
  {id:'schedule',label:['Сабақ кестесі','Расписание'],icon:'calendar'},
@@ -46,7 +46,7 @@ export default function LearningHub({lang,role}:{lang:Lang;role:Role}){
  const openFile=async(file:FileItem,submission=false)=>{setError('');try{const path=submission?`/api/submission-files/${file.id}`:`/api/files/${file.id}`;const data=await api<ArrayBuffer>(path,{proof:'file',binary:true});const url=URL.createObjectURL(new Blob([data],{type:file.mime}));const a=document.createElement('a');a.href=url;a.download=file.name;a.rel='noopener';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);}catch(e){setError(message(e));}};
  const refreshed=()=>{setSuccess(tr(lang,['Деректер сақталды.','Данные сохранены.']));if(selected)void loadContent(selected);};
  if(video&&selected&&content)return <>{studentNavigation}<LessonWorkspace content={content} lesson={video} lang={lang} role={role} onLesson={setVideo} onBack={()=>{setVideo(null);void loadContent(selected);}} onAssignments={()=>{setVideo(null);setTab('assignments');void loadContent(selected);}} onMaterials={()=>{setVideo(null);setTab('archive');void loadContent(selected);}}/></>;
- if(!selected&&!editable)return <>{studentNavigation}<Notice error={error}/>{loading?<Empty lang={lang} loading/>:<StudentHome courses={courses} contents={overview} loading={overviewBusy} failed={overviewFailed} view={view} lang={lang} onCourse={selectCourse} onLesson={(course,lesson)=>{selectCourse(course);setVideo(lesson);}} onRetry={()=>void loadCourses()}/>}</>;
+ if(!selected&&!editable)return <>{studentNavigation}<Notice error={error}/>{loading?<Empty lang={lang} loading/>:<StudentHome name={studentName} courses={courses} contents={overview} loading={overviewBusy} failed={overviewFailed} view={view} lang={lang} onCourse={selectCourse} onLesson={(course,lesson)=>{selectCourse(course);setVideo(lesson);}} onRetry={()=>void loadCourses()}/>}</>;
  if(!selected)return <section className="dashboard-panel learning-hub"><div className="panel-heading"><div><div className="eyebrow">UYYM ACADEMY · {role}</div><h2>{editable?tr(lang,['Оқу контенті','Учебный контент']):tr(lang,['Менің курстарым','Мои курсы'])}</h2></div><button className="button button-outline" onClick={()=>void loadCourses()} disabled={loading}>{tr(lang,['Жаңарту','Обновить'])}</button></div><Notice error={error}/>{loading?<Empty lang={lang} loading/>:courses.length?<div className="course-access-grid">{courses.map(course=><button className="course-access-card" key={course.id} onClick={()=>{setSelected(course);setTab('lessons');setSuccess('');}}><span>{tr(lang,['КУРС','КУРС'])}</span><h3>{course.title}</h3><p>{course.description||tr(lang,['Сипаттама әлі қосылмаған.','Описание пока не добавлено.'])}</p>{course.expires_at&&<small>{tr(lang,['Қолжетімділік мерзімі','Доступ до'])}: {dateLabel(course.expires_at,lang)}</small>}<strong>{tr(lang,['Ашу','Открыть'])} →</strong></button>)}</div>:<Empty lang={lang} text={editable?['Сізге курс тағайындалмаған','Вам пока не назначены курсы']:['Белсенді курстар жоқ','Нет активных курсов']}/>}</section>;
  return <>{studentNavigation}<section className="dashboard-panel learning-hub">
   <button className="back-link" onClick={()=>{setSelected(null);selectedId.current=null;setContent(null);setVideo(null);}}>← {tr(lang,['Курстарға оралу','К курсам'])}</button>

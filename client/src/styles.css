@@ -203,7 +203,7 @@ label { display: block; font-size: 11px; font-weight: 650; color: #58708f; margi
 input { width: 100%; min-height: 47px; border: 1px solid #cbd5e3; background: #fcfcfb; color: #213c67; border-radius: 7px; padding: 12px 14px; margin-top: 8px; font-size: 13px; outline-offset: 2px; }
 input::placeholder { color: #a1adbd; }
 form .button { margin-top: 26px; }
-.form-help { margin-top: 19px !important; font-size: 10px !important; line-height: 1.85; color: #8797ae !important; font-weight: 400; }
+.form-help { margin-top: 19px !important; font-size: 10px !important; line-height: 1.85; color: #8797ae; font-weight: 400; }
 .alert { border-radius: 7px; padding: 14px 16px; font-size: 11px; line-height: 1.8; margin-top: 20px; overflow-wrap: anywhere; }
 .alert-error { color: #9c3439; background: #fff2f2; border: 1px solid #eed7d7; }
 .alert-success { color: #35694f; background: #eff8f0; border: 1px solid #d5e8d8; }

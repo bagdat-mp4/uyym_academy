@@ -1,0 +1,107 @@
+/* Borders define objects; space and color connect the public page.
+   Loaded after the legacy styles. Decorative edges never clip live content. */
+html .uyym-ui .site-header{border:0}
+html .uyym-ui .desktop-nav a{position:relative;text-decoration:none}
+html .uyym-ui .desktop-nav a::after{content:'';position:absolute;inset:auto 0 5px;width:100%;height:3px;background:var(--neo-accent);transform:scaleX(0);transform-origin:left;transition:transform .16s;pointer-events:none}
+html .uyym-ui .desktop-nav a:is(:hover,:focus-visible)::after{transform:scaleX(1)}
+html .uyym-ui .language-switch button[aria-pressed="true"],
+html .uyym-ui .workspace-frame .workspace-appearance .language-switch button[aria-pressed="true"]{background:var(--neo-accent);color:var(--neo-on-accent);box-shadow:inset 0 0 0 1px var(--neo-deep)}
+
+/* Accent is a separate variant: established primary actions stay blue. */
+html .uyym-ui :is(.button-accent,.ui-button-accent),
+html .uyym-ui .workspace-frame :is(.button-accent,.ui-button-accent){background:var(--neo-accent);color:var(--neo-on-accent);border:2px solid var(--neo-deep);box-shadow:var(--neo-shadow)}
+html .uyym-ui :is(.button-accent,.ui-button-accent):hover:not(:disabled),
+html .uyym-ui .workspace-frame :is(.button-accent,.ui-button-accent):hover:not(:disabled){background:var(--neo-accent-hover);color:var(--neo-on-accent);box-shadow:var(--neo-shadow-small);transform:translate(2px,2px)}
+html .uyym-ui :is(.button-accent,.ui-button-accent):active:not(:disabled),
+html .uyym-ui .workspace-frame :is(.button-accent,.ui-button-accent):active:not(:disabled){box-shadow:none;transform:translate(4px,4px)}
+
+/* Reusable transition vocabulary: whitespace, overlap, soft surface and angle. */
+html .uyym-ui .public-page .section-transition{border:0;box-shadow:none}
+html .uyym-ui .public-page .transition-space{padding-block:104px}
+html .uyym-ui .public-page .transition-soft{background:var(--neo-soft);padding-block:104px 120px}
+html .uyym-ui .public-page .transition-angle{position:relative;isolation:isolate;padding-block:112px 72px}
+html .uyym-ui .public-page .transition-angle::before{content:'';position:absolute;inset:-1px 0 auto;height:32px;background:var(--neo-soft);clip-path:polygon(0 0,100% 0,100% 15%,0 100%);pointer-events:none;z-index:-1}
+html .uyym-ui .public-page .transition-hero{padding-bottom:144px}
+html .uyym-ui .public-page .transition-hero::after{content:'';position:absolute;inset:auto 0 -1px;height:28px;background:var(--neo-bg);clip-path:polygon(0 100%,100% 0,100% 100%);pointer-events:none;z-index:-1}
+html .uyym-ui .public-page .brand-underline{text-decoration:underline;text-decoration-color:var(--neo-accent);text-decoration-thickness:.07em;text-underline-offset:.13em;text-decoration-skip-ink:none}
+html .uyym-ui .public-page .course-hero-label{background:var(--neo-accent);color:var(--neo-on-accent);border-color:var(--neo-deep)}
+html .uyym-ui .public-page .course-hero-primary>span{color:var(--neo-accent)}
+html .uyym-ui .public-page .course-hero-primary:hover{border-color:var(--neo-accent)}
+html .uyym-ui .public-page .hero-browser::after{color:var(--neo-accent)}
+html .uyym-ui .public-page .hero-browser-bar i:first-child{background:var(--neo-accent)}
+html .uyym-ui .public-page .hero-demo-action{background:var(--neo-accent);color:var(--neo-on-accent)}
+html .uyym-ui .public-page .hero-demo-note>span{color:var(--neo-on-tint)}
+
+/* A real subject navigation object, with its own outline and offset shadow. */
+html .uyym-ui .public-page .transition-overlap{position:relative;z-index:2;margin-top:-36px;background:transparent;padding:0}
+html .uyym-ui .public-page .exam-band .container{display:block;min-height:0}
+html .uyym-ui .public-page .subject-links{display:flex;align-items:center;justify-content:space-around;flex-wrap:wrap;gap:12px 32px;padding:20px 28px;background:var(--neo-deep);border:2px solid var(--neo-deep);border-radius:18px;box-shadow:var(--neo-shadow);min-width:0}
+html .uyym-ui .public-page .subject-links a{display:flex;align-items:center;gap:12px;min-height:44px;max-width:100%;font-size:15px;font-weight:650;line-height:1.5;color:var(--neo-on-brand);overflow-wrap:anywhere;padding:4px 0}
+html .uyym-ui .public-page .subject-links a::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--neo-accent);flex-shrink:0}
+html .uyym-ui .public-page .subject-links a:hover{color:var(--neo-accent)}
+html .uyym-ui .public-page .subject-links a:focus-visible{outline-color:var(--neo-accent)}
+html .uyym-ui .public-page .course-card:focus{outline:3px solid var(--neo-focus);outline-offset:6px}
+
+/* The editorial middle stays light; no outlined page-sized rectangles. */
+html .uyym-ui .public-page .neo-approach{padding-top:104px}
+html .uyym-ui .public-page .courses-section{background:var(--neo-bg)}
+html .uyym-ui .public-page .format-section{background:var(--neo-panel);color:var(--neo-ink)}
+html .uyym-ui .public-page .format-section :is(h2,h3,strong){color:var(--neo-ink)}
+html .uyym-ui .public-page .format-section :is(p,span,.eyebrow){color:var(--neo-muted)}
+html .uyym-ui .public-page .format-step{border:0}
+html .uyym-ui .public-page .format-step .step-number{background:var(--neo-accent);color:var(--neo-on-accent);border-color:var(--neo-deep);flex-shrink:0}
+html .uyym-ui .public-page .access-section{background:var(--neo-panel);padding-top:0}
+html .uyym-ui .public-page .teachers-section{background:var(--neo-panel)}
+
+/* Native details keeps keyboard semantics. Each question is a local card. */
+html .uyym-ui .public-page .faq-list{display:grid;gap:12px;align-content:start;min-width:0}
+html .uyym-ui .public-page .faq-list details,
+html .uyym-ui .public-page .faq-list details:first-child{background:var(--neo-panel);border:1px solid var(--neo-divider);border-radius:16px;min-width:0}
+html .uyym-ui .public-page .faq-list summary{padding:22px 24px;min-height:72px;font-size:16px;line-height:1.5;color:var(--neo-ink);border-radius:15px;overflow-wrap:anywhere;transition:background .16s,color .16s}
+html .uyym-ui .public-page .faq-list summary:is(:hover,:focus-visible){background:var(--neo-accent-soft);color:var(--neo-on-accent-soft)}
+html .uyym-ui .public-page .faq-list summary span{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--neo-accent);color:var(--neo-on-accent);font-size:22px;transition:transform .16s}
+html .uyym-ui .public-page .faq-list details p{margin:0 12px 12px;padding:18px 16px;border-radius:10px;background:var(--neo-soft);color:var(--neo-ink);overflow-wrap:anywhere}
+
+/* Blue conversion moment; the note shares its surface instead of a white gap. */
+html .uyym-ui .public-page .contact-section{--neo-focus:var(--neo-accent)}
+html .uyym-ui .public-page .contact-section::after{content:'{ }';position:absolute;bottom:26px;right:5%;color:var(--neo-accent);opacity:.12;font-size:100px;font-weight:750;line-height:1;pointer-events:none;z-index:-1}
+html .uyym-ui .public-page .contact-actions{min-width:0}
+html .uyym-ui .public-page .contact-actions .button-accent{width:100%;white-space:normal}
+html .uyym-ui .public-page .contact-email{color:var(--neo-on-feature);overflow-wrap:anywhere}
+html .uyym-ui .public-page .poc-notice{--neo-focus:var(--neo-accent);width:100%;max-width:none;margin:0;background:var(--neo-feature);color:var(--neo-on-feature);padding:0 max(40px,calc((100% - 1240px)/2)) 40px}
+html .uyym-ui .public-page .poc-notice p{color:var(--neo-on-feature);max-width:90ch}
+html .uyym-ui .public-page .poc-notice>.icon{color:var(--neo-accent);flex-shrink:0}
+
+/* Explicit descendant colors override the legacy footer's light-only rules. */
+html .uyym-ui footer{--neo-focus:var(--neo-accent);background:var(--neo-deep);color:var(--neo-on-brand);border:0;padding-top:24px}
+html .uyym-ui footer .brand :is(strong,small){color:var(--neo-on-brand)}
+html .uyym-ui footer .brand-yellow{color:var(--neo-accent)}
+html .uyym-ui footer .footer-top{padding-block:32px;min-height:128px}
+html .uyym-ui footer :is(.footer-top p,.footer-bottom){color:var(--neo-on-deep-muted)}
+html .uyym-ui footer .footer-top .text-link{color:var(--neo-on-brand);font-size:14px;min-height:44px}
+html .uyym-ui footer .footer-top .text-link:hover{color:var(--neo-accent)}
+html .uyym-ui footer .footer-bottom{border:0;padding-block:8px 36px;line-height:1.7}
+
+@media(max-width:1000px){
+ html .uyym-ui .public-page .transition-space{padding-block:88px}
+ html .uyym-ui .public-page .transition-soft{padding-block:88px 104px}
+ html .uyym-ui .public-page .subject-links{gap:8px 24px;padding:18px 20px}
+}
+@media(max-width:767px){
+ html .uyym-ui .public-page .transition-hero{padding-bottom:104px}
+ html .uyym-ui .public-page .transition-hero::after{height:16px}
+ html .uyym-ui .public-page .transition-overlap{margin-top:-20px}
+ html .uyym-ui .public-page .subject-links{flex-direction:column;align-items:stretch;gap:4px;padding:16px 20px;border-radius:14px}
+ html .uyym-ui .public-page .subject-links a{font-size:14px}
+ html .uyym-ui .public-page .neo-approach{padding-top:72px}
+ html .uyym-ui .public-page .transition-space{padding-block:72px}
+ html .uyym-ui .public-page .transition-soft{padding-block:72px 88px}
+ html .uyym-ui .public-page .transition-angle{padding-block:88px 48px}
+ html .uyym-ui .public-page .transition-angle::before{height:20px}
+ html .uyym-ui .public-page .faq-list summary{padding:18px 16px;font-size:15px;gap:12px}
+ html .uyym-ui .public-page .faq-list details p{margin:0 8px 8px;padding:16px 12px}
+ html .uyym-ui .public-page .poc-notice{padding:0 20px 32px}
+ html .uyym-ui footer{padding-top:8px}
+ html .uyym-ui footer .footer-top{padding-block:28px}
+ html .uyym-ui footer .footer-bottom{padding-bottom:28px}
+}

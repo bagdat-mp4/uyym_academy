@@ -29,6 +29,7 @@ export function interfaceError(error:unknown):string {
 export function savedLanguage(storage:Pick<Storage,'getItem'>):Lang {
  try {const saved=storage.getItem('uyym-language');return saved==='kk'||saved==='ru'||saved==='en'?saved:'en';}catch{return 'en';}
 }
-export function savedTheme(storage:Pick<Storage,'getItem'>):'light'|'dark' {
- try{return storage.getItem('uyym-theme')==='dark'?'dark':'light';}catch{return 'light';}
+export type ThemePreference='light'|'dark'|'system';
+export function savedTheme(storage:Pick<Storage,'getItem'>):ThemePreference {
+ try{const value=storage.getItem('uyym-theme');return value==='dark'||value==='system'?value:'light';}catch{return 'light';}
 }
