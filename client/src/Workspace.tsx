@@ -28,8 +28,8 @@ export class WorkspaceBoundary extends Component<{lang:Lang;children:ReactNode},
  static getDerivedStateFromError(){return {failed:true};}
  render(){return this.state.failed?<WorkspaceError lang={this.props.lang}/>:this.props.children;}
 }
-export default function Workspace({lang,role,onAccountUpdated}:{lang:Lang;role:User['role'];onAccountUpdated:()=>void}){
+export default function Workspace({lang,role,name,onAccountUpdated}:{name?:string;lang:Lang;role:User['role'];onAccountUpdated:()=>void}){
  return <WorkspaceBoundary lang={lang}><Suspense fallback={<WorkspaceLoading lang={lang}/>}>
-  {role==='ADMIN'?<AdminPanel lang={lang}/>:<AdminInvitationSetup lang={lang} onDone={onAccountUpdated}>{role==='TEACHER'?<TeacherPanel lang={lang}/>:<LearningHub lang={lang} role="STUDENT"/>}</AdminInvitationSetup>}
+  {role==='ADMIN'?<AdminPanel lang={lang}/>:<AdminInvitationSetup lang={lang} onDone={onAccountUpdated}>{role==='TEACHER'?<TeacherPanel lang={lang}/>:<LearningHub lang={lang} role="STUDENT" studentName={name}/>}</AdminInvitationSetup>}
  </Suspense></WorkspaceBoundary>;
 }

@@ -12,9 +12,9 @@ import {WorkspaceError,WorkspaceLoading} from '../client/src/Workspace.js';
 
 test('account navigation names the real destination for guests and each role in all languages',()=>{
  for(const [lang,labels] of [
-  ['en',['Sign in','My learning','Teaching workspace','Administration']],
-  ['kk',['Кіру','Менің оқуым','Оқытушы кабинеті','Әкімші панелі']],
-  ['ru',['Войти','Моё обучение','Кабинет преподавателя','Администрирование']],
+  ['en',['Sign in','Dashboard','Teaching workspace','Administration']],
+  ['kk',['Кіру','Оқу кабинеті','Оқытушы кабинеті','Әкімші панелі']],
+  ['ru',['Войти','Учебный кабинет','Кабинет преподавателя','Администрирование']],
  ] as const){
   [undefined,'STUDENT','TEACHER','ADMIN'].forEach((role,index)=>{
    const markup=renderToStaticMarkup(createElement(AccountLink,{lang,role:role as 'STUDENT'|'TEACHER'|'ADMIN'|undefined,current:true,onNavigate(){}}));
@@ -52,6 +52,7 @@ test('account header replaces public navigation with home; public header keeps c
   for(const path of ['#courses','#format','#faq','#contact'])assert.ok(homepage.includes(`href="${path}"`));
   assert.ok(homepage.includes('EN')&&homepage.includes('ҚАЗ')&&homepage.includes('RU'));
   const full=renderToStaticMarkup(createElement(App));assert.ok(full.includes('class="skip-link"')&&full.includes('id="main-content" tabindex="-1"'));assert.ok(full.includes('width="48" height="48"'));
+  assert.ok(full.includes('Loading courses…'));assert.ok(!full.includes('60,000')&&!full.includes('Principles of Programming'));
  }finally{if(previous)Object.defineProperty(globalThis,'window',previous);else Reflect.deleteProperty(globalThis,'window');}
 });
 

@@ -10,5 +10,6 @@ export function summarizeLearning(contents:Content[],now=Date.now()){
  const resume=lessons.filter(item=>item.video_ready&&item.published&&!item.completed_at&&Number(item.progress_seconds)>0&&item.last_opened_at).sort((a,b)=>Date.parse(b.last_opened_at!)-Date.parse(a.last_opened_at!))[0];
  const upcoming=lessons.filter(item=>item.starts_at&&Date.parse(item.starts_at)>now).sort((a,b)=>Date.parse(a.starts_at!)-Date.parse(b.starts_at!));
  const due=assignments.filter(item=>!item.submission||['not_submitted','needs_revision'].includes(item.submission.status)).sort((a,b)=>(a.due_at?Date.parse(a.due_at):Infinity)-(b.due_at?Date.parse(b.due_at):Infinity));
- return {resume,upcoming,due,completed:lessons.filter(item=>item.completed_at).length,total:lessons.length};
+ const start=lessons.find(item=>item.video_ready&&item.published&&!item.completed_at);
+ return {resume,start,upcoming,due,completed:lessons.filter(item=>item.completed_at).length,total:lessons.length};
 }

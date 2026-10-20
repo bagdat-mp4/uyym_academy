@@ -42,3 +42,17 @@ test('course hero text, actions and focus meet contrast in both themes',async()=
   assert.ok(contrast(tokens.focus,tokens.surface)>=3,'Visible focus ring');
  }
 });
+
+test('neo semantic surfaces, states, selection and controls meet AA in light and dark',async()=>{
+ const css=await readFile(new URL('../client/src/neo-system.css',import.meta.url),'utf8');
+ const blocks=[css.match(/:root\s*\{([^}]+)\}/)![1],css.match(/html\[data-theme="dark"\]\s*\{([^}]+)\}/)![1]];
+ let tokens:Record<string,string>={};
+ for(const block of blocks){
+  tokens={...tokens,...Object.fromEntries([...block.matchAll(/--neo-([\w-]+):\s*(#[a-f0-9]{6})/gi)].map(m=>[m[1],m[2]]))};
+  for(const surface of ['bg','panel','soft'])for(const ink of ['ink','muted','success','warning','error'])assert.ok(contrast(tokens[ink],tokens[surface])>=4.5,`${ink} on ${surface}`);
+  assert.ok(contrast(tokens.border,tokens.panel)>=3);assert.ok(contrast(tokens.focus,tokens.panel)>=3);
+  assert.ok(contrast(tokens['selected-ink'],tokens.selected)>=4.5);
+ }
+ assert.ok(contrast('#171e19','#b7c6c2')>=4.5);
+ assert.ok(!/linear-gradient|radial-gradient|backdrop-filter:\s*blur/.test(css));
+});

@@ -26,6 +26,22 @@ test('learning summary uses explicit completion, resume and submission states ra
  assert.equal(summarizeLearning([],now).resume,undefined);
  assert.equal(summarizeLearning([{...fixture,lessons:[{...fixture.lessons[1],progress_seconds:0}]}],now).resume,undefined);
 });
+test('new learners start only published ready lessons; pending and completed recordings are not suggested',()=>{
+ const content={...fixture,lessons:fixture.lessons.map(item=>({...item,progress_seconds:0,last_opened_at:null}))};
+ assert.equal(summarizeLearning([content],now).start?.id,'resume');
+ assert.equal(summarizeLearning([{...content,lessons:[{...content.lessons[1],published:false},content.lessons[2]]}],now).start,undefined);
+ const html=renderToStaticMarkup(createElement(StudentHome,{lang:'en',name:'A <script>name</script>',courses:[fixture.course],contents:[content],loading:false,failed:0,view:'overview',onCourse(){},onLesson(){},onRetry(){}}));
+ assert.ok(html.includes('Start learning')&&html.includes('A &lt;script&gt;name&lt;/script&gt;'));assert.ok(!html.includes('<script>'));
+});
+test('dashboard never presents incomplete completion/deadline data as zero; empty account points to real catalogue',()=>{
+ const props={lang:'en' as const,courses:[fixture.course],contents:[],loading:false,failed:1,view:'overview' as const,onCourse(){},onLesson(){},onRetry(){}};
+ const partial=renderToStaticMarkup(createElement(StudentHome,props));assert.ok(partial.includes('<dd>—</dd>'));
+ const empty=renderToStaticMarkup(createElement(StudentHome,{...props,courses:[],failed:0}));assert.ok(empty.includes('href="#courses"'));assert.ok(!empty.includes('Start learning'));
+});
+test('dashboard discards stale content for courses no longer in the enrolled course list',()=>{
+ const html=renderToStaticMarkup(createElement(StudentHome,{lang:'en',courses:[{id:'different',title:'Current enrolment',description:''}],contents:[fixture],loading:false,failed:0,view:'overview',onCourse(){},onLesson(){},onRetry(){}}));
+ assert.ok(!html.includes('Resume &lt;script&gt;'));assert.ok(!html.includes('Please revise'));assert.ok(html.includes('<dd>—</dd>'));
+});
 test('student dashboard renders only supplied course data, escapes author text and exposes partial failures',()=>{
  for(const lang of ['en','kk','ru'] as const){
  const html=renderToStaticMarkup(createElement(StudentHome,{lang,courses:[fixture.course],contents:[fixture],loading:false,failed:1,view:'overview',onCourse(){},onLesson(){},onRetry(){}}));

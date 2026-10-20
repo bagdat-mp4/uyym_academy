@@ -7,9 +7,11 @@ import './dark-surfaces.css';
 import './appearance.css';
 import './design-system.css';
 import './course-hero.css';
+import './neo-system.css';
 import {savedLanguage,savedTheme,preferenceStorage} from './i18n';
+import {applyTheme} from './theme';
 
 document.documentElement.lang=savedLanguage(preferenceStorage);
-document.documentElement.dataset.theme=savedTheme(preferenceStorage);
+applyTheme(savedTheme(preferenceStorage));
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

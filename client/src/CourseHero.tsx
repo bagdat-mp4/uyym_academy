@@ -1,68 +1,14 @@
-import type { Course } from './api';
-import type { Lang } from './i18n';
-
-const copy = {
-  en: {
-    label: 'For KBTU students',
-    title: { first: 'We make', second: 'learning clear.' },
-    description: 'Calculus, Linear Algebra and C++ in small groups. Classes, recordings and practice to help you prepare for your next exam.',
-    courses: 'Explore courses',
-    format: 'How we learn',
-    note: 'Quiz, Midterm, Endterm & Final',
-    scroll: 'Find your course below',
-  },
-  kk: {
-    label: 'КБТУ студенттеріне арналған',
-    title: { first: 'Түсініп оқы.', second: 'Сенімді бол.' },
-    description: 'Calculus, Linear Algebra және C++ — шағын топта бірге талдаймыз. Сабақ, жазба және практика арқылы келесі емтиханға дайындал.',
-    courses: 'Курстарды көру',
-    format: 'Қалай оқимыз?',
-    note: 'Quiz, Midterm, Endterm және Final',
-    scroll: 'Өзіңе керек курсты таңда',
-  },
-  ru: {
-    label: 'Для студентов КБТУ',
-    title: { first: 'Понимай.', second: 'Учись уверенно.' },
-    description: 'Calculus, Linear Algebra и C++ — разбираем вместе в небольшой группе. Занятия, записи и практика для подготовки к следующему экзамену.',
-    courses: 'Посмотреть курсы',
-    format: 'Как мы учимся',
-    note: 'Quiz, Midterm, Endterm и Final',
-    scroll: 'Выбери свой курс ниже',
-  },
+import type {Course,User} from './api';
+import type {Lang} from './i18n';
+const copy={
+ en:{label:'Quiz & midterm preparation',title:'Less cramming. More understanding.',description:'Learn the topic. Practise the problems. Return to your class recordings when you need another look.',courses:'Explore courses',login:'Sign in to learn',dashboard:'Open dashboard',staff:'Open workspace',example:'A look inside your learning space',preview:'Illustration · not your account',lesson:'Classes & recordings',materials:'Notes & practice',action:'Choose your next lesson',empty:'Explore available courses below'},
+ kk:{label:'Quiz пен Midterm-ге дайындық',title:'Жаттап алма. Түсініп үйрен.',description:'Тақырыпты түсін. Есептерді шығар. Қайта қарау керек болса, сабақ жазбасына орал.',courses:'Курстарды көру',login:'Оқуға кіру',dashboard:'Оқу кабинетіне өту',staff:'Кабинетті ашу',example:'Оқу кеңістігіңмен таныс',preview:'Иллюстрация · сіздің аккаунтыңыз емес',lesson:'Сабақтар мен жазбалар',materials:'Конспект пен практика',action:'Келесі сабағыңды таңда',empty:'Қолжетімді курстар төменде'},
+ ru:{label:'Подготовка к Quiz и Midterm',title:'Меньше зубрёжки. Больше понимания.',description:'Разберись в теме. Реши задачи. Вернись к записи занятия, когда захочешь повторить.',courses:'Посмотреть курсы',login:'Войти и учиться',dashboard:'Открыть учебный кабинет',staff:'Открыть кабинет',example:'Твоё пространство для учёбы',preview:'Иллюстрация · это не ваш аккаунт',lesson:'Занятия и записи',materials:'Конспекты и практика',action:'Выбери следующий урок',empty:'Доступные курсы ниже'},
 } as const;
-
-function courseSymbol(title: string) {
-  return /calculus/i.test(title) ? '∫' : /linear|algebra/i.test(title) ? '[A]' : /pp1|programming|c\+\+/i.test(title) ? '{ }' : '↗';
-}
-
-export default function CourseHero({ lang, courses }: { lang: Lang; courses: readonly Course[] }) {
-  const text = copy[lang];
-  // Repeated covers are scenery, not extra courses, statistics or actionable UI.
-  // The accessible, complete course catalogue and enrolment actions follow below.
-  const covers = courses.slice(0, 3);
-  const arrangement = [0, 1, 2, 1, 0, 2, 0, 2, 1];
-
-  return <section className={`course-hero course-hero--${lang}`} aria-labelledby="course-hero-title">
-    <div className="course-hero-collage" aria-hidden="true">
-      {covers.length > 0 && arrangement.map((index, position) => {
-        const course = covers[index % covers.length];
-        return <div className={`hero-course-cover hero-course-cover--${position + 1}`} key={position}>
-          <span className="hero-cover-title">{course.title}</span>
-          <span className="hero-cover-symbol">{courseSymbol(course.title)}</span>
-          <span className="hero-cover-brand">UYYM Academy</span>
-        </div>;
-      })}
-    </div>
-    <div className="course-hero-copy">
-      <p className="course-hero-label">{text.label}</p>
-      <h1 id="course-hero-title"><span>{text.title.first}</span><span>{text.title.second}</span></h1>
-      <p className="course-hero-description">{text.description}</p>
-      <div className="course-hero-actions">
-        <a className="course-hero-primary" href="#courses">{text.courses}<span aria-hidden="true">↗</span></a>
-        <a className="course-hero-secondary" href="#format">{text.format}</a>
-      </div>
-      <p className="course-hero-note">{text.note}</p>
-    </div>
-    <a className="course-hero-scroll" href="#courses"><span aria-hidden="true">↓</span>{text.scroll}</a>
-  </section>;
+export default function CourseHero({lang,courses,role}:{lang:Lang;courses:readonly Course[];role?:User['role']}){
+ const text=copy[lang];
+ return <section className="course-hero" aria-labelledby="course-hero-title"><div className="container neo-hero-grid">
+  <div className="course-hero-copy"><p className="course-hero-label">{text.label}</p><h1 id="course-hero-title">{text.title}</h1><p className="course-hero-description">{text.description}</p><div className="course-hero-actions"><a className="course-hero-primary" href="#courses">{text.courses}<span aria-hidden="true">↗</span></a><a className="course-hero-secondary" href="#account">{role==='STUDENT'?text.dashboard:role?text.staff:text.login}</a></div><p className="course-hero-note">Quiz / Midterm / Endterm / Final</p></div>
+  <figure className="hero-browser"><figcaption>{text.preview}</figcaption><div className="hero-browser-bar" aria-hidden="true"><i/><i/><i/><span>UYYM Academy</span></div><div className="hero-browser-body"><p className="hero-browser-label">{text.example}</p><div className="hero-demo-courses">{courses.slice(0,3).map((course,index)=><div className="hero-demo-course" key={course.id}><span className="hero-demo-symbol" aria-hidden="true">{index===0?'∫':index===1?'[A]':'{ }'}</span><strong>{course.title}</strong><span>{text.lesson}</span></div>)}</div><div className="hero-demo-action" aria-hidden="true"><span>{courses.length?text.action:text.empty}</span><span>↗</span></div><div className="hero-demo-note">{text.materials}<span aria-hidden="true">✦</span></div></div></figure>
+ </div></section>;
 }
