@@ -1,0 +1,50 @@
+html .uyym-ui .workspace-frame.workspace-admin .manage-dialog:has(.group-enrollment-dialog){width:min(920px,calc(100vw - 48px))}
+html .uyym-ui .workspace-admin .group-enrollment-dialog{color:var(--admin-ink);min-width:0}
+html .uyym-ui .workspace-admin .group-enrollment-context{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 18px;border:1px solid var(--admin-line);border-radius:12px;background:var(--admin-soft);margin:0 0 14px;overflow-wrap:anywhere}
+html .uyym-ui .workspace-admin .group-enrollment-context strong{font-size:16px}
+html .uyym-ui .workspace-admin .group-enrollment-context p{font-size:13px;color:var(--admin-muted);margin:5px 0 0}
+html .uyym-ui .workspace-admin .group-enrollment-context>span{font-size:12px;color:var(--admin-muted);flex-shrink:0}
+html .uyym-ui .workspace-admin .group-enrollment-intro,html .uyym-ui .workspace-admin .group-access-note{font-size:13px;line-height:1.65;color:var(--admin-muted);margin:12px 0}
+html .uyym-ui .workspace-admin .group-student-search{display:flex;align-items:flex-end;gap:12px;margin:22px 0 12px}
+html .uyym-ui .workspace-admin .group-student-search>label{flex:1;min-width:0;display:grid;gap:7px;font-size:12px;color:var(--admin-muted);margin:0}
+html .uyym-ui .workspace-admin .group-student-search>button{flex-shrink:0;min-height:44px}
+html .uyym-ui .workspace-admin .group-candidate-results{border:1px solid var(--admin-line);border-radius:12px;overflow:hidden;min-height:104px}
+html .uyym-ui .workspace-admin .group-student-list{list-style:none;margin:0;padding:0;max-height:360px;overflow-y:auto}
+html .uyym-ui .workspace-admin .group-student-list>li+li{border-top:1px solid var(--admin-line)}
+html .uyym-ui .workspace-admin .group-student-choice{display:flex;align-items:center;gap:12px;min-height:76px;margin:0;padding:12px 16px;background:var(--admin-panel);cursor:pointer}
+html .uyym-ui .workspace-admin .group-student-choice:hover,html .uyym-ui .workspace-admin .group-student-choice.is-selected{background:var(--admin-selected)}
+html .uyym-ui .workspace-admin .group-student-choice:has(input:disabled){cursor:default}
+html .uyym-ui .workspace-admin .group-student-choice>input{width:20px;height:20px;min-width:20px;min-height:20px;flex-shrink:0;margin:0}
+html .uyym-ui .workspace-admin .group-student-identity{display:grid;gap:3px;flex:1;min-width:0;overflow-wrap:anywhere}
+html .uyym-ui .workspace-admin .group-student-identity strong{font-size:14px;font-weight:650;color:var(--admin-ink)}
+html .uyym-ui .workspace-admin .group-student-identity>span{font-size:12px;font-variant-numeric:tabular-nums;color:var(--admin-muted)}
+html .uyym-ui .workspace-admin .group-student-identity small{font-size:11px;line-height:1.4;color:var(--admin-muted)}
+html .uyym-ui .workspace-admin .group-student-empty{padding:20px;font-size:13px;color:var(--admin-muted);line-height:1.6}
+html .uyym-ui .workspace-admin .group-selected-students{margin:14px 0 22px}
+html .uyym-ui .workspace-admin .group-selection-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+html .uyym-ui .workspace-admin .group-selection-heading h3{font-size:14px;margin:0}
+html .uyym-ui .workspace-admin .group-selected-students>ul{display:flex;gap:8px;flex-wrap:wrap;padding:0;margin:8px 0 0;list-style:none;max-height:180px;overflow-y:auto}
+html .uyym-ui .workspace-admin .group-selected-students>ul>li{display:flex;align-items:center;gap:8px;padding:5px 5px 5px 12px;border:1px solid var(--admin-line);border-radius:10px;background:var(--admin-soft);max-width:100%;min-width:0}
+html .uyym-ui .workspace-admin .group-selected-students>ul>li>span{font-size:12px;overflow-wrap:anywhere;min-width:0}
+html .uyym-ui .workspace-admin .group-selected-students small{display:block;color:var(--admin-muted);font-size:10px;font-variant-numeric:tabular-nums;margin-top:2px}
+html .uyym-ui .workspace-admin .group-selected-students li>button{display:grid;place-items:center;min-width:44px;min-height:44px;background:transparent;color:var(--admin-link);border:0;border-radius:7px;cursor:pointer}
+html .uyym-ui .workspace-admin .group-selected-students li>button:hover{background:var(--admin-selected)}
+html .uyym-ui .workspace-admin .group-access-form fieldset{border:1px solid var(--admin-line);border-radius:12px;margin:0;padding:18px;min-width:0}
+html .uyym-ui .workspace-admin .group-access-form legend{font-size:13px;font-weight:600;padding:0 6px}
+html .uyym-ui .workspace-admin .group-access-fields{display:grid;grid-template-columns:.8fr 1fr 1fr;gap:14px}
+html .uyym-ui .workspace-admin .group-access-fields>label{display:grid;gap:7px;font-size:12px;color:var(--admin-muted);margin:0;min-width:0}
+html .uyym-ui .workspace-admin .group-access-fields :is(input,select){width:100%;min-width:0}
+html .uyym-ui .workspace-admin .group-enrollment-warning{border:1px solid var(--admin-warning);border-radius:9px;padding:12px 14px;background:var(--admin-warning-soft);color:var(--admin-warning);font-size:13px;line-height:1.6}
+html .uyym-ui .workspace-admin .group-enrollment-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap}
+html .uyym-ui .workspace-admin .group-enrollment-dialog :is(button,input,select):focus-visible{outline:3px solid var(--admin-focus);outline-offset:2px}
+@media(max-width:740px){
+ html .uyym-ui .workspace-frame.workspace-admin .manage-dialog:has(.group-enrollment-dialog){width:calc(100vw - 24px);padding:24px 16px}
+ html .uyym-ui .workspace-admin .group-enrollment-context{align-items:flex-start;flex-direction:column;gap:12px;padding:14px}
+ html .uyym-ui .workspace-admin .group-student-search{flex-direction:column;align-items:stretch}
+ html .uyym-ui .workspace-admin .group-student-choice{padding:12px;gap:10px;flex-wrap:wrap}
+ html .uyym-ui .workspace-admin .group-student-choice>.manage-status{margin-left:30px}
+ html .uyym-ui .workspace-admin .group-access-fields{grid-template-columns:1fr}
+ html .uyym-ui .workspace-admin .group-access-form fieldset{padding:14px}
+ html .uyym-ui .workspace-admin .group-enrollment-dialog :is(input[type="search"],input[type="datetime-local"],select){font-size:16px}
+ html .uyym-ui .workspace-admin .group-enrollment-actions>button{flex:1;min-height:44px}
+}

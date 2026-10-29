@@ -18,6 +18,11 @@ const assignments=z.object({teacher_id:uuid,course_id:uuid,group_id:uuid.nullabl
 const enrollments=z.object({user_id:uuid,course_id:uuid,group_id:uuid.nullable().default(null),status:status.default('pending'),starts_at:date,expires_at:date,payment_status:z.enum(['unpaid','partial','paid','refunded']).default('unpaid'),revocation_reason:z.string().max(1000).default('')});
 const payments=z.object({enrollment_id:uuid,amount_kzt:z.number().int().min(1).max(100000000),paid_at:date,method:method.default('manual'),note:z.string().max(2000).default('')});
 const studentChanges=z.object({operation_id:uuid,revision,status:status.optional(),starts_at:date.optional(),expires_at:date.optional()}).strict().refine(d=>d.status!==undefined||d.starts_at!==undefined||d.expires_at!==undefined);
+const groupStudents=z.object({
+ operation_id:uuid,
+ students:z.array(z.object({user_id:uuid,enrollment_revision:z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).nullable()}).strict()).min(1).max(100),
+ status:z.enum(['active','pending']),starts_at:date,expires_at:date,
+}).strict().refine(data=>new Set(data.students.map(student=>student.user_id)).size===data.students.length);
 
 const courseSelect='c.id,c.slug,c.title,c.description,c.published,c.active,c.weeks,c.lessons_per_week,c.lesson_minutes,c.price_kzt,c.default_group_size,c.revision,c.created_at,c.updated_at';
 const groupSelect=`g.id,g.course_id,g.title,g.capacity,g.active,g.starts_at,g.ends_at,g.schedule_description,g.revision,g.created_at,g.updated_at,c.title AS course_title,(SELECT count(*)::integer FROM private.enrollments e WHERE e.group_id=g.id AND e.status IN ('pending','active','paused') AND e.expires_at>now()) AS reserved_seats`;
@@ -85,6 +90,23 @@ async function updateEnrollment(db:PoolClient,ctx:Context,enrollment:any,data:an
  return one(db,enrollmentFrom,ctx.user.role==='TEACHER'?teacherEnrollmentSelect:enrollmentSelect,'e.id=$1',[enrollment.id]);
 }
 
+async function enrollmentGroup(db:PoolClient|typeof pool,groupId:string,lock=false){
+ const group=(await db.query(`SELECT ${groupSelect},c.active AS course_active,(g.ends_at IS NULL OR g.ends_at>now()) AS not_ended FROM private.groups g JOIN private.courses c ON c.id=g.course_id WHERE g.id=$1${lock?' FOR UPDATE OF g':''}`,[groupId])).rows[0];
+ if(!group)fail('NOT_FOUND',404);
+ return group;
+}
+function canAddGroupStudents(group:any){return Boolean(group.active&&group.course_active&&group.not_ended);}
+function groupStudent(row:any,groupId:string,groupOpen:boolean){
+ const eligibility=!row.active?'inactive':row.auth_pending?'access_review':!row.enrollment_id?'new':row.group_id===groupId?'member':row.group_id?'other_group':row.enrollment_current&&['active','pending'].includes(row.status)?'ungrouped':'access_review';
+ return {
+  id:row.id,user_id:row.id,name:row.name,phone:row.phone,active:row.active,
+  enrollment_id:row.enrollment_id,enrollment_revision:row.enrollment_revision===null?null:Number(row.enrollment_revision),
+  group_id:row.group_id,group_title:row.group_title,status:row.status,effective_status:row.effective_status,
+  starts_at:row.starts_at,expires_at:row.expires_at,eligibility,
+  selectable:groupOpen&&(eligibility==='new'||eligibility==='ungrouped'),
+ };
+}
+
 export async function registerAcademicRoutes(app:FastifyInstance){
  app.get('/api/admin/courses',async req=>{await readAccess(req);const f=conditions(req,['c.title','c.slug']);return pageList(req,pool,'private.courses c',courseSelect,f.where.join(' AND '),f.params,'c.created_at DESC,c.id');});
  app.post('/api/admin/courses',async req=>{
@@ -119,6 +141,62 @@ export async function registerAcademicRoutes(app:FastifyInstance){
    if(!row.active)await db.query(`UPDATE private.playback_grants p SET revoked_at=now() WHERE p.revoked_at IS NULL AND (p.lesson_id IN (SELECT id FROM private.lessons WHERE group_id=$1) OR (p.lesson_id IN (SELECT id FROM private.lessons WHERE course_id=$2) AND p.user_id IN (SELECT user_id FROM private.enrollments WHERE group_id=$1)))`,[groupId,row.course_id]);
    await log(db,ctx,'group.changed','group',groupId,{title:previous.title,capacity:previous.capacity,active:previous.active},{title:row.title,capacity:row.capacity,active:row.active});return row;
   });
+ });
+
+ // Bulk selection is ADMIN-only. A student need not have logged in or registered
+ // a browser yet; learning access still requires the existing browser/session proof.
+ app.get('/api/admin/groups/:id/students',async req=>{
+  await readAccess(req);const groupId=id(req),group=await enrollmentGroup(pool,groupId);
+  const f=conditions(req,['u.name','u.phone']);f.params.unshift(group.course_id);
+  // conditions() starts its search parameter at $1; the course occupies it here.
+  const search=f.where.map(condition=>condition.replace(/\$(\d+)/g,(_match,n)=>`$${Number(n)+1}`));
+  const from=`private.app_users u JOIN private.courses c ON c.id=$1 LEFT JOIN private.enrollments e ON e.user_id=u.id AND e.course_id=c.id LEFT JOIN private.groups g ON g.id=e.group_id`;
+  const select=`u.id,u.name,u.phone,u.active,(u.auth_operation_id IS NOT NULL) AS auth_pending,e.id AS enrollment_id,e.revision AS enrollment_revision,e.group_id,g.title AS group_title,e.status,e.starts_at,e.expires_at,(e.expires_at>now()) AS enrollment_current,CASE WHEN e.id IS NULL THEN NULL ELSE ${effective} END AS effective_status`;
+  const result=await pageList(req,pool,from,select,["u.role='STUDENT'",...search].join(' AND '),f.params,'u.name,u.id');
+  const {course_active,not_ended,...safeGroup}=group;
+  return {...result,group:{...safeGroup,can_add_students:canAddGroupStudents(group)},items:result.items.map((row:any)=>groupStudent(row,groupId,canAddGroupStudents(group)))};
+ });
+ app.post('/api/admin/groups/:id/students',async req=>{
+  const groupId=id(req),data=groupStudents.parse(req.body);
+  const result=await managementMutation(req,`group.students.added.${groupId}`,data,async(db,ctx)=>{
+   const group=await enrollmentGroup(db,groupId,true);
+   if(!canAddGroupStudents(group))fail('CONFLICT',409);
+   const candidates:{user_id:string;enrollment:any|null}[]=[];
+   // Validate the whole selection before applying any change. The existing
+   // management lock and capacity triggers also protect concurrent admissions.
+   for(const wanted of [...data.students].sort((a,b)=>a.user_id.localeCompare(b.user_id))){
+    const student=(await db.query('SELECT id,role,active,auth_operation_id FROM private.app_users WHERE id=$1 FOR UPDATE',[wanted.user_id])).rows[0];
+    if(!student||student.role!=='STUDENT'||!student.active||student.auth_operation_id)fail('INVALID_DATA',400);
+    const enrollment=(await db.query('SELECT *,expires_at>now() AS enrollment_current FROM private.enrollments WHERE user_id=$1 AND course_id=$2 FOR UPDATE',[wanted.user_id,group.course_id])).rows[0];
+    if(enrollment){
+     if(wanted.enrollment_revision===null||Number(enrollment.revision)!==wanted.enrollment_revision)fail('CONFLICT',409);
+     if(enrollment.group_id||!enrollment.enrollment_current||!['active','pending'].includes(enrollment.status))fail('CONFLICT',409);
+     await validateEnrollment(db,{...enrollment,group_id:groupId});
+    }else{
+     if(wanted.enrollment_revision!==null)fail('CONFLICT',409);
+     dates(data.starts_at,data.expires_at);
+     if(Date.parse(data.expires_at)<=Date.now())fail('INVALID_DATA',400);
+     await validateEnrollment(db,{user_id:wanted.user_id,course_id:group.course_id,group_id:groupId,status:data.status,starts_at:data.starts_at,expires_at:data.expires_at});
+    }
+    candidates.push({user_id:wanted.user_id,enrollment:enrollment??null});
+   }
+   if(Number(group.reserved_seats)+candidates.length>Number(group.capacity))fail('GROUP_FULL',409);
+   for(const candidate of candidates){
+    if(candidate.enrollment){
+     // Attaching existing course-wide access never extends or reactivates it,
+     // changes payment state, creates an account, or resets browser approval.
+     await updateEnrollment(db,ctx,candidate.enrollment,{group_id:groupId});
+    }else{
+     const row=(await db.query(`INSERT INTO private.enrollments(user_id,course_id,group_id,status,starts_at,expires_at,payment_status,created_by) VALUES($1,$2,$3,$4,$5,$6,'unpaid',$7) RETURNING id`,[candidate.user_id,group.course_id,groupId,data.status,data.starts_at,data.expires_at,ctx.user_id])).rows[0];
+     await log(db,ctx,'enrollment.created','enrollment',row.id,null,{course_id:group.course_id,group_id:groupId,status:data.status,starts_at:data.starts_at,expires_at:data.expires_at},candidate.user_id);
+    }
+   }
+   return {ok:true,group_id:groupId,course_id:group.course_id,completed:true};
+  });
+  // Existing receipt constraints accept only boolean acknowledgements. Counts
+  // follow from the exact hashed request after all students passed validation,
+  // so a retry has the same response without adding receipt schema or user data.
+  return {...result,created:data.students.filter(student=>student.enrollment_revision===null).length,completed:data.students.length};
  });
 
  app.get('/api/admin/teacher-assignments',async req=>{await readAccess(req);const f=conditions(req,['u.name','c.title','g.title'],{course_id:'t.course_id',group_id:'t.group_id',user_id:'t.teacher_id'});return pageList(req,pool,assignmentFrom,assignmentSelect,f.where.join(' AND '),f.params,'t.created_at DESC,t.id');});

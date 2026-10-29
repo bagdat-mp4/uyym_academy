@@ -54,6 +54,13 @@ const completedLesson=String(((await query("INSERT INTO private.lessons(course_i
 await query("INSERT INTO private.lesson_video_parts(lesson_id,part_index,drive_file_id,drive_folder_id,size_bytes,start_seconds,duration_seconds) VALUES($1,-1,'LOCAL_ONLY_NO_MEDIA','LOCAL_ONLY_NO_FOLDER',16,0,0),($1,0,'LOCAL_ONLY_NO_MEDIA','LOCAL_ONLY_NO_FOLDER',16,0,4)",[completedLesson]);
 await query("INSERT INTO private.lesson_progress(user_id,lesson_id,position_seconds,last_opened_at,completed_at) VALUES($1,$2,120,now(),now())",[studentId,completedLesson]);
 
+// Synthetic existing students who have not signed in; no real roster data.
+for(let candidate=1;candidate<=3;candidate++){
+ const candidateId=randomUUID(),candidatePhone='+770700000'+String(20+candidate);
+ await query('INSERT INTO auth.users(id,phone) VALUES($1,$2)',[candidateId,candidatePhone]);
+ await query("INSERT INTO private.app_users(id,phone,name,role,active,must_change_password) VALUES($1,$2,$3,'STUDENT',true,true)",[candidateId,candidatePhone,'LOCAL COHORT CANDIDATE '+candidate]);
+}
+
 globalThis.fetch=async(input:any,init?:RequestInit)=>{
  const url=String(input),body=init?.body?JSON.parse(String(init.body)):{};
  if(url==='https://local-auth.invalid/auth/v1/token?grant_type=password'){
