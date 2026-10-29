@@ -646,5 +646,11 @@
   "Эти даты и статус применяются только к новым зачислениям на этот курс. Срок, статус и оплата уже зачисленного ученика сохраняются.": "These dates and status apply only to new enrollments on this course. Existing students keep their access dates, status and payment records.",
   "Одобрение браузера выполняется отдельно. Добавление в группу не снимает защиту браузера.": "Browser approval is separate. Adding a student to a group does not remove browser protection.",
   "Повторить тот же запрос": "Retry the same request",
-  "Добавить в группу": "Add to group"
+  "Добавить в группу": "Add to group",
+  "Срок доступа": "Access period",
+  "Ручная настройка": "Custom dates",
+  "Выбрано автоматически": "Selected automatically",
+  "Время Алматы · UTC+5": "Almaty time · UTC+5",
+  "Изменить даты": "Change dates",
+  "Использовать автоматический срок": "Use automatic dates"
 }

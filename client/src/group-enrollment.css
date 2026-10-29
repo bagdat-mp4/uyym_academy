@@ -31,12 +31,23 @@ html .uyym-ui .workspace-admin .group-selected-students li>button{display:grid;p
 html .uyym-ui .workspace-admin .group-selected-students li>button:hover{background:var(--admin-selected)}
 html .uyym-ui .workspace-admin .group-access-form fieldset{border:1px solid var(--admin-line);border-radius:12px;margin:0;padding:18px;min-width:0}
 html .uyym-ui .workspace-admin .group-access-form legend{font-size:13px;font-weight:600;padding:0 6px}
-html .uyym-ui .workspace-admin .group-access-fields{display:grid;grid-template-columns:.8fr 1fr 1fr;gap:14px}
+html .uyym-ui .workspace-admin .group-access-fields{display:grid;grid-template-columns:minmax(0,300px);gap:14px}
 html .uyym-ui .workspace-admin .group-access-fields>label{display:grid;gap:7px;font-size:12px;color:var(--admin-muted);margin:0;min-width:0}
 html .uyym-ui .workspace-admin .group-access-fields :is(input,select){width:100%;min-width:0}
 html .uyym-ui .workspace-admin .group-enrollment-warning{border:1px solid var(--admin-warning);border-radius:9px;padding:12px 14px;background:var(--admin-warning-soft);color:var(--admin-warning);font-size:13px;line-height:1.6}
 html .uyym-ui .workspace-admin .group-enrollment-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;flex-wrap:wrap}
 html .uyym-ui .workspace-admin .group-enrollment-dialog :is(button,input,select):focus-visible{outline:3px solid var(--admin-focus);outline-offset:2px}
+html .uyym-ui .workspace-admin .enrollment-period{padding:16px;margin-top:16px;background:var(--admin-soft);border:1px solid var(--admin-line);border-radius:10px;min-width:0;color:var(--admin-ink)}
+html .uyym-ui .workspace-admin .enrollment-period-heading{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:13px}
+html .uyym-ui .workspace-admin .enrollment-period-heading>span{color:var(--admin-muted);font-size:12px}
+html .uyym-ui .workspace-admin .enrollment-period dl{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0 6px}
+html .uyym-ui .workspace-admin .enrollment-period dt,html .uyym-ui .workspace-admin .enrollment-period>p{font-size:12px;color:var(--admin-muted)}
+html .uyym-ui .workspace-admin .enrollment-period dd{margin:5px 0 0;font-size:13px;overflow-wrap:anywhere}
+html .uyym-ui .workspace-admin .enrollment-period>p{margin:8px 0 14px}
+html .uyym-ui .workspace-admin .enrollment-period-inputs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+html .uyym-ui .workspace-admin .enrollment-period-inputs>label{display:grid;gap:7px;min-width:0;font-size:12px;color:var(--admin-muted)}
+html .uyym-ui .workspace-admin .enrollment-period input{width:100%;min-width:0}
+html .uyym-ui .workspace-admin .enrollment-period :is(button,input):focus-visible{outline:3px solid var(--admin-focus);outline-offset:2px}
 @media(max-width:740px){
  html .uyym-ui .workspace-frame.workspace-admin .manage-dialog:has(.group-enrollment-dialog){width:calc(100vw - 24px);padding:24px 16px}
  html .uyym-ui .workspace-admin .group-enrollment-context{align-items:flex-start;flex-direction:column;gap:12px;padding:14px}
@@ -47,4 +58,7 @@ html .uyym-ui .workspace-admin .group-enrollment-dialog :is(button,input,select)
  html .uyym-ui .workspace-admin .group-access-form fieldset{padding:14px}
  html .uyym-ui .workspace-admin .group-enrollment-dialog :is(input[type="search"],input[type="datetime-local"],select){font-size:16px}
  html .uyym-ui .workspace-admin .group-enrollment-actions>button{flex:1;min-height:44px}
+ html .uyym-ui .workspace-admin .enrollment-period :is(dl,.enrollment-period-inputs){grid-template-columns:1fr}
+ html .uyym-ui .workspace-admin .enrollment-period input{font-size:16px}
+ html .uyym-ui .workspace-admin .enrollment-period>button{min-height:44px}
 }

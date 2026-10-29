@@ -12,7 +12,7 @@ export function groupAvailable(group:GroupContext,now=Date.now()){
  return group.active&&group.can_add_students!==false&&(!group.ends_at||Date.parse(group.ends_at)>now);
 }
 export function freeSeats(group:GroupContext){return Math.max(0,group.capacity-group.reserved_seats);}
-export function defaultAccessDates(group:GroupContext,now=Date.now()):AccessDates{
+export function defaultAccessDates(group:Pick<GroupContext,'starts_at'|'ends_at'>,now=Date.now()):AccessDates{
  const knownStart=group.starts_at?Date.parse(group.starts_at):NaN;
  let start=Number.isFinite(knownStart)?knownStart:now;
  const knownEnd=group.ends_at?Date.parse(group.ends_at):NaN;

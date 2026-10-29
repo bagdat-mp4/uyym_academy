@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import GroupEnrollmentDialog,{loadGroupCandidates,StudentChoices} from '../client/src/GroupEnrollmentDialog';
+import EnrollmentPeriod from '../client/src/EnrollmentPeriod';
 import {defaultAccessDates,enrollmentRequest,freeSeats,GROUP_BATCH_LIMIT,groupAvailable,localAccessDate,reconcileSelection,selectionProblem,toggleStudent,type GroupCandidate,type GroupCandidatePage,type GroupContext,type SelectedStudents} from '../client/src/group-enrollment-model';
 
 const now=Date.parse('2026-10-29T10:00:00Z');
@@ -46,6 +47,24 @@ test('group date defaults use Almaty wall-clock and future dates even for a hist
  assert.equal(endless.starts_at,'2026-10-29T15:00');assert.ok(Date.parse(localAccessDate(endless.expires_at)!)>now);
  assert.equal(localAccessDate('2026-10-29T15:00'),'2026-10-29T10:00:00.000Z');
  for(const invalid of ['','2026-02-30T12:00','invalid','2026-10-29'])assert.equal(localAccessDate(invalid),null);
+});
+
+test('new individual access needs no date entry and future group starts are retained',()=>{
+ const individual=defaultAccessDates({starts_at:null,ends_at:null},now);
+ assert.deepEqual(individual,{starts_at:'2026-10-29T15:00',expires_at:'2026-12-10T15:00'});
+ assert.equal(Date.parse(localAccessDate(individual.expires_at)!)-Date.parse(localAccessDate(individual.starts_at)!),42*24*3600000);
+ assert.deepEqual(defaultAccessDates({starts_at:'2026-11-02T10:00:00Z',ends_at:null},now),{starts_at:'2026-11-02T15:00',expires_at:'2026-12-14T15:00'});
+ assert.deepEqual(defaultAccessDates({starts_at:null,ends_at:'2026-11-29T10:00:00Z'},now),{starts_at:'2026-10-29T15:00',expires_at:'2026-11-29T15:00'});
+});
+
+test('automatic access period is a localized ready-to-save summary without hidden required date inputs',()=>{
+ const dates=defaultAccessDates({starts_at:null,ends_at:null},now);
+ for(const [lang,automatic,change] of [['en','Selected automatically','Change dates'],['kk','Автоматты түрде таңдалды','Күндерді өзгерту'],['ru','Выбрано автоматически','Изменить даты']] as const){
+  const html=renderToStaticMarkup(createElement(EnrollmentPeriod,{dates,automaticDates:()=>dates,onChange(){throw Error('Rendering must not change dates');},lang}));
+  assert.ok(html.includes(automatic)&&html.includes(change)&&html.includes('UTC+5'));
+  assert.ok(!html.includes('type="datetime-local"')&&!html.includes('required=""'));
+  assert.ok(html.includes('type="button"')&&html.includes('aria-expanded="false"'));
+ }
 });
 
 test('validation honors capacity and current group state; dates apply only to new course enrollments',()=>{
