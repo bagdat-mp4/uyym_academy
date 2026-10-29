@@ -277,3 +277,118 @@ test('homework versions, private files, grading and late permission stay inside 
   const audit=(await db.query("SELECT metadata FROM private.audit_log WHERE target_type='submission' AND subject_id=$1 ORDER BY created_at",[student.id])).rows;assert.ok(audit.length>=4);assert.ok(!JSON.stringify(audit).includes('Corrected answer')&&!JSON.stringify(audit).includes('Clear reasoning'));
  }finally{globalThis.fetch=originalFetch;}
 });
+
+const bulkAccess=(students:{user_id:string;enrollment_revision:number|null}[],status:'active'|'pending'='active')=>({operation_id:randomUUID(),students,status,starts_at:new Date(Date.now()-3600000).toISOString(),expires_at:new Date(Date.now()+86400000).toISOString()});
+
+test('group student selector is ADMIN/proof-only, bounded and exposes exact candidate eligibility without security data',async()=>{
+ const c=await course(),g=await group(c.id,12),other=await group(c.id),prefix=`Bulk ${randomUUID()}`;
+ const fresh=await user(),ungrouped=await user(),member=await user(),foreign=await user(),inactive=await user(),paused=await user(),expired=await user(),pendingAuth=await user(),teacher=await actor(),student=await actor('STUDENT');
+ const ids=[fresh,ungrouped,member,foreign,inactive,paused,expired,pendingAuth];
+ for(const [index,id] of ids.entries())await db.query('UPDATE private.app_users SET name=$2 WHERE id=$1',[id,`${prefix} ${index}`]);
+ await enrollment(ungrouped,c.id,null);await enrollment(member,c.id,g.id);await enrollment(foreign,c.id,other.id);await enrollment(paused,c.id,null,'paused');
+ const expiredRow=await enrollment(expired,c.id,null);await db.query("UPDATE private.enrollments SET expires_at=now()-interval '1 second' WHERE id=$1",[expiredRow.id]);
+ await db.query('UPDATE private.app_users SET active=false WHERE id=$1',[inactive]);
+ const authOperation=randomUUID();await db.query("INSERT INTO private.auth_operations(id,actor_id,action,request_hash,target_user_id) VALUES($1,$2,'reset_password',$3,$4)",[authOperation,owner.id,sha('local pending reset'),pendingAuth]);await db.query('UPDATE private.app_users SET auth_operation_id=$2 WHERE id=$1',[pendingAuth,authOperation]);
+ const path=`/api/admin/groups/${g.id}/students`;
+ assert.equal((await app.inject({method:'GET',url:path})).statusCode,401);
+ assert.equal((await raw(owner,'GET',path)).statusCode,403);
+ assert.equal((await signed(teacher,'GET',path)).statusCode,403);
+ assert.equal((await signed(student,'GET',path)).statusCode,403);
+ const response=await signed(owner,'GET',`${path}?q=${encodeURIComponent(prefix)}&page_size=100`);assert.equal(response.statusCode,200,response.body);
+ const data=response.json(),byId=new Map<string,any>(data.items.map((item:any)=>[item.id,item]));
+ assert.equal(data.total,8);assert.equal(data.group.id,g.id);assert.equal(data.group.course_id,c.id);assert.equal(data.group.can_add_students,true);
+ for(const [id,eligibility] of [[fresh,'new'],[ungrouped,'ungrouped'],[member,'member'],[foreign,'other_group'],[inactive,'inactive'],[paused,'access_review'],[expired,'access_review'],[pendingAuth,'access_review']])assert.equal(byId.get(id).eligibility,eligibility);
+ assert.equal(data.items.filter((item:any)=>item.selectable).length,2);
+ for(const item of data.items){assert.equal(item.user_id,item.id);assert.ok(item.enrollment_revision===null||Number.isInteger(item.enrollment_revision));}
+ assert.ok(!/public_key|auth_pending|auth_operation_id|token_hash|csrf_token|password|admin_totp/.test(response.body));
+ const paged=await signed(owner,'GET',`${path}?q=${encodeURIComponent(prefix)}&page=2&page_size=2`);assert.equal(paged.statusCode,200,paged.body);assert.equal(paged.json().items.length,2);assert.equal(paged.json().total,8);
+ assert.equal((await signed(owner,'GET',`${path}?page_size=101`)).statusCode,400);
+ const literalSearch=await signed(owner,'GET',`${path}?${new URLSearchParams({q:"no-result' OR true --"})}`);assert.equal(literalSearch.statusCode,200,literalSearch.body);assert.equal(literalSearch.json().total,0);
+ assert.equal((await signed(owner,'GET',`/api/admin/groups/${randomUUID()}/students`)).statusCode,404);
+});
+
+test('bulk group admission accepts never-logged-in students atomically, audits once and replays without duplicates or browser approval',async()=>{
+ const c=await course(),g=await group(c.id),first=await user(),second=await user(),path=`/api/admin/groups/${g.id}/students`;
+ await db.query('UPDATE private.app_users SET must_change_password=true WHERE id IN ($1,$2)',[first,second]);
+ const body=bulkAccess([first,second].map(user_id=>({user_id,enrollment_revision:null})));
+ assert.equal((await app.inject({method:'POST',url:path,headers:{origin,'content-type':'application/json'},payload:body})).statusCode,401);
+ assert.equal((await raw(owner,'POST',path,body)).statusCode,403);
+ assert.equal((await raw(owner,'POST',path,body,{'x-csrf-token':''})).statusCode,403);
+ const result=await signed(owner,'POST',path,body);assert.equal(result.statusCode,200,result.body);assert.deepEqual(result.json(),{ok:true,group_id:g.id,course_id:c.id,created:2,completed:2});
+ const rows=(await db.query<any>('SELECT user_id,group_id,status,starts_at,expires_at,payment_status FROM private.enrollments WHERE course_id=$1',[c.id])).rows;assert.equal(rows.length,2);
+ for(const row of rows){assert.equal(row.group_id,g.id);assert.equal(row.status,'active');assert.equal(row.payment_status,'unpaid');assert.equal(new Date(row.starts_at).toISOString(),body.starts_at);assert.equal(new Date(row.expires_at).toISOString(),body.expires_at);}
+ assert.equal((await db.query<any>('SELECT count(*)::integer AS n FROM private.device_bindings WHERE user_id IN ($1,$2)',[first,second])).rows[0].n,0);
+ assert.equal((await db.query<any>('SELECT count(*)::integer AS n FROM private.app_sessions WHERE user_id IN ($1,$2)',[first,second])).rows[0].n,0);
+ assert.equal((await db.query<any>('SELECT count(*)::integer AS n FROM private.app_users WHERE id IN ($1,$2) AND must_change_password',[first,second])).rows[0].n,2);
+ const replay=await signed(owner,'POST',path,body);assert.equal(replay.statusCode,200,replay.body);assert.equal(replay.json().replayed,true);assert.equal(replay.json().created,2);assert.equal(replay.json().completed,2);
+ assert.equal((await db.query<any>("SELECT count(*)::integer AS n FROM private.audit_log WHERE action='enrollment.created' AND subject_id IN ($1,$2)",[first,second])).rows[0].n,2);
+ assert.equal((await db.query<any>('SELECT count(*)::integer AS n FROM private.enrollments WHERE course_id=$1',[c.id])).rows[0].n,2);
+ const receipt=(await db.query<any>('SELECT response FROM private.mutation_receipts WHERE operation_id=$1',[body.operation_id])).rows[0].response;assert.deepEqual(receipt,{ok:true,group_id:g.id,course_id:c.id,completed:true});
+ assert.equal((await signed(owner,'POST',path,{...body,status:'pending'})).statusCode,409);
+});
+
+test('attaching course-wide access preserves dates, status, payment, progress, devices and other courses while revoking only affected grants',async()=>{
+ const c=await course(),g=await group(c.id),otherCourse=await course(),otherGroup=await group(otherCourse.id),student=await actor('STUDENT'),fresh=await user();
+ const before=await enrollment(student.id,c.id,null),otherEnrollment=await enrollment(student.id,otherCourse.id,otherGroup.id);
+ await db.query("UPDATE private.enrollments SET payment_status='paid' WHERE id=$1",[before.id]);
+ const current=(await db.query<any>('SELECT * FROM private.enrollments WHERE id=$1',[before.id])).rows[0];
+ const payment=await create('/api/admin/payments',{enrollment_id:before.id,amount_kzt:100,paid_at:new Date().toISOString(),method:'manual'});
+ const lessons=[randomUUID(),randomUUID()];await db.query("INSERT INTO private.lessons(id,course_id,title,published,video_duration_seconds) VALUES($1,$2,'Local bulk lesson',true,120),($3,$4,'Other local lesson',true,120)",[lessons[0],c.id,lessons[1],otherCourse.id]);
+ await db.query('INSERT INTO private.lesson_progress(user_id,lesson_id,position_seconds) VALUES($1,$2,37)',[student.id,lessons[0]]);
+ const grants=[randomUUID(),randomUUID()];for(let index=0;index<2;index++)await db.query("INSERT INTO private.playback_grants(id,user_id,session_id,device_id,lesson_id,auth_epoch,expires_at) VALUES($1,$2,$3,$4,$5,1,now()+interval '5 minutes')",[grants[index],student.id,student.session,student.device,lessons[index]]);
+ const deviceBefore=(await db.query<any>('SELECT public_key,status FROM private.device_bindings WHERE id=$1',[student.device])).rows[0];
+ const body=bulkAccess([{user_id:student.id,enrollment_revision:Number(current.revision)},{user_id:fresh,enrollment_revision:null}],'pending');
+ const response=await signed(owner,'POST',`/api/admin/groups/${g.id}/students`,body);assert.equal(response.statusCode,200,response.body);assert.equal(response.json().created,1);assert.equal(response.json().completed,2);
+ const after=(await db.query<any>('SELECT * FROM private.enrollments WHERE id=$1',[before.id])).rows[0];assert.equal(after.group_id,g.id);
+ for(const field of ['status','payment_status','starts_at','expires_at','revoked_at','revocation_reason'])assert.deepEqual(after[field],current[field],field);
+ assert.equal((await db.query<any>('SELECT revision FROM private.enrollments WHERE id=$1',[otherEnrollment.id])).rows[0].revision,otherEnrollment.revision);
+ assert.equal((await db.query<any>('SELECT amount_kzt FROM private.payments WHERE id=$1',[payment.id])).rows[0].amount_kzt,100);
+ assert.equal(Number((await db.query<any>('SELECT position_seconds FROM private.lesson_progress WHERE user_id=$1 AND lesson_id=$2',[student.id,lessons[0]])).rows[0].position_seconds),37);
+ assert.deepEqual((await db.query<any>('SELECT public_key,status FROM private.device_bindings WHERE id=$1',[student.device])).rows[0],deviceBefore);
+ assert.equal((await db.query<any>('SELECT revoked_at FROM private.app_sessions WHERE id=$1',[student.session])).rows[0].revoked_at,null);
+ assert.equal(Number((await db.query<any>('SELECT auth_epoch FROM private.app_users WHERE id=$1',[student.id])).rows[0].auth_epoch),1);
+ assert.ok((await db.query<any>('SELECT revoked_at FROM private.playback_grants WHERE id=$1',[grants[0]])).rows[0].revoked_at);
+ assert.equal((await db.query<any>('SELECT revoked_at FROM private.playback_grants WHERE id=$1',[grants[1]])).rows[0].revoked_at,null);
+ assert.equal((await db.query<any>('SELECT status FROM private.enrollments WHERE user_id=$1 AND course_id=$2',[fresh,c.id])).rows[0].status,'pending');
+});
+
+test('bulk selection fails closed for foreign groups, paused/revoked/expired/stale access and invalid accounts without partial writes',async()=>{
+ const c=await course(),g=await group(c.id,30),other=await group(c.id,30),first=await user(),foreign=await user(),member=await user(),paused=await user(),revoked=await user(),expired=await user(),stale=await user(),inactive=await user(),pendingAuth=await user(),teacher=await user('TEACHER');
+ const enrollmentRows=new Map<string,any>();
+ for(const [id,groupId,state] of [[foreign,other.id,'active'],[member,g.id,'active'],[paused,null,'paused'],[revoked,null,'revoked'],[expired,null,'active'],[stale,null,'active']] as const)enrollmentRows.set(id,await enrollment(id,c.id,groupId,state));
+ await db.query("UPDATE private.enrollments SET expires_at=now()-interval '1 second' WHERE id=$1",[enrollmentRows.get(expired).id]);
+ await db.query('UPDATE private.enrollments SET updated_at=now() WHERE id=$1',[enrollmentRows.get(stale).id]);
+ await db.query('UPDATE private.app_users SET active=false WHERE id=$1',[inactive]);
+ const operation=randomUUID();await db.query("INSERT INTO private.auth_operations(id,actor_id,action,request_hash,target_user_id) VALUES($1,$2,'reset_password',$3,$4)",[operation,owner.id,sha('local pending reset bulk'),pendingAuth]);await db.query('UPDATE private.app_users SET auth_operation_id=$2 WHERE id=$1',[pendingAuth,operation]);
+ const path=`/api/admin/groups/${g.id}/students`;
+ for(const invalid of [foreign,member,paused,revoked,expired,stale,inactive,pendingAuth,teacher,randomUUID()]){
+  const body=bulkAccess([{user_id:first,enrollment_revision:null},{user_id:invalid,enrollment_revision:enrollmentRows.has(invalid)?Number(enrollmentRows.get(invalid).revision):null}]);
+  const response=await signed(owner,'POST',path,body);assert.ok([400,409].includes(response.statusCode),response.body);
+  assert.equal((await db.query<any>('SELECT count(*)::integer AS n FROM private.enrollments WHERE user_id=$1 AND course_id=$2',[first,c.id])).rows[0].n,0);
+  assert.equal((await db.query<any>('SELECT count(*)::integer AS n FROM private.mutation_receipts WHERE operation_id=$1',[body.operation_id])).rows[0].n,0);
+ }
+ const valid=bulkAccess([{user_id:first,enrollment_revision:null}]);
+ assert.equal((await signed(owner,'POST',path,{...valid,students:[valid.students[0],valid.students[0]]})).statusCode,400);
+ assert.equal((await signed(owner,'POST',path,{...valid,course_id:randomUUID()})).statusCode,400);
+ assert.equal((await signed(owner,'POST',path,{...valid,status:'paused'})).statusCode,400);
+ assert.equal((await signed(owner,'POST',path,{...valid,students:[]})).statusCode,400);
+ assert.equal((await signed(owner,'POST',path,{...valid,students:Array.from({length:101},()=>({user_id:randomUUID(),enrollment_revision:null}))})).statusCode,400);
+ const teacherActor=await actor(),studentActor=await actor('STUDENT');assert.equal((await signed(teacherActor,'POST',path,valid)).statusCode,403);assert.equal((await signed(studentActor,'POST',path,valid)).statusCode,403);
+});
+
+test('bulk admission preserves the capacity guard and rejects closed groups/courses without creating any enrollment',async()=>{
+ const c=await course(),g=await group(c.id,2),reserved=await user(),first=await user(),second=await user(),path=`/api/admin/groups/${g.id}/students`;
+ await enrollment(reserved,c.id,g.id,'paused');
+ const body=bulkAccess([first,second].map(user_id=>({user_id,enrollment_revision:null})));
+ const full=await signed(owner,'POST',path,body);assert.equal(full.statusCode,409,full.body);assert.equal(full.json().code,'GROUP_FULL');
+ assert.equal((await db.query<any>('SELECT count(*)::integer AS n FROM private.enrollments WHERE course_id=$1',[c.id])).rows[0].n,1);
+ await db.query('UPDATE private.groups SET active=false WHERE id=$1',[g.id]);
+ const inactive=await signed(owner,'GET',path);assert.equal(inactive.statusCode,200,inactive.body);assert.equal(inactive.json().group.can_add_students,false);assert.ok(inactive.json().items.every((item:any)=>!item.selectable));
+ assert.equal((await signed(owner,'POST',path,bulkAccess([{user_id:first,enrollment_revision:null}]))).statusCode,409);
+ await db.query("UPDATE private.groups SET active=true,starts_at=now()-interval '2 days',ends_at=now()-interval '1 day' WHERE id=$1",[g.id]);
+ assert.equal((await signed(owner,'POST',path,bulkAccess([{user_id:first,enrollment_revision:null}]))).statusCode,409);
+ await db.query('UPDATE private.groups SET ends_at=null WHERE id=$1',[g.id]);await db.query('UPDATE private.courses SET active=false WHERE id=$1',[c.id]);
+ assert.equal((await signed(owner,'GET',path)).json().group.can_add_students,false);
+ assert.equal((await signed(owner,'POST',path,bulkAccess([{user_id:first,enrollment_revision:null}]))).statusCode,409);
+ assert.equal((await db.query<any>('SELECT count(*)::integer AS n FROM private.enrollments WHERE user_id IN ($1,$2)',[first,second])).rows[0].n,0);
+});
