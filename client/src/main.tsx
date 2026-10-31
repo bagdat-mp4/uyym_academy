@@ -12,6 +12,7 @@ import './landing-flow.css';
 import './player-controls.css';
 import './protected-player.css';
 import './group-enrollment.css';
+import './video-upload.css';
 import {savedLanguage,savedTheme,preferenceStorage} from './i18n';
 import {applyTheme} from './theme';
 

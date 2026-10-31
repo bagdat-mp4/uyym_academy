@@ -13,7 +13,7 @@ export class ApiError extends Error {
   constructor(message: string, public status: number, public code?: string) { super(message); }
 }
 
-export async function api<T>(path: string, options: { method?: string; body?: unknown; proof?: string; signal?: AbortSignal; binary?: boolean; playerTiming?:boolean } = {}): Promise<T> {
+export async function api<T>(path: string, options: { method?: string; body?: unknown; proof?: string; signal?: AbortSignal; binary?: boolean; playerTiming?:boolean; timeoutMs?:number } = {}): Promise<T> {
   const method = options.method ?? 'GET';
   // All mutations carry JSON; challenge hashes the exact bytes subsequently sent.
   const body = options.body === undefined ? (method === 'GET' || method === 'HEAD' ? undefined : '{}') : JSON.stringify(options.body);
@@ -33,7 +33,7 @@ export async function api<T>(path: string, options: { method?: string; body?: un
   options.signal?.addEventListener('abort', abortFromCaller, { once: true });
   if (options.signal?.aborted) requestController.abort();
   let timedOut = false;
-  const timeout = setTimeout(() => { timedOut = true; requestController.abort(); }, 30000);
+  const timeout = setTimeout(() => { timedOut = true; requestController.abort(); }, Math.min(120000,Math.max(1000,options.timeoutMs??30000)));
   try {
     const response = await fetch(path, { method, headers, body, credentials: 'same-origin', cache: 'no-store', signal: requestController.signal });
     if (!response.ok) {

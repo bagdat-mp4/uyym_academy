@@ -65,6 +65,31 @@ test('English API errors stay generic and authenticated routes remain protected'
  assert.ok(!response.body.includes('postgres')&&!response.body.includes('SUPABASE'));
 });
 
+test('teacher video upload permission is ADMIN controlled and isolated per teacher',async()=>{
+ const first=await actor('TEACHER'),second=await actor('TEACHER'),student=await actor('STUDENT');
+ const courseId=(await course()).id;
+ await create('/api/admin/teacher-assignments',{teacher_id:first.id,course_id:courseId,group_id:null,can_manage_access:false});
+ const path=`/api/admin/teacher-video-access/${first.id}`;
+ assert.equal((await raw(owner,'PATCH',path,{enabled:true})).statusCode,403,'cookie without signed proof cannot grant upload');
+ assert.equal((await signed(first,'PATCH',path,{enabled:true})).statusCode,403);
+ assert.equal((await signed(student,'PATCH',path,{enabled:true})).statusCode,403);
+ assert.equal((await signed(owner,'PATCH',path,{enabled:true})).statusCode,200);
+ const list=await signed(owner,'GET','/api/admin/teacher-video-access');assert.equal(list.statusCode,200,list.body);
+ const entries=list.json().teachers as {id:string;enabled:boolean}[];
+ assert.equal(entries.find(x=>x.id===first.id)?.enabled,true);
+ assert.equal(entries.find(x=>x.id===second.id)?.enabled,false);
+ const uploads=await signed(first,'GET','/api/teacher/video-uploads');assert.equal(uploads.statusCode,200,uploads.body);
+ assert.equal(uploads.json().enabled,true);assert.ok(!uploads.body.includes('refresh_token')&&!uploads.body.includes('session_uri'));
+ assert.equal((await signed(student,'GET','/api/teacher/video-uploads')).statusCode,403);
+ const before=(await db.query<{count:string}>('SELECT count(*)::text AS count FROM private.lessons')).rows[0].count;
+ // No owner OAuth connection exists in this fixture. Failing closed must leave no draft.
+ const start=await signed(first,'POST','/api/teacher/video-uploads',{course_id:courseId,group_id:null,week:1,title:'Test recording',description:'',name:'teams.mp4',size:1048576});
+ assert.equal(start.statusCode,503);assert.equal((await db.query<{count:string}>('SELECT count(*)::text AS count FROM private.lessons')).rows[0].count,before);
+ assert.equal((await signed(owner,'PATCH',path,{enabled:false})).statusCode,200);
+ assert.equal((await signed(first,'GET','/api/teacher/video-uploads')).json().enabled,false);
+ assert.equal((await signed(first,'POST','/api/teacher/video-uploads',{course_id:courseId,group_id:null,week:1,title:'Test recording',description:'',name:'teams.mp4',size:1048576})).statusCode,403);
+});
+
 test('unexpected database failures expose neither internal SQL codes nor exception details',async()=>{
  const {pool}=await import('../server/db.js'),original=pool.query;
  (pool as any).query=async()=>{throw Object.assign(new Error('INTERNAL_FIXTURE_DETAIL'),{code:'42P18'});};

@@ -1,0 +1,8 @@
+.video-upload-panel .manage-form{max-width:780px;margin:24px 0 32px}
+.video-upload-panel .manage-record{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.video-upload-panel .manage-record-info{min-width:0;overflow-wrap:anywhere}
+.video-upload-panel .manage-record-info p{margin:8px 0 0}
+.video-upload-panel .manage-subheading{margin:28px 0 12px}
+.video-upload-panel progress{width:min(100%,460px);height:12px;accent-color:var(--blue,#203f85)}
+.video-upload-panel input[type=file]{width:100%;max-width:100%}
+@media(max-width:600px){.video-upload-panel .manage-record-actions,.video-upload-panel .manage-record-actions button{width:100%}}

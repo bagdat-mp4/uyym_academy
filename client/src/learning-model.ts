@@ -1,4 +1,4 @@
-export type Course={id:string;title:string;description:string;group_id?:string;expires_at?:string};
+export type Course={id:string;title:string;description:string;group_id?:string;group_ids?:(string|null)[];expires_at?:string};
 export type Group={id:string;title:string;schedule_description?:string;starts_at?:string|null;ends_at?:string|null};
 export type FileItem={id:string;name:string;mime:string;size:number;slot?:number};
 export type SubmissionSummary={id?:string;status:'not_submitted'|'submitted'|'reviewed'|'needs_revision';current_version:number;grade:number|null;feedback:string;reviewed_at?:string|null;late_allowed_until?:string|null;revision:number|null;answer:string;is_late?:boolean;submitted_at?:string|null;files:FileItem[]};
