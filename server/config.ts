@@ -12,6 +12,11 @@ export const config = {
  encryptionKey: process.env.ADMIN_ENCRYPTION_KEY || '',
  folders: (process.env.DRIVE_ALLOWED_FOLDER_IDS || '').split(',').filter(Boolean),
  permissionEmails: (process.env.DRIVE_ALLOWED_PERMISSION_EMAILS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean),
+ driveOwnerUserId: process.env.DRIVE_OWNER_USER_ID || '',
+ driveOwnerEmail: (process.env.DRIVE_OWNER_EMAIL || '').trim().toLowerCase(),
+ driveOAuthClientId: process.env.DRIVE_OAUTH_CLIENT_ID || '',
+ driveOAuthClientSecret: process.env.DRIVE_OAUTH_CLIENT_SECRET || '',
+ driveOAuthEncryptionKey: process.env.DRIVE_OAUTH_ENCRYPTION_KEY || '',
  contentMaxFileBytes: boundedNumber(process.env.CONTENT_MAX_FILE_BYTES,5242880,1024,5242880),
  contentMaxFiles: boundedNumber(process.env.CONTENT_MAX_FILES,5,1,5)
 };

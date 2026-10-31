@@ -3,6 +3,7 @@ import {Readable} from 'node:stream';
 import {config} from './config.js';
 import {HttpError,assertPartSize} from './security.js';
 import type {PlayerTiming} from './player-timing.js';
+import {pool} from './db.js';
 const driveCredentials=process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
 const auth=new GoogleAuth({
  scopes:['https://www.googleapis.com/auth/drive.readonly'],
@@ -22,7 +23,8 @@ export function validatePermissions(permissions:any[]) {
  if(!Array.isArray(permissions)||!permissions.length||permissions.some(p=>p.type!=='user'||!p.emailAddress||!config.permissionEmails.includes(p.emailAddress.toLowerCase())||p.allowFileDiscovery))throw new HttpError(403,'Drive рұқсаттары Restricted болуы керек');
 }
 export async function validateDriveFile(fileId:string,folderId:string,kind:'source'|'part'='part',expectedSize?:number,timing?:PlayerTiming) {
- if(!config.folders.includes(folderId)||!config.permissionEmails.length)throw new HttpError(403,'Drive папкасы рұқсат етілмеген');
+ const managed=kind==='source'&&(await pool.query("SELECT 1 FROM private.owner_drive_folders WHERE id=$1 AND kind='week'",[folderId])).rowCount;
+ if(!(config.folders.includes(folderId)||managed)||!config.permissionEmails.length)throw new HttpError(403,'Drive папкасы рұқсат етілмеген');
  safeId(fileId);safeId(folderId);
  // Resolve one request-local credential before fan-out (including a cold token
  // refresh). No metadata/permission cache: all four reads run for EVERY part.
@@ -79,5 +81,17 @@ export async function streamPart(fileId:string,size:number,timing?:PlayerTiming)
  if(response.status!==206||response.headers.get('content-range')!==`bytes 0-${size-1}/${size}`||!response.body){await response.body?.cancel();throw new HttpError(503,'Drive Range жауабы жарамсыз');}
  const reader=response.body.getReader();
  async function* bounded() {let received=0;const start=performance.now();try{while(true){const {done,value}=await reader.read();if(done)break;received+=value.byteLength;if(received>size)throw new Error('Drive range exceeded');yield value;}if(received!==size)throw new Error('Truncated Drive range');}finally{timing?.add('drive_body',performance.now()-start);await reader.cancel().catch(()=>{});}}
+ const stream=Readable.from(bounded());stream.once('close',()=>{reader.cancel().catch(()=>{});});return stream;
+}
+
+// Native MP4 requests are always capped to one MiB and individually proved.
+export async function streamSourceRange(fileId:string,start:number,end:number,total:number,timing?:PlayerTiming){
+ if(!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||!Number.isSafeInteger(total)||start<0||end<start||end>=total)throw new HttpError(416,'Видео ауқымы жарамсыз');
+ const size=end-start+1;assertPartSize(size);
+ const token=await authorization(timing);
+ const response=await request(`files/${safeId(fileId)}?alt=media&supportsAllDrives=true`,{Range:`bytes=${start}-${end}`},token);
+ if(response.status!==206||response.headers.get('content-range')!==`bytes ${start}-${end}/${total}`||!response.body){await response.body?.cancel();throw new HttpError(503,'Drive Range жауабы жарамсыз');}
+ const reader=response.body.getReader();
+ async function* bounded(){let received=0;try{while(true){const {done,value}=await reader.read();if(done)break;received+=value.byteLength;if(received>size)throw new Error('Drive range exceeded');yield value;}if(received!==size)throw new Error('Truncated Drive range');}finally{await reader.cancel().catch(()=>{});}}
  const stream=Readable.from(bounded());stream.once('close',()=>{reader.cancel().catch(()=>{});});return stream;
 }

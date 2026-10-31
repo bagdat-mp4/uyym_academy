@@ -18,8 +18,9 @@ before(async()=>{
   if(mode==='unavailable')return new Response(null,{status:503});
   if(kind==='permissions')return Response.json(mode==='pagination'?{permissions:[],nextPageToken:'test-page'}:{permissions:[mode==='public'&&id===file?{type:'anyone'}:{type:'user',emailAddress:'test@example.invalid'}]});
   if(kind==='media'){
-   assert.equal(new Headers(init?.headers).get('Range'),`bytes=0-${size-1}`);
-   return new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(mode==='oversized'?size+1:mode==='truncated'?size-1:size));c.close();},cancel(){cancelled=true;}}),{status:mode==='whole-file'?200:206,headers:{'content-range':`bytes 0-${size-1}/${size}`}});
+   const range=mode==='source-range'?'bytes=4-7':`bytes=0-${size-1}`;
+   assert.equal(new Headers(init?.headers).get('Range'),range);
+   return new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(mode==='source-range'?4:mode==='oversized'?size+1:mode==='truncated'?size-1:size));c.close();},cancel(){cancelled=true;}}),{status:mode==='whole-file'?200:206,headers:{'content-range':mode==='source-range'?`bytes 4-7/${size}`:`bytes 0-${size-1}/${size}`}});
   }
   return Response.json(id===folder?{mimeType:'application/vnd.google-apps.folder',trashed:mode==='trashed'}:{mimeType:mode==='wrong-mime'?'text/html':'video/mp4',size:mode==='changed'?size+1:size,parents:[mode==='foreign'?'FOREIGN_FOLDER':folder],trashed:false});
  };
@@ -48,6 +49,14 @@ test('Drive part remains bounded and validates Range and exact body length',asyn
  mode='valid';const timing=new PlayerTiming(),stream=await drive.streamPart(file,size,timing);let bytes=0;for await(const chunk of stream)bytes+=chunk.length;assert.equal(bytes,size);assert.ok('drive_body' in timing.snapshot());
  for(mode of ['oversized','truncated']){const stream=await drive.streamPart(file,size);await assert.rejects(async()=>{for await(const _ of stream){/* Drain test body. */}});}
  mode='whole-file';cancelled=false;await assert.rejects(drive.streamPart(file,size));assert.equal(cancelled,true);
+});
+
+test('native MP4 source range is bounded and rejects whole-file requests',async()=>{
+ mode='source-range';let total=0;
+ for await(const chunk of await drive.streamSourceRange(file,4,7,size))total+=chunk.length;
+ assert.equal(total,4);
+ await assert.rejects(drive.streamSourceRange(file,0,size,size));
+ await assert.rejects(drive.streamSourceRange(file,0,1048576,1048577));
 });
 
 test('timing headers contain fixed numeric names only',async()=>{
