@@ -29,7 +29,13 @@ export async function validateDriveFile(fileId:string,folderId:string,kind:'sour
  // Resolve one request-local credential before fan-out (including a cold token
  // refresh). No metadata/permission cache: all four reads run for EVERY part.
  const token=await authorization(timing);
- const fields=kind!=='part'?'id,mimeType,size,parents,trashed,ownedByMe':'id,mimeType,size,parents,trashed';
+ // `ownedByMe` is relative to the credential making this request. For an
+ // owner-uploaded file the service account is deliberately only a reader, so
+ // its `ownedByMe` value is false. Verify the configured owner by the file's
+ // owner identity instead, while keeping the backend reader ACL checks below.
+ const fields=kind==='owner_source'
+  ?'id,mimeType,size,parents,trashed,owners(emailAddress)'
+  :'id,mimeType,size,parents,trashed';
  const json=async(path:string)=>await(await request(path,{},token)).json() as any;
  const metadata=()=>Promise.all([
   json(`files/${fileId}?fields=${encodeURIComponent(fields)}&supportsAllDrives=true`),
@@ -44,7 +50,10 @@ export async function validateDriveFile(fileId:string,folderId:string,kind:'sour
  for(const result of perms){if(result.nextPageToken)throw new HttpError(403,'Drive рұқсаттары тексерілмеді');if(managed)validateOwnerPermissions(result.permissions,config.driveOwnerEmail);else validatePermissions(result.permissions);}
  const size=Number(file.size);if(!Number.isSafeInteger(size)||size<1)throw new HttpError(403,'Видео көлемі жарамсыз');
  if(kind!=='part'&&file.mimeType!=='video/mp4')throw new HttpError(403,'MP4 қажет');
- if(managed&&!file.ownedByMe)throw new HttpError(403,'Видео иесінің Drive аккаунтына тиесілі емес');
+ if(managed){
+  const owners=file.owners;
+  if(!Array.isArray(owners)||owners.length!==1||typeof owners[0]?.emailAddress!=='string'||owners[0].emailAddress.toLowerCase()!==config.driveOwnerEmail.toLowerCase())throw new HttpError(403,'Видео иесінің Drive аккаунтына тиесілі емес');
+ }
  if(kind==='part'&&!['video/mp4','video/iso.segment','application/octet-stream'].includes(file.mimeType))throw new HttpError(403,'fMP4 бөлігі қажет');
  if(expectedSize!==undefined&&size!==expectedSize)throw new HttpError(403,'Видео өзгерген. Қайта тексеріңіз');
  if(kind==='part')assertPartSize(size);return {size,mime:file.mimeType};

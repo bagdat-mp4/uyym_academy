@@ -55,7 +55,7 @@ before(async()=>{
    const match=/^bytes=(\d+)-(\d+)$/.exec(new Headers(init?.headers).get('range')||'');assert.ok(match);
    const start=Number(match[1]),end=Number(match[2]);return new Response(mediaBytes.subarray(start,end+1),{status:206,headers:{'content-range':`bytes ${start}-${end}/${mediaBytes.length}`}});
   }
-  return Response.json({id:fileId,mimeType:file.mimeType,parents:file.parents,ownedByMe:true,trashed:false,...(file.size?{size:file.size}:{})});
+  return Response.json({id:fileId,mimeType:file.mimeType,parents:file.parents,ownedByMe:authorization==='Bearer OWNER_FIXTURE',owners:[{emailAddress:ownerEmail}],trashed:false,...(file.size?{size:file.size}:{})});
  };
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text);create schema storage;create table storage.buckets(id text primary key,name text not null,public boolean not null default false,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text not null references storage.buckets(id),name text not null);alter table storage.objects enable row level security;`);
  const dir=new URL('../supabase/migrations/',import.meta.url);for(const f of(await readdir(dir)).filter(x=>x.endsWith('.sql')).sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
