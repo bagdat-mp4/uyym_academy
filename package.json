@@ -11,6 +11,7 @@
     "dev:server": "tsx watch server/main.ts",
     "dev:client": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "pretest": "npm run build",
     "start": "tsx server/main.ts",
     "test": "tsx --test tests/*.test.ts",
     "bootstrap": "tsx scripts/bootstrap.ts",

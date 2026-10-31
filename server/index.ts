@@ -35,6 +35,9 @@ await app.register(helmet,{contentSecurityPolicy:{directives:{defaultSrc:["'self
 await app.register(rateLimit,{max:3000,timeWindow:'1 minute'});
 app.addHook('onRequest',async(req,reply)=>{
  if(req.url.startsWith('/api/'))reply.header('Cache-Control','private, no-store').header('Pragma','no-cache');
+ // Let unmatched API requests reach Fastify's not-found handler instead of
+ // being mistaken for known routes that need configured services or CSRF.
+ if(req.url.startsWith('/api/')&&!req.routeOptions?.url)return;
  if(req.url.startsWith('/api/')&&req.method!=='GET'&&req.method!=='HEAD') {
   if(!trustedOrigin(req.headers.origin)||!req.headers['content-type']?.startsWith('application/json'))throw new HttpError(403,'Сұрау расталмады');
  }
@@ -228,6 +231,9 @@ const dist=resolve('dist/client');if(existsSync(dist)) {
  const files:[string,string,string][]=[['/','index.html','text/html; charset=utf-8'],['/brand.png','brand.png','image/png']];
  const assets=resolve(dist,'assets');if(existsSync(assets))for(const name of readdirSync(assets))if(/^[A-Za-z0-9_-]+\.(js|css)$/.test(name)&&statSync(resolve(assets,name)).isFile())files.push([`/assets/${name}`,`assets/${name}`,name.endsWith('.js')?'text/javascript; charset=utf-8':'text/css; charset=utf-8']);
  for(const [url,file,mime] of files)if(existsSync(resolve(dist,file)))app.get(url,async(_req,reply)=>reply.type(mime).send(createReadStream(resolve(dist,file))));
+ // Legal URLs are explicit SPA entry points, so browser navigation and
+ // clients without an Accept header receive the app shell consistently.
+ for(const path of ['/privacy','/terms'])app.get(path,async(_req,reply)=>reply.type('text/html; charset=utf-8').send(createReadStream(resolve(dist,'index.html'))));
 }
 app.setNotFoundHandler((req,reply)=>{
  const path=req.url.split('?')[0];
