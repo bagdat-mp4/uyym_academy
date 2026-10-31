@@ -1,25 +1,18 @@
 import {OAuth2Client} from 'google-auth-library';
-import {readFileSync} from 'node:fs';
 import {pool,transaction} from './db.js';
 import {config} from './config.js';
 import {decrypt,encrypt,hash,HttpError} from './security.js';
+import {backendServiceEmail,validateOwnerPermissions as validateManagedPermissions} from './drive-permissions.js';
 
 const scope=['openid','email','https://www.googleapis.com/auth/drive.file'];
 const folderMime='application/vnd.google-apps.folder';
 const apiRoot='https://www.googleapis.com/drive/v3/';
 const uploadRoot='https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,mimeType,size,parents,owners(emailAddress),trashed';
-const credentialJson=process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
-
 export function ownerDriveConfigured(){
- return Boolean(/^[0-9a-f-]{36}$/i.test(config.driveOwnerUserId)&&config.driveOwnerEmail&&config.driveOAuthClientId&&config.driveOAuthClientSecret&&/^[a-f0-9]{64}$/i.test(config.driveOAuthEncryptionKey)&&(credentialJson||process.env.GOOGLE_APPLICATION_CREDENTIALS));
+ return Boolean(/^[0-9a-f-]{36}$/i.test(config.driveOwnerUserId)&&config.driveOwnerEmail&&config.driveOAuthClientId&&config.driveOAuthClientSecret&&/^[a-f0-9]{64}$/i.test(config.driveOAuthEncryptionKey)&&(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64||process.env.GOOGLE_APPLICATION_CREDENTIALS));
 }
 function requireConfigured(){if(!ownerDriveConfigured())throw new HttpError(503,'Drive upload әлі бапталмаған');}
 function oauth(){requireConfigured();return new OAuth2Client(config.driveOAuthClientId,config.driveOAuthClientSecret,`${config.origin}/api/drive/oauth/callback`);}
-function serviceEmail(){
- try{const raw=credentialJson?Buffer.from(credentialJson,'base64').toString('utf8'):readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS||'','utf8');const email=JSON.parse(raw).client_email;
-  if(typeof email!=='string'||!email.endsWith('.gserviceaccount.com'))throw new Error();return email.toLowerCase();
- }catch{throw new HttpError(503,'Drive backend identity қате');}
-}
 export function authorizationUrl(state:string){return oauth().generateAuthUrl({access_type:'offline',prompt:'consent',scope,state,include_granted_scopes:false});}
 export function encryptOAuth(value:string){requireConfigured();return encrypt(value,config.driveOAuthEncryptionKey);}
 export function decryptOAuth(value:string){requireConfigured();return decrypt(value,config.driveOAuthEncryptionKey);}
@@ -54,18 +47,21 @@ export async function connectOwner(code:string){
  catch{throw new HttpError(403,'Google аккаунтын растау мүмкін болмады');}
  if(email!==config.driveOwnerEmail)throw new HttpError(403,'Бұл иесінің Google аккаунты емес');
  const token=await ownerToken(refresh);
- const backendEmail=serviceEmail();
+ const backendEmail=backendServiceEmail();
  if(!config.permissionEmails.includes(email)||!config.permissionEmails.includes(backendEmail))throw new HttpError(503,'Drive рұқсаттар тізімі толық емес');
  const current=(await pool.query('SELECT google_email,root_folder_id FROM private.owner_drive_connection WHERE id=true')).rows[0];
  let root:string;
  if(current){
   if(current.google_email!==email)throw new HttpError(409,'Drive аккаунты бұрын қосылған');
   root=id(current.root_folder_id);
+  await checkFolder(root,null,token,false);
+  await ensureBackendReader(root,token);
   await checkFolder(root,null,token);
  }else{
   const folder=await driveJson('files?fields=id,mimeType,ownedByMe',token,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:'UYYM Academy private lessons',mimeType:folderMime})});
   root=id(folder.id);if(!folder.ownedByMe)throw new HttpError(403,'Drive папкасы иесіне тиесілі емес');
   await driveResponse(`files/${root}/permissions?sendNotificationEmail=false&fields=id`,token,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'user',role:'reader',emailAddress:backendEmail})});
+  await ensureBackendReader(root,token);
  }
  await transaction(async db=>{
   await db.query(`INSERT INTO private.owner_drive_connection(id,owner_user_id,google_email,refresh_token_encrypted,root_folder_id)
@@ -78,15 +74,38 @@ export async function connectOwner(code:string){
 export async function ownerDriveStatus(){
  const row=(await pool.query('SELECT google_email,connected_at,root_folder_id FROM private.owner_drive_connection WHERE id=true')).rows[0];
  if(!row)return {configured:ownerDriveConfigured(),connected:false};
- let quota:Record<string,string>|undefined;
- try{const token=await currentOwnerToken();const about=await driveJson('about?fields=storageQuota(limit,usage,usageInDrive)',token);quota=about.storageQuota;}
+ let quota:Record<string,string>|undefined,permissions_valid=false;
+ try{const token=await currentOwnerToken();await checkFolder(id(row.root_folder_id),null,token);permissions_valid=true;const about=await driveJson('about?fields=storageQuota(limit,usage,usageInDrive)',token);quota=about.storageQuota;}
  catch{ /* The connection remains recorded; report the status without leaking provider details. */ }
- return {configured:ownerDriveConfigured(),connected:true,email:row.google_email,connected_at:row.connected_at,quota_available:Boolean(quota),quota};
+ return {configured:ownerDriveConfigured(),connected:true,email:row.google_email,connected_at:row.connected_at,permissions_valid,quota_available:Boolean(quota),quota};
 }
 
-async function checkFolder(folderId:string,parentId:string|null,token:string){
+async function checkFolder(folderId:string,parentId:string|null,token:string,checkPermissions=true){
  const file=await driveJson(`files/${id(folderId)}?fields=id,mimeType,trashed,parents,ownedByMe`,token);
  if(file.trashed||file.mimeType!==folderMime||!file.ownedByMe||(parentId&&!file.parents?.includes(parentId)))throw new HttpError(403,'Drive папкасы жарамсыз');
+ if(!checkPermissions)return;
+ const permissions=await driveJson(`files/${id(folderId)}/permissions?fields=permissions(id,type,emailAddress,role,allowFileDiscovery),nextPageToken&pageSize=100`,token);
+ if(permissions.nextPageToken)throw new HttpError(403,'Drive папкасының рұқсаттары тексерілмеді');
+ validateOwnerPermissions(permissions.permissions);
+}
+export function validateOwnerPermissions(permissions:any[]){
+ validateManagedPermissions(permissions,config.driveOwnerEmail);
+}
+async function ensureBackendReader(folderId:string,token:string){
+ const path=`files/${id(folderId)}/permissions?fields=permissions(id,type,emailAddress,role,allowFileDiscovery),nextPageToken&pageSize=100`;
+ let result=await driveJson(path,token);
+ if(result.nextPageToken||!Array.isArray(result.permissions))throw new HttpError(403,'Drive рұқсаттары тексерілмеді');
+ const backend=backendServiceEmail();
+ const permission=result.permissions.find((p:any)=>p.type==='user'&&String(p.emailAddress||'').toLowerCase()===backend);
+ if(!permission){
+  await driveResponse(`files/${id(folderId)}/permissions?sendNotificationEmail=false&fields=id`,token,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'user',role:'reader',emailAddress:backend})});
+ }else if(permission.role!=='reader'){
+  if(typeof permission.id!=='string')throw new HttpError(403,'Drive backend рұқсатын түзету мүмкін болмады');
+  await driveResponse(`files/${id(folderId)}/permissions/${id(permission.id)}?fields=id,role`,token,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({role:'reader'})});
+ }
+ result=await driveJson(path,token);
+ if(result.nextPageToken)throw new HttpError(403,'Drive рұқсаттары тексерілмеді');
+ validateOwnerPermissions(result.permissions);
 }
 export async function courseWeekFolder(courseId:string,courseSlug:string,week:number){
  const token=await currentOwnerToken();
@@ -128,16 +147,24 @@ async function sessionRequest(uri:string,size:number,bytes?:Buffer,start?:number
  const response=await fetch(url,{method:'PUT',headers,body:bytes?new Uint8Array(bytes):undefined,redirect:'manual',signal:AbortSignal.timeout(60000)});
  if(response.status===308)return {offset:resumableOffset(response.headers.get('range'),size),complete:false as const};
  if(response.status===200||response.status===201){const file=await response.json() as any;return {offset:size,complete:true as const,file_id:id(file.id)};}
- if(response.status===404||response.status===410)throw new HttpError(409,'Drive жүктеу мерзімі аяқталды. Қайта бастаңыз');
+ if(response.status>=400&&response.status<500){
+  if(response.status===403||response.status===429){
+   const body=await response.json().catch(()=>null) as any;
+   const reason=body?.error?.errors?.[0]?.reason;
+   if(response.status===429||reason==='rateLimitExceeded'||reason==='userRateLimitExceeded')throw new HttpError(503,'Drive жүктеуі уақытша шектелді');
+  }
+  throw new HttpError(409,'Drive жүктеу сессиясын қайта бастау қажет');
+ }
  throw new HttpError(503,'Drive жүктеу уақытша қолжетімсіз');
 }
 export async function uploadChunk(uri:string,size:number,bytes:Buffer,start:number){return sessionRequest(uri,size,bytes,start);}
 export async function queryUpload(uri:string,size:number){return sessionRequest(uri,size);}
 export async function verifyOwnerFile(fileId:string,folderId:string,size:number){
  const token=await currentOwnerToken();
- const file=await driveJson(`files/${id(fileId)}?fields=id,mimeType,size,parents,trashed,ownedByMe,permissions(type,emailAddress,allowFileDiscovery)&supportsAllDrives=true`,token);
+ const file=await driveJson(`files/${id(fileId)}?fields=id,mimeType,size,parents,trashed,ownedByMe&supportsAllDrives=true`,token);
  if(file.trashed||file.mimeType!=='video/mp4'||Number(file.size)!==size||!file.parents?.includes(folderId)||!file.ownedByMe)throw new HttpError(403,'Drive видео тексерілмеді');
- const permissions=await driveJson(`files/${id(fileId)}/permissions?fields=permissions(type,emailAddress,allowFileDiscovery),nextPageToken&pageSize=100`,token);
- if(permissions.nextPageToken||!Array.isArray(permissions.permissions)||permissions.permissions.some((p:any)=>p.type!=='user'||!p.emailAddress||p.allowFileDiscovery||!config.permissionEmails.includes(String(p.emailAddress).toLowerCase())))throw new HttpError(403,'Drive рұқсаты қауіпсіз емес');
+ const permissions=await driveJson(`files/${id(fileId)}/permissions?fields=permissions(id,type,emailAddress,role,allowFileDiscovery),nextPageToken&pageSize=100`,token);
+ if(permissions.nextPageToken)throw new HttpError(403,'Drive рұқсаттары тексерілмеді');
+ validateOwnerPermissions(permissions.permissions);
  return file;
 }

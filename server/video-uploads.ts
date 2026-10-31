@@ -39,7 +39,7 @@ async function logUpload(db:any,uploadId:string,actorId:string,action:string,off
 }
 async function finish(db:any,row:any,fileId:string,actorId:string){
  await verifyOwnerFile(fileId,row.folder_id,Number(row.file_size));
- await validateDriveFile(fileId,row.folder_id,'source',Number(row.file_size));
+ await validateDriveFile(fileId,row.folder_id,'owner_source',Number(row.file_size));
  await db.query("UPDATE private.teacher_video_uploads SET status='completed',next_offset=file_size,drive_file_id=$2,session_uri_encrypted='',updated_at=now() WHERE id=$1",[row.id,fileId]);
  await db.query("UPDATE private.lessons SET drive_file_id=$2,drive_folder_id=$3,video_mime='video/mp4',video_size=$4,drive_checked_at=now(),updated_at=now() WHERE id=$1 AND published=false",[row.lesson_id,fileId,row.folder_id,row.file_size]);
  await logUpload(db,row.id,actorId,'completed',Number(row.file_size));
@@ -47,6 +47,10 @@ async function finish(db:any,row:any,fileId:string,actorId:string){
 }
 
 export async function registerVideoUploadRoutes(app:FastifyInstance){
+ async function cleanupExpired(db:any,teacherId:string){
+  const expired=(await db.query("UPDATE private.teacher_video_uploads SET status='failed',session_uri_encrypted='',updated_at=now() WHERE teacher_id=$1 AND status='uploading' AND expires_at<=now() RETURNING id,lesson_id,next_offset",[teacherId])).rows;
+  for(const row of expired){await logUpload(db,row.id,teacherId,'failed',Number(row.next_offset));await audit(db,teacherId,'teacher.video.failed','lesson',row.lesson_id,{reason:'upload_session_expired'});}
+ }
  app.get('/api/admin/owner-drive',async req=>{const ctx=await readAccess(req);const status=await ownerDriveStatus();return ctx.user_id===config.driveOwnerUserId?{...status,can_connect:true}:{configured:status.configured,connected:status.connected,can_connect:false};});
  app.post('/api/admin/owner-drive/connect',async req=>{
   const ctx=await readAccess(req);owner(ctx);
@@ -87,7 +91,7 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
   });
  });
  app.get('/api/teacher/video-uploads',async req=>{
-  const ctx=await readAccess(req,['TEACHER']);
+  const ctx=await readAccess(req,['TEACHER']);await transaction(db=>cleanupExpired(db,ctx.user_id));
   const {rows}=await pool.query(`SELECT v.id,v.course_id,v.group_id,v.lesson_id,v.week,v.original_name,v.file_size,v.next_offset,v.status,v.created_at,v.updated_at,l.title,l.published,l.revision FROM private.teacher_video_uploads v JOIN private.lessons l ON l.id=v.lesson_id WHERE v.teacher_id=$1 ORDER BY v.created_at DESC LIMIT 100`,[ctx.user_id]);
   const enabled=Boolean((await pool.query('SELECT enabled FROM private.teacher_video_upload_access WHERE teacher_id=$1',[ctx.user_id])).rows[0]?.enabled);
   return {uploads:rows,enabled};
@@ -121,8 +125,18 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
    const row=(await db.query('SELECT * FROM private.teacher_video_uploads WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!row||row.teacher_id!==ctx.user_id)fail('NOT_FOUND',404);
    await freshTeacher(db,req,ctx,row.course_id,row.group_id);
    if(row.status==='completed')return {offset:Number(row.file_size),status:'completed',lesson_id:row.lesson_id};
-   if(row.status!=='uploading'||new Date(row.expires_at).getTime()<=Date.now())fail('CONFLICT',409);
-   const result=await queryUpload(decryptOAuth(row.session_uri_encrypted),Number(row.file_size));
+   if(row.status!=='uploading')fail('CONFLICT',409);
+   if(new Date(row.expires_at).getTime()<=Date.now()){
+    await db.query("UPDATE private.teacher_video_uploads SET status='failed',session_uri_encrypted='',updated_at=now() WHERE id=$1",[id]);
+    await logUpload(db,id,ctx.user_id,'failed',Number(row.next_offset));await audit(db,ctx.user_id,'teacher.video.failed','lesson',row.lesson_id,{reason:'upload_session_expired'});
+    return {offset:Number(row.next_offset),status:'failed',lesson_id:row.lesson_id};
+   }
+   let result;try{result=await queryUpload(decryptOAuth(row.session_uri_encrypted),Number(row.file_size));}
+   catch(error){if(!(error instanceof HttpError&&error.statusCode===409))throw error;
+    await db.query("UPDATE private.teacher_video_uploads SET status='failed',session_uri_encrypted='',updated_at=now() WHERE id=$1",[id]);
+    await logUpload(db,id,ctx.user_id,'failed',Number(row.next_offset));await audit(db,ctx.user_id,'teacher.video.failed','lesson',row.lesson_id,{reason:'upload_session_expired'});
+    return {offset:Number(row.next_offset),status:'failed',lesson_id:row.lesson_id};
+   }
    if(result.complete){await finish(db,row,result.file_id,ctx.user_id);return {offset:Number(row.file_size),status:'completed',lesson_id:row.lesson_id};}
    await db.query('UPDATE private.teacher_video_uploads SET next_offset=$2,updated_at=now() WHERE id=$1',[id,result.offset]);
    return {offset:result.offset,status:'uploading',lesson_id:row.lesson_id};
@@ -138,13 +152,42 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
    const size=Number(row.file_size),end=data.offset+bytes.length;
    if(row.status!=='uploading'||new Date(row.expires_at).getTime()<=Date.now()||data.offset!==Number(row.next_offset)||end>size||end<size&&bytes.length%262144!==0)fail('CONFLICT',409);
    if(data.offset===0&&bytes.subarray(4,8).toString('ascii')!=='ftyp')fail('INVALID_DATA',400);
-   const result=await uploadChunk(decryptOAuth(row.session_uri_encrypted),size,bytes,data.offset);
+   let result;try{result=await uploadChunk(decryptOAuth(row.session_uri_encrypted),size,bytes,data.offset);}
+   catch(error){if(!(error instanceof HttpError&&error.statusCode===409))throw error;
+    await db.query("UPDATE private.teacher_video_uploads SET status='failed',session_uri_encrypted='',updated_at=now() WHERE id=$1",[id]);
+    await logUpload(db,id,ctx.user_id,'failed',Number(row.next_offset));await audit(db,ctx.user_id,'teacher.video.failed','lesson',row.lesson_id,{reason:'upload_session_expired'});
+    return {offset:Number(row.next_offset),status:'failed',lesson_id:row.lesson_id};
+   }
    await freshTeacher(db,req,ctx,row.course_id,row.group_id);
    if(result.complete){await finish(db,row,result.file_id,ctx.user_id);return {offset:size,status:'completed',lesson_id:row.lesson_id};}
    if(result.offset<data.offset||result.offset>end)throw new HttpError(503,'Drive offset жарамсыз');
    await db.query('UPDATE private.teacher_video_uploads SET next_offset=$2,updated_at=now() WHERE id=$1',[id,result.offset]);
    if(result.offset===size||result.offset%8388608<bytes.length)await logUpload(db,id,ctx.user_id,'progress',result.offset);
    return {offset:result.offset,status:'uploading',lesson_id:row.lesson_id};
+  });
+ });
+ app.delete('/api/teacher/video-uploads/:id',async req=>{
+  const ctx=await readAccess(req,['TEACHER']),id=uploadId(req);
+  return transaction(async db=>{
+   const row=(await db.query('SELECT * FROM private.teacher_video_uploads WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!row||row.teacher_id!==ctx.user_id)fail('NOT_FOUND',404);
+   const fresh=await context(req,db);requireLearning(fresh);if(fresh.id!==ctx.id||fresh.user_id!==ctx.user_id||fresh.user.role!=='TEACHER')fail('FORBIDDEN');
+   if(row.status!=='uploading')fail('CONFLICT',409);
+   await db.query("UPDATE private.teacher_video_uploads SET status='cancelled',session_uri_encrypted='',updated_at=now() WHERE id=$1",[id]);
+   await logUpload(db,id,ctx.user_id,'cancelled',Number(row.next_offset));await audit(db,ctx.user_id,'teacher.video.cancelled','lesson',row.lesson_id,{offset_bytes:Number(row.next_offset)});
+   return {status:'cancelled',offset:Number(row.next_offset)};
+  });
+ });
+ app.post('/api/teacher/video-uploads/:id/restart',async req=>{
+  const ctx=await readAccess(req,['TEACHER']),id=uploadId(req);
+  return transaction(async db=>{
+   const row=(await db.query('SELECT * FROM private.teacher_video_uploads WHERE id=$1 FOR UPDATE',[id])).rows[0];if(!row||row.teacher_id!==ctx.user_id)fail('NOT_FOUND',404);
+   await freshTeacher(db,req,ctx,row.course_id,row.group_id);
+   if(!['failed','cancelled'].includes(row.status))fail('CONFLICT',409);
+   const course=await assigned(db,ctx.user_id,row.course_id,row.group_id);if(Number(row.week)>Number(course.weeks))fail('INVALID_DATA',400);
+   const session=await startResumable(row.folder_id,`${new Date().toISOString().slice(0,10)}-${randomUUID()}.mp4`,Number(row.file_size));
+   await db.query("UPDATE private.teacher_video_uploads SET status='uploading',next_offset=0,session_uri_encrypted=$2,expires_at=now()+interval '6 days',updated_at=now() WHERE id=$1",[id,encryptOAuth(session)]);
+   await logUpload(db,id,ctx.user_id,'started',0);await audit(db,ctx.user_id,'teacher.video.restarted','lesson',row.lesson_id,{course_id:row.course_id,week:row.week,size_bytes:Number(row.file_size)});
+   return {upload_id:id,lesson_id:row.lesson_id,offset:0,chunk_bytes:1048576,status:'uploading'};
   });
  });
  app.get('/api/admin/video-upload-activity',async req=>{

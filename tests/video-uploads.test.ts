@@ -12,11 +12,11 @@ const origin='https://video-upload-fixture.example',ownerId=randomUUID();
 const ownerEmail='owner@example.invalid',readerEmail='reader@fixture.gserviceaccount.com';
 const sha=(value:string)=>createHash('sha256').update(value).digest('hex');
 type Actor={id:string;key:CryptoKeyPair;cookie:string;csrf:string};
-let db:PGlite,app:FastifyInstance,owner:Actor,teacher:Actor,otherTeacher:Actor,student:Actor,courseId:string;
+let db:PGlite,app:FastifyInstance,owner:Actor,teacher:Actor,otherTeacher:Actor,unassignedTeacher:Actor,student:Actor,courseId:string;
 let endPool:(()=>Promise<void>)|undefined,previousFetch:typeof fetch;
 const previousClient=GoogleAuth.prototype.getClient,previousGetToken=OAuth2Client.prototype.getToken,previousVerify=OAuth2Client.prototype.verifyIdToken,previousAccess=OAuth2Client.prototype.getAccessToken;
 const files=new Map<string,{name:string;mimeType:string;parents:string[];size?:number}>();
-let mediaBytes=Buffer.alloc(1048576+16);mediaBytes.write('ftyp',4);let uploadReceived=0,uploadCalls=0;
+let mediaBytes=Buffer.alloc(1048576+16);mediaBytes.write('ftyp',4);let uploadReceived=0,uploadCalls=0,expireNextQuery=false,backendRole='reader',permissionPatches=0;
 
 before(async()=>{
  Object.assign(process.env,{NODE_ENV:'test',APP_ORIGIN:origin,COOKIE_SECURE:'true',DATABASE_URL:'postgresql://unused:unused@127.0.0.1:1/postgres',SUPABASE_URL:'https://auth-video-fixture.example',SUPABASE_ANON_KEY:'fixture-anon',SUPABASE_SERVICE_ROLE_KEY:'fixture-service',ADMIN_ENCRYPTION_KEY:'ab'.repeat(32),DRIVE_OWNER_USER_ID:ownerId,DRIVE_OWNER_EMAIL:ownerEmail,DRIVE_OAUTH_CLIENT_ID:'fixture-client',DRIVE_OAUTH_CLIENT_SECRET:'fixture-secret',DRIVE_OAUTH_ENCRYPTION_KEY:'cd'.repeat(32),DRIVE_ALLOWED_PERMISSION_EMAILS:`${ownerEmail},${readerEmail}`,GOOGLE_APPLICATION_CREDENTIALS_BASE64:Buffer.from(JSON.stringify({client_email:readerEmail})).toString('base64')});
@@ -30,6 +30,7 @@ before(async()=>{
   const authorization=new Headers(init?.headers).get('authorization');assert.ok(authorization==='Bearer OWNER_FIXTURE'||authorization==='Bearer SERVICE_FIXTURE');
   if(url.pathname==='/upload/drive/v3/files'&&init?.method==='POST')return new Response(null,{status:200,headers:{location:'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=FIXTURE'}});
   if(url.pathname==='/upload/drive/v3/files'&&init?.method==='PUT'){
+   if(!init.body&&expireNextQuery){expireNextQuery=false;return new Response(null,{status:410});}
    if(!init.body)return new Response(null,{status:308,headers:uploadReceived?{range:`bytes=0-${uploadReceived-1}`}:{}});
    const range=new Headers(init.headers).get('content-range')||'';const match=/^bytes (\d+)-(\d+)\/(\d+)$/.exec(range);assert.ok(match);
    const start=Number(match[1]),end=Number(match[2]),total=Number(match[3]);assert.equal(start,uploadReceived);assert.equal(total,mediaBytes.length);
@@ -46,8 +47,9 @@ before(async()=>{
   }
   const parts=url.pathname.split('/'),fileId=parts[4];const file=files.get(fileId);assert.ok(file,`Unknown fixture file ${fileId}`);
   if(parts[5]==='permissions'){
-   if(init?.method==='POST')return Response.json({id:'SERVICE_PERMISSION'});
-   return Response.json({permissions:[{type:'user',emailAddress:ownerEmail,role:'owner'},{type:'user',emailAddress:readerEmail,role:'reader'}]});
+   if(init?.method==='POST'){backendRole=JSON.parse(String(init.body)).role;return Response.json({id:'SERVICE_PERMISSION'});}
+   if(init?.method==='PATCH'){backendRole=JSON.parse(String(init.body)).role;permissionPatches++;return Response.json({id:'SERVICE_PERMISSION',role:backendRole});}
+   return Response.json({permissions:[{id:'OWNER_PERMISSION',type:'user',emailAddress:ownerEmail,role:'owner'},{id:'SERVICE_PERMISSION',type:'user',emailAddress:readerEmail,role:backendRole}]});
   }
   if(url.searchParams.get('alt')==='media'){
    const match=/^bytes=(\d+)-(\d+)$/.exec(new Headers(init?.headers).get('range')||'');assert.ok(match);
@@ -61,7 +63,7 @@ before(async()=>{
  const query=async(sql:string,params:unknown[]=[])=>{const result=await db.query(sql,params);return {rows:result.rows,rowCount:result.rows.length||result.affectedRows||0,fields:[],command:'',oid:0};};
  (pool as any).query=query;(pool as any).connect=async()=>({query,release(){}});
  ({app}=await import('../server/index.js'));await app.ready();
- owner=await actor('ADMIN',ownerId);teacher=await actor('TEACHER');otherTeacher=await actor('TEACHER');student=await actor('STUDENT');
+ owner=await actor('ADMIN',ownerId);teacher=await actor('TEACHER');otherTeacher=await actor('TEACHER');unassignedTeacher=await actor('TEACHER');student=await actor('STUDENT');
  courseId=(await db.query<{id:string}>("SELECT id FROM private.courses WHERE slug='pp1'")).rows[0].id;
  await db.query('INSERT INTO private.teacher_assignments(teacher_id,course_id,created_by) VALUES($1,$2,$3)',[teacher.id,courseId,owner.id]);
  await db.query('INSERT INTO private.teacher_assignments(teacher_id,course_id,created_by) VALUES($1,$2,$3)',[otherTeacher.id,courseId,owner.id]);
@@ -97,7 +99,15 @@ test('owner OAuth, scoped teacher resumable MP4, student proof streaming and rev
  assert.equal(callback.headers['referrer-policy'],'no-referrer');
  const finish=await signed(owner,'POST','/api/admin/owner-drive/finish',{state});assert.equal(finish.statusCode,200,finish.body);
  assert.equal((await signed(owner,'GET','/api/admin/owner-drive')).json().connected,true);
+ backendRole='writer';
+ const reconnect=await signed(owner,'POST','/api/admin/owner-drive/connect',{});assert.equal(reconnect.statusCode,200);
+ const reconnectState=reconnect.json().state;
+ const reconnectCallback=await app.inject({method:'GET',url:`/api/drive/oauth/callback?state=${encodeURIComponent(reconnectState)}&code=FIXTURE_CODE`});assert.equal(reconnectCallback.statusCode,302);
+ const reconnectFinish=await signed(owner,'POST','/api/admin/owner-drive/finish',{state:reconnectState});assert.equal(reconnectFinish.statusCode,200,reconnectFinish.body);
+ assert.equal(backendRole,'reader');assert.equal(permissionPatches,1,'reconnect must downgrade backend access back to reader');
  assert.equal((await signed(owner,'PATCH',`/api/admin/teacher-video-access/${teacher.id}`,{enabled:true})).statusCode,200);
+ assert.equal((await signed(owner,'PATCH',`/api/admin/teacher-video-access/${unassignedTeacher.id}`,{enabled:true})).statusCode,200);
+ assert.equal((await signed(unassignedTeacher,'POST','/api/teacher/video-uploads',{course_id:courseId,group_id:null,week:1,title:'Foreign course',description:'',name:'foreign.mp4',size:mediaBytes.length})).statusCode,404);
  const startUpload=await signed(teacher,'POST','/api/teacher/video-uploads',{course_id:courseId,group_id:null,week:1,title:'Real fixture lesson',description:'Source owned by owner',name:'teams.mp4',size:mediaBytes.length});
  assert.equal(startUpload.statusCode,200,startUpload.body);const {upload_id,lesson_id}=startUpload.json();
  assert.equal((await signed(student,'GET',`/api/teacher/video-uploads/${upload_id}`)).statusCode,403);
@@ -112,14 +122,28 @@ test('owner OAuth, scoped teacher resumable MP4, student proof streaming and rev
  const play=await signed(student,'POST',`/api/lessons/${lesson_id}/playback`,{},'playback');assert.equal(play.statusCode,200,play.body);assert.equal(play.json().source,'native');
  const grant=play.json().grant_id,path=`/api/native-chunk/${lesson_id}?grant=${grant}&start=0&end=1023`;
  assert.equal((await app.inject({method:'GET',url:path,headers:{cookie:student.cookie}})).statusCode,403);
+ backendRole='writer';assert.equal((await signed(student,'GET',path,undefined,'media')).statusCode,403,'a backend writer role must close student media access');backendRole='reader';
  const media=await signed(student,'GET',path,undefined,'media');assert.equal(media.statusCode,206,media.body.slice(0,80));assert.equal(media.headers['content-range'],`bytes 0-1023/${mediaBytes.length}`);
  await db.query("UPDATE private.enrollments SET status='paused' WHERE user_id=$1 AND course_id=$2",[student.id,courseId]);
  assert.equal((await signed(student,'GET',path,undefined,'media')).statusCode,404);
  const unfinished=await signed(teacher,'POST','/api/teacher/video-uploads',{course_id:courseId,group_id:null,week:1,title:'Revoked upload',description:'',name:'revoked.mp4',size:mediaBytes.length});
  assert.equal(unfinished.statusCode,200,unfinished.body);
  const pendingId=unfinished.json().upload_id;
+ expireNextQuery=true;
+ const expired=await signed(teacher,'POST',`/api/teacher/video-uploads/${pendingId}/sync`,{});
+ assert.equal(expired.statusCode,200,expired.body);assert.equal(expired.json().status,'failed');
+ const restarted=await signed(teacher,'POST',`/api/teacher/video-uploads/${pendingId}/restart`,{});
+ assert.equal(restarted.statusCode,200,restarted.body);assert.equal(restarted.json().offset,0);
+ const cancelled=await signed(teacher,'DELETE',`/api/teacher/video-uploads/${pendingId}`,{});
+ assert.equal(cancelled.statusCode,200,cancelled.body);assert.equal(cancelled.json().status,'cancelled');
+ const cancelledRow=(await db.query<{status:string;session_uri_encrypted:string}>('SELECT status,session_uri_encrypted FROM private.teacher_video_uploads WHERE id=$1',[pendingId])).rows[0];
+ assert.equal(cancelledRow.status,'cancelled');assert.equal(cancelledRow.session_uri_encrypted,'');
+ assert.equal((await signed(teacher,'POST',`/api/teacher/video-uploads/${pendingId}/sync`,{})).statusCode,409);
+ assert.equal((await signed(otherTeacher,'DELETE',`/api/teacher/video-uploads/${pendingId}`,{})).statusCode,404);
+ const revokePending=await signed(teacher,'POST','/api/teacher/video-uploads',{course_id:courseId,group_id:null,week:1,title:'Revoked upload',description:'',name:'revoked-again.mp4',size:mediaBytes.length});
+ assert.equal(revokePending.statusCode,200,revokePending.body);
  assert.equal((await signed(owner,'PATCH',`/api/admin/teacher-video-access/${teacher.id}`,{enabled:false})).statusCode,200);
- assert.equal((await signed(teacher,'PUT',`/api/teacher/video-uploads/${pendingId}/chunk`,{offset:0,data:mediaBytes.subarray(0,1048576).toString('base64')})).statusCode,403);
+ assert.equal((await signed(teacher,'PUT',`/api/teacher/video-uploads/${revokePending.json().upload_id}/chunk`,{offset:0,data:mediaBytes.subarray(0,1048576).toString('base64')})).statusCode,403);
  assert.equal(uploadCalls,2);
  assert.equal((await signed(teacher,'POST','/api/teacher/video-uploads',{course_id:courseId,group_id:null,week:1,title:'Second lesson',description:'',name:'second.mp4',size:mediaBytes.length})).statusCode,403);
  assert.equal((await signed(owner,'PATCH',`/api/admin/teacher-video-access/${otherTeacher.id}`,{enabled:true})).statusCode,200);

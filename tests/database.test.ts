@@ -201,6 +201,12 @@ test('optional backend role has private runtime access without auth or DDL privi
   try {
     const courses = await db.query('select id from private.courses');
     assert.equal(courses.rows.length, 3);
+    for(const table of ['owner_drive_connection','owner_drive_oauth_requests','owner_drive_folders','teacher_video_upload_access','teacher_video_uploads','teacher_video_upload_events']){
+      const permissions=await db.query<{can_select:boolean;can_insert:boolean;can_update:boolean;can_delete:boolean}>(`select has_table_privilege('uyym_backend',$1,'SELECT') can_select,has_table_privilege('uyym_backend',$1,'INSERT') can_insert,has_table_privilege('uyym_backend',$1,'UPDATE') can_update,has_table_privilege('uyym_backend',$1,'DELETE') can_delete`,[`private.${table}`]);
+      assert.equal(permissions.rows[0].can_select,true,table);
+      assert.equal(permissions.rows[0].can_delete,false,table);
+    }
+    assert.equal((await db.query<{allowed:boolean}>("select has_sequence_privilege('uyym_backend','private.teacher_video_upload_events_id_seq','USAGE') allowed")).rows[0].allowed,true);
     await assert.rejects(db.query('select * from auth.users'), /permission denied/);
     await assert.rejects(db.query('alter table private.courses add column injected text'), /must be owner/);
     await assert.rejects(db.query('truncate private.courses'), /permission denied/);

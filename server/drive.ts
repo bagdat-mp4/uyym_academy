@@ -3,7 +3,7 @@ import {Readable} from 'node:stream';
 import {config} from './config.js';
 import {HttpError,assertPartSize} from './security.js';
 import type {PlayerTiming} from './player-timing.js';
-import {pool} from './db.js';
+import {validateOwnerPermissions} from './drive-permissions.js';
 const driveCredentials=process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
 const auth=new GoogleAuth({
  scopes:['https://www.googleapis.com/auth/drive.readonly'],
@@ -22,14 +22,14 @@ function safeId(id:string) {if(!/^[A-Za-z0-9_-]{5,200}$/.test(id))throw new Http
 export function validatePermissions(permissions:any[]) {
  if(!Array.isArray(permissions)||!permissions.length||permissions.some(p=>p.type!=='user'||!p.emailAddress||!config.permissionEmails.includes(p.emailAddress.toLowerCase())||p.allowFileDiscovery))throw new HttpError(403,'Drive рұқсаттары Restricted болуы керек');
 }
-export async function validateDriveFile(fileId:string,folderId:string,kind:'source'|'part'='part',expectedSize?:number,timing?:PlayerTiming) {
- const managed=kind==='source'&&(await pool.query("SELECT 1 FROM private.owner_drive_folders WHERE id=$1 AND kind='week'",[folderId])).rowCount;
+export async function validateDriveFile(fileId:string,folderId:string,kind:'source'|'part'|'owner_source'='part',expectedSize?:number,timing?:PlayerTiming) {
+ const managed=kind==='owner_source';
  if(!(config.folders.includes(folderId)||managed)||!config.permissionEmails.length)throw new HttpError(403,'Drive папкасы рұқсат етілмеген');
  safeId(fileId);safeId(folderId);
  // Resolve one request-local credential before fan-out (including a cold token
  // refresh). No metadata/permission cache: all four reads run for EVERY part.
  const token=await authorization(timing);
- const fields='id,mimeType,size,parents,trashed';
+ const fields=kind!=='part'?'id,mimeType,size,parents,trashed,ownedByMe':'id,mimeType,size,parents,trashed';
  const json=async(path:string)=>await(await request(path,{},token)).json() as any;
  const metadata=()=>Promise.all([
   json(`files/${fileId}?fields=${encodeURIComponent(fields)}&supportsAllDrives=true`),
@@ -41,9 +41,10 @@ export async function validateDriveFile(fileId:string,folderId:string,kind:'sour
   timing?timing.measure('drive_permissions',permissions):permissions()
  ]);
  if(folder.trashed||folder.mimeType!=='application/vnd.google-apps.folder'||file.trashed||!file.parents?.includes(folderId))throw new HttpError(403,'Видео рұқсат етілген папкада емес');
- for(const result of perms){if(result.nextPageToken)throw new HttpError(403,'Drive рұқсаттары тексерілмеді');validatePermissions(result.permissions);}
+ for(const result of perms){if(result.nextPageToken)throw new HttpError(403,'Drive рұқсаттары тексерілмеді');if(managed)validateOwnerPermissions(result.permissions,config.driveOwnerEmail);else validatePermissions(result.permissions);}
  const size=Number(file.size);if(!Number.isSafeInteger(size)||size<1)throw new HttpError(403,'Видео көлемі жарамсыз');
- if(kind==='source'&&file.mimeType!=='video/mp4')throw new HttpError(403,'MP4 қажет');
+ if(kind!=='part'&&file.mimeType!=='video/mp4')throw new HttpError(403,'MP4 қажет');
+ if(managed&&!file.ownedByMe)throw new HttpError(403,'Видео иесінің Drive аккаунтына тиесілі емес');
  if(kind==='part'&&!['video/mp4','video/iso.segment','application/octet-stream'].includes(file.mimeType))throw new HttpError(403,'fMP4 бөлігі қажет');
  if(expectedSize!==undefined&&size!==expectedSize)throw new HttpError(403,'Видео өзгерген. Қайта тексеріңіз');
  if(kind==='part')assertPartSize(size);return {size,mime:file.mimeType};

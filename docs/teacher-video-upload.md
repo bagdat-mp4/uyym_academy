@@ -28,10 +28,19 @@ Use one small, private Teams recording, preferably MP4 with H.264 video, AAC aud
 4. Revoke upload permission for one teacher and verify that their next chunk/start fails while a different enabled teacher can still upload. Check the ADMIN activity log without exposing tokens or Drive IDs.
 5. Review operational cost and limits before any wider rollout. Drive storage capacity does not provide unlimited video delivery or guarantee that Render Free is suitable for large uploads. Monitor service bandwidth and Google API quota. Do not enable a paid service without the owner's choice.
 
-## Recovery
+## Recovery and cancellation
 
-- A failed network transfer can be resumed while the same Google upload session remains valid: the teacher selects the same local file and the backend queries Google's current offset. If the Google session expires, start a new upload; the previous draft can be left unpublished for admin cleanup.
+- Temporary network errors can be retried; the backend queries Google's acknowledged offset before another chunk is sent. If the Google session has expired, UYYM marks it failed, clears the encrypted session URI, and the teacher can explicitly restart with the same local file. The new upload creates a new private Google resumable session and reuses the existing unpublished lesson.
+- Cancel stops further UYYM chunks, clears the encrypted session URI, and preserves the event history and unpublished draft. Drive's resumable-upload API has no documented cancel operation for an upload session; Google's incomplete session can remain valid for up to one week, but UYYM no longer retains its URI and cannot resume or send it. Expired UYYM records are marked failed and cleaned when the teacher next opens the upload list. Do not promise immediate Google-side deletion of an incomplete session.
+- A database failure after Google creates a session can leave an unused Google session; it expires automatically. No media file is committed until the resumable session completes.
 - Keep the OAuth encryption key in protected backup alongside the encrypted database backup. Back up and test restoration of the private tables before rotating the key. The Google owner can revoke OAuth access in their Google account; this stops new uploads until the owner reconnects.
 - Do not store a Google access token, refresh token, resumable URI, source URL or backend service-account JSON in a client log, browser storage, public error or repository.
+
+## Release gate
+
+- The migration grants only the operations used by the BFF and revokes `DELETE` on its six tables. If `uyym_backend` was created after this migration through `supabase/backend-role.sql`, that script applies broad default table grants and then explicitly revokes `DELETE` on these integration tables.
+- Before applying the migration, the database operator must confirm that the actual `DATABASE_URL` login is `uyym_backend` (or the documented pooler-qualified role), that it has `BYPASSRLS`, the listed table/sequence grants, and no access to `auth.users` or Supabase `service_role`. Repository SQL cannot confirm the live role or ambient grants.
+- Owner Drive permissions are accepted only when the exact two identities are present: the configured owner with `owner` and the configured backend service account with `reader`. Reconnecting verifies the folder and repairs a missing/wrong backend role to `reader`, then re-reads and validates permissions. Extra identities, public/domain permissions, wrong roles, or paginated/ambiguous ACL responses fail closed.
+- The existing branch is not itself a release: integrate onto the then-current `main`, preserve legal routes and current tests, and complete real OAuth/upload/student playback acceptance before enabling a teacher.
 
 Google references: [file ownership](https://developers.google.com/workspace/drive/api/guides/create-file), [resumable uploads](https://developers.google.com/workspace/drive/api/guides/manage-uploads), [Drive scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth), [OAuth Testing audience](https://support.google.com/cloud/answer/15549945?hl=en).

@@ -95,10 +95,12 @@ revoke all on private.owner_drive_connection,private.owner_drive_oauth_requests,
  from public,anon,authenticated,service_role;
 do $$ begin
  if exists (select 1 from pg_roles where rolname='uyym_backend') then
-  grant select,insert,update,delete on private.owner_drive_connection,private.owner_drive_oauth_requests,
-   private.owner_drive_folders,private.teacher_video_upload_access,private.teacher_video_uploads,
-   private.teacher_video_upload_events to uyym_backend;
+  grant select,insert,update on private.owner_drive_connection,private.owner_drive_oauth_requests,
+   private.teacher_video_upload_access,private.teacher_video_uploads to uyym_backend;
+  grant select,insert on private.owner_drive_folders,private.teacher_video_upload_events to uyym_backend;
   grant usage,select on sequence private.teacher_video_upload_events_id_seq to uyym_backend;
+  revoke delete on private.owner_drive_connection,private.owner_drive_oauth_requests,private.owner_drive_folders,
+   private.teacher_video_upload_access,private.teacher_video_uploads,private.teacher_video_upload_events from uyym_backend;
  end if;
 end $$;
 commit;

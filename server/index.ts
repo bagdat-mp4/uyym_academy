@@ -221,7 +221,7 @@ app.get('/api/native-chunk/:id',async(req,reply)=>{
  const uploaded=l?.drive_file_id?(await pool.query("SELECT 1 FROM private.teacher_video_uploads WHERE lesson_id=$1 AND status='completed' AND drive_file_id=$2",[id,l.drive_file_id])).rowCount:false;
  const size=Number(l?.video_size);
  if(!uploaded||!l.drive_folder_id||!Number.isSafeInteger(size)||size<1||query.end<query.start||query.end>=size||query.end-query.start>=1048576)throw new HttpError(404,'Видео қолжетімсіз');
- await validateDriveFile(l.drive_file_id,l.drive_folder_id,'source',size);
+ await validateDriveFile(l.drive_file_id,l.drive_folder_id,'owner_source',size);
  const fresh=await context(req);await playback(fresh,query.grant);
  const stream=await streamSourceRange(l.drive_file_id,query.start,query.end,size);
  try{const final=await context(req);await playback(final,query.grant);}catch(error){stream.destroy();throw error;}

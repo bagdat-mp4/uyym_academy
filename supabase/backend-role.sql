@@ -29,6 +29,11 @@ begin
   if to_regclass('private.registration_applications') is not null then
     revoke delete on private.registration_applications from uyym_backend;
   end if;
+  if to_regclass('private.owner_drive_connection') is not null then
+    revoke delete on private.owner_drive_connection,private.owner_drive_oauth_requests,
+      private.owner_drive_folders,private.teacher_video_upload_access,
+      private.teacher_video_uploads,private.teacher_video_upload_events from uyym_backend;
+  end if;
 end;
 $$;
 alter default privileges in schema private grant select,insert,update,delete on tables to uyym_backend;
