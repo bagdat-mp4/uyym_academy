@@ -37,9 +37,13 @@ async function freshTeacher(db:any,req:FastifyRequest,previous:any,courseId:stri
 async function logUpload(db:any,uploadId:string,actorId:string,action:string,offset:number){
  await db.query('INSERT INTO private.teacher_video_upload_events(upload_id,actor_id,action,offset_bytes) VALUES($1,$2,$3,$4)',[uploadId,actorId,action,offset]);
 }
-async function finish(db:any,row:any,fileId:string,actorId:string){
+async function finish(db:any,row:any,fileId:string,req:FastifyRequest,ctx:any){
  await verifyOwnerFile(fileId,row.folder_id,Number(row.file_size));
  await validateDriveFile(fileId,row.folder_id,'owner_source',Number(row.file_size));
+ // Provider calls can outlive a session or course assignment. Revalidate after
+ // those waits before attaching the file or recording a successful completion.
+ await freshTeacher(db,req,ctx,row.course_id,row.group_id);
+ const actorId=ctx.user_id;
  await db.query("UPDATE private.teacher_video_uploads SET status='completed',next_offset=file_size,drive_file_id=$2,session_uri_encrypted='',updated_at=now() WHERE id=$1",[row.id,fileId]);
  await db.query("UPDATE private.lessons SET drive_file_id=$2,drive_folder_id=$3,video_mime='video/mp4',video_size=$4,drive_checked_at=now(),updated_at=now() WHERE id=$1 AND published=false",[row.lesson_id,fileId,row.folder_id,row.file_size]);
  await logUpload(db,row.id,actorId,'completed',Number(row.file_size));
@@ -137,7 +141,8 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
     await logUpload(db,id,ctx.user_id,'failed',Number(row.next_offset));await audit(db,ctx.user_id,'teacher.video.failed','lesson',row.lesson_id,{reason:'upload_session_expired'});
     return {offset:Number(row.next_offset),status:'failed',lesson_id:row.lesson_id};
    }
-   if(result.complete){await finish(db,row,result.file_id,ctx.user_id);return {offset:Number(row.file_size),status:'completed',lesson_id:row.lesson_id};}
+   await freshTeacher(db,req,ctx,row.course_id,row.group_id);
+   if(result.complete){await finish(db,row,result.file_id,req,ctx);return {offset:Number(row.file_size),status:'completed',lesson_id:row.lesson_id};}
    await db.query('UPDATE private.teacher_video_uploads SET next_offset=$2,updated_at=now() WHERE id=$1',[id,result.offset]);
    return {offset:result.offset,status:'uploading',lesson_id:row.lesson_id};
   });
@@ -159,7 +164,7 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
     return {offset:Number(row.next_offset),status:'failed',lesson_id:row.lesson_id};
    }
    await freshTeacher(db,req,ctx,row.course_id,row.group_id);
-   if(result.complete){await finish(db,row,result.file_id,ctx.user_id);return {offset:size,status:'completed',lesson_id:row.lesson_id};}
+   if(result.complete){await finish(db,row,result.file_id,req,ctx);return {offset:size,status:'completed',lesson_id:row.lesson_id};}
    if(result.offset<data.offset||result.offset>end)throw new HttpError(503,'Drive offset жарамсыз');
    await db.query('UPDATE private.teacher_video_uploads SET next_offset=$2,updated_at=now() WHERE id=$1',[id,result.offset]);
    if(result.offset===size||result.offset%8388608<bytes.length)await logUpload(db,id,ctx.user_id,'progress',result.offset);
@@ -185,6 +190,7 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
    if(!['failed','cancelled'].includes(row.status))fail('CONFLICT',409);
    const course=await assigned(db,ctx.user_id,row.course_id,row.group_id);if(Number(row.week)>Number(course.weeks))fail('INVALID_DATA',400);
    const session=await startResumable(row.folder_id,`${new Date().toISOString().slice(0,10)}-${randomUUID()}.mp4`,Number(row.file_size));
+   await freshTeacher(db,req,ctx,row.course_id,row.group_id);
    await db.query("UPDATE private.teacher_video_uploads SET status='uploading',next_offset=0,session_uri_encrypted=$2,expires_at=now()+interval '6 days',updated_at=now() WHERE id=$1",[id,encryptOAuth(session)]);
    await logUpload(db,id,ctx.user_id,'started',0);await audit(db,ctx.user_id,'teacher.video.restarted','lesson',row.lesson_id,{course_id:row.course_id,week:row.week,size_bytes:Number(row.file_size)});
    return {upload_id:id,lesson_id:row.lesson_id,offset:0,chunk_bytes:1048576,status:'uploading'};

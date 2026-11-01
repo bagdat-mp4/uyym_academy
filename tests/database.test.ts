@@ -34,6 +34,13 @@ before(async () => {
 
 after(async () => { await db?.close(); });
 
+test('owner Drive catalog preflight runs read-only against the migrated schema', async () => {
+  const sql=await readFile(new URL('../supabase/owner-drive-preflight.sql',import.meta.url),'utf8');
+  const results=await db.exec(sql);
+  assert.ok(results.some(result=>result.rows.some((row:any)=>row.relname==='teacher_video_uploads')));
+  assert.ok(results.some(result=>result.rows.some((row:any)=>row.relname==='teacher_video_upload_events_id_seq')));
+});
+
 async function fixture() {
   const admin = randomUUID(), student = randomUUID();
   for (const [id, role] of [[admin, 'ADMIN'], [student, 'STUDENT']]) {

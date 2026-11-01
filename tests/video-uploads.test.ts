@@ -17,6 +17,7 @@ let endPool:(()=>Promise<void>)|undefined,previousFetch:typeof fetch;
 const previousClient=GoogleAuth.prototype.getClient,previousGetToken=OAuth2Client.prototype.getToken,previousVerify=OAuth2Client.prototype.verifyIdToken,previousAccess=OAuth2Client.prototype.getAccessToken;
 const files=new Map<string,{name:string;mimeType:string;parents:string[];size?:number}>();
 let mediaBytes=Buffer.alloc(1048576+16);mediaBytes.write('ftyp',4);let uploadReceived=0,uploadCalls=0,expireNextQuery=false,backendRole='reader',permissionPatches=0;
+let duringQuery:(()=>Promise<void>)|undefined,duringValidation:(()=>Promise<void>)|undefined;
 
 before(async()=>{
  Object.assign(process.env,{NODE_ENV:'test',APP_ORIGIN:origin,COOKIE_SECURE:'true',DATABASE_URL:'postgresql://unused:unused@127.0.0.1:1/postgres',SUPABASE_URL:'https://auth-video-fixture.example',SUPABASE_ANON_KEY:'fixture-anon',SUPABASE_SERVICE_ROLE_KEY:'fixture-service',ADMIN_ENCRYPTION_KEY:'ab'.repeat(32),DRIVE_OWNER_USER_ID:ownerId,DRIVE_OWNER_EMAIL:ownerEmail,DRIVE_OAUTH_CLIENT_ID:'fixture-client',DRIVE_OAUTH_CLIENT_SECRET:'fixture-secret',DRIVE_OAUTH_ENCRYPTION_KEY:'cd'.repeat(32),DRIVE_ALLOWED_PERMISSION_EMAILS:`${ownerEmail},${readerEmail}`,GOOGLE_APPLICATION_CREDENTIALS_BASE64:Buffer.from(JSON.stringify({client_email:readerEmail})).toString('base64')});
@@ -30,6 +31,7 @@ before(async()=>{
   const authorization=new Headers(init?.headers).get('authorization');assert.ok(authorization==='Bearer OWNER_FIXTURE'||authorization==='Bearer SERVICE_FIXTURE');
   if(url.pathname==='/upload/drive/v3/files'&&init?.method==='POST')return new Response(null,{status:200,headers:{location:'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&upload_id=FIXTURE'}});
   if(url.pathname==='/upload/drive/v3/files'&&init?.method==='PUT'){
+   if(!init.body&&duringQuery){const callback=duringQuery;duringQuery=undefined;await callback();}
    if(!init.body&&expireNextQuery){expireNextQuery=false;return new Response(null,{status:410});}
    if(!init.body)return new Response(null,{status:308,headers:uploadReceived?{range:`bytes=0-${uploadReceived-1}`}:{}});
    const range=new Headers(init.headers).get('content-range')||'';const match=/^bytes (\d+)-(\d+)\/(\d+)$/.exec(range);assert.ok(match);
@@ -46,6 +48,7 @@ before(async()=>{
    files.set(id,{name:data.name,mimeType:data.mimeType,parents:data.parents||[]});return Response.json({id,mimeType:data.mimeType,parents:data.parents||[],ownedByMe:true});
   }
   const parts=url.pathname.split('/'),fileId=parts[4];const file=files.get(fileId);assert.ok(file,`Unknown fixture file ${fileId}`);
+  if(fileId==='SOURCE_VIDEO'&&authorization==='Bearer OWNER_FIXTURE'&&duringValidation){const callback=duringValidation;duringValidation=undefined;await callback();}
   if(parts[5]==='permissions'){
    if(init?.method==='POST'){backendRole=JSON.parse(String(init.body)).role;return Response.json({id:'SERVICE_PERMISSION'});}
    if(init?.method==='PATCH'){backendRole=JSON.parse(String(init.body)).role;permissionPatches++;return Response.json({id:'SERVICE_PERMISSION',role:backendRole});}
@@ -112,8 +115,19 @@ test('owner OAuth, scoped teacher resumable MP4, student proof streaming and rev
  assert.equal(startUpload.statusCode,200,startUpload.body);const {upload_id,lesson_id}=startUpload.json();
  assert.equal((await signed(student,'GET',`/api/teacher/video-uploads/${upload_id}`)).statusCode,403);
  assert.equal((await signed(otherTeacher,'GET',`/api/teacher/video-uploads/${upload_id}`)).statusCode,404);
+ duringQuery=async()=>{await db.query('DELETE FROM private.teacher_assignments WHERE teacher_id=$1',[teacher.id]);};
+ assert.equal((await signed(teacher,'POST',`/api/teacher/video-uploads/${upload_id}/sync`,{})).statusCode,404,'assignment removal during a Drive query must reject sync');
+ assert.equal((await db.query<{next_offset:number}>('SELECT next_offset FROM private.teacher_video_uploads WHERE id=$1',[upload_id])).rows[0].next_offset,0);
+ // PGlite runs the simulated assignment removal inside the failed transaction,
+ // so rollback restores it before the next operation.
  assert.equal((await signed(teacher,'POST',`/api/teacher/video-uploads/${upload_id}/sync`,{})).json().offset,0);
  const first=await signed(teacher,'PUT',`/api/teacher/video-uploads/${upload_id}/chunk`,{offset:0,data:mediaBytes.subarray(0,1048576).toString('base64')});assert.equal(first.statusCode,200,first.body);assert.equal(first.json().offset,1048576);
+ duringValidation=async()=>{await db.query('DELETE FROM private.teacher_assignments WHERE teacher_id=$1',[teacher.id]);};
+ const rejectedFinal=await signed(teacher,'PUT',`/api/teacher/video-uploads/${upload_id}/chunk`,{offset:1048576,data:mediaBytes.subarray(1048576).toString('base64')});
+ assert.equal(rejectedFinal.statusCode,404,'assignment removal during final metadata validation must reject completion');
+ assert.equal((await db.query<{status:string}>('SELECT status FROM private.teacher_video_uploads WHERE id=$1',[upload_id])).rows[0].status,'uploading');
+ assert.equal((await db.query<{drive_file_id:string|null}>('SELECT drive_file_id FROM private.lessons WHERE id=$1',[lesson_id])).rows[0].drive_file_id,null);
+ uploadReceived=1048576;uploadCalls--;
  const final=await signed(teacher,'PUT',`/api/teacher/video-uploads/${upload_id}/chunk`,{offset:1048576,data:mediaBytes.subarray(1048576).toString('base64')});assert.equal(final.statusCode,200,final.body);assert.equal(final.json().status,'completed');assert.equal(uploadCalls,2);
  const draft=(await db.query<{published:boolean;drive_file_id:string}>('SELECT published,drive_file_id FROM private.lessons WHERE id=$1',[lesson_id])).rows[0];assert.equal(draft.published,false);assert.equal(draft.drive_file_id,'SOURCE_VIDEO');
  assert.equal((await signed(student,'POST',`/api/lessons/${lesson_id}/playback`,{},'playback')).statusCode,404);
