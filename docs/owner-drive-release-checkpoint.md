@@ -26,7 +26,7 @@ Do not request approval to proceed with migration until these gates are resolved
 
 Once the owner runs the read-only owner-drive-preflight.sql in Supabase SQL Editor,
 it checks privileges for the named uyym_backend role rather than the SQL Editor's
-current_user and returns catalog metadata only. No connection URL is needed.
+current_user and returns one JSON catalog report. No connection URL is needed.
 Verify the operator migration history separately. Verify all six tables are absent
 before applying 009; if only some exist, investigate instead of rerunning SQL.
 Never run backend-role.sql on an existing production role merely to add this feature.

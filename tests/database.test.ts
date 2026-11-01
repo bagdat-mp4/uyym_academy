@@ -37,19 +37,20 @@ after(async () => { await db?.close(); });
 test('owner Drive catalog preflight runs read-only against the migrated schema', async () => {
   const sql=await readFile(new URL('../supabase/owner-drive-preflight.sql',import.meta.url),'utf8');
   const results=await db.exec(sql);
-  const statements=sql.split(/\r?\n/).filter(line=>!line.trimStart().startsWith('--')).join('\n').split(';').map(x=>x.trim()).filter(Boolean);
-  assert.equal(statements[0].toLowerCase(),'begin read only');
-  assert.equal(statements.at(-1)?.toLowerCase(),'rollback');
-  assert.ok(statements.slice(1,-1).every(x=>/^(select|with)\b/i.test(x)));
-  const inventory=results.find(result=>result.rows.some((row:any)=>row.table_exists!==undefined));
-  assert.ok(inventory);
+  const query=sql.split(/\r?\n/).filter(line=>!line.trimStart().startsWith('--')).join('\n').trim();
+  assert.match(query,/^with\b[\s\S]*\nselect jsonb_build_object\(/i);
+  assert.equal(query.split(';').filter(Boolean).length,1,'preflight must be a single SELECT statement');
+  assert.equal(results.length,1);
+  const report=results[0].rows[0].report;
+  assert.ok(report.backend_role&&report.private_schema&&report.required_lesson_columns);
+  assert.equal(report.groups_unique_id_course_id.exists,true);
+  assert.ok(report.tables);
   for(const name of ['owner_drive_connection','owner_drive_oauth_requests','owner_drive_folders','teacher_video_upload_access','teacher_video_uploads','teacher_video_upload_events']){
-    assert.ok(inventory.rows.some((row:any)=>row.relname===name&&row.table_exists===true),`missing migrated table ${name}`);
+    assert.ok(report.tables.some((row:any)=>row.name===name&&row.exists===true&&row.rls_enabled===true&&row.force_rls===true),`missing or unprotected migrated table ${name}`);
   }
-  const sequence=results.find(result=>result.rows.some((row:any)=>row.sequence_exists!==undefined));
-  assert.ok(sequence?.rows.some((row:any)=>row.relname==='teacher_video_upload_events_id_seq'&&row.sequence_exists));
-  const publicAcl=results.at(-2);
-  assert.equal(publicAcl?.rows.length,0,'new private tables must not grant privileges to PUBLIC');
+  assert.equal(report.upload_event_sequence.exists,true);
+  assert.equal(report.public_privileges.length,0,'new private tables must not grant privileges to PUBLIC');
+  assert.ok(report.browser_role_grants.every((row:any)=>Object.values(row.table_privileges).every(value=>value===false)));
 });
 
 async function fixture() {
