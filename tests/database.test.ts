@@ -37,8 +37,19 @@ after(async () => { await db?.close(); });
 test('owner Drive catalog preflight runs read-only against the migrated schema', async () => {
   const sql=await readFile(new URL('../supabase/owner-drive-preflight.sql',import.meta.url),'utf8');
   const results=await db.exec(sql);
-  assert.ok(results.some(result=>result.rows.some((row:any)=>row.relname==='teacher_video_uploads')));
-  assert.ok(results.some(result=>result.rows.some((row:any)=>row.relname==='teacher_video_upload_events_id_seq')));
+  const statements=sql.split(/\r?\n/).filter(line=>!line.trimStart().startsWith('--')).join('\n').split(';').map(x=>x.trim()).filter(Boolean);
+  assert.equal(statements[0].toLowerCase(),'begin read only');
+  assert.equal(statements.at(-1)?.toLowerCase(),'rollback');
+  assert.ok(statements.slice(1,-1).every(x=>/^(select|with)\b/i.test(x)));
+  const inventory=results.find(result=>result.rows.some((row:any)=>row.table_exists!==undefined));
+  assert.ok(inventory);
+  for(const name of ['owner_drive_connection','owner_drive_oauth_requests','owner_drive_folders','teacher_video_upload_access','teacher_video_uploads','teacher_video_upload_events']){
+    assert.ok(inventory.rows.some((row:any)=>row.relname===name&&row.table_exists===true),`missing migrated table ${name}`);
+  }
+  const sequence=results.find(result=>result.rows.some((row:any)=>row.sequence_exists!==undefined));
+  assert.ok(sequence?.rows.some((row:any)=>row.relname==='teacher_video_upload_events_id_seq'&&row.sequence_exists));
+  const publicAcl=results.at(-2);
+  assert.equal(publicAcl?.rows.length,0,'new private tables must not grant privileges to PUBLIC');
 });
 
 async function fixture() {

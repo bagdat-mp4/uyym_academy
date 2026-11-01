@@ -24,8 +24,9 @@ Live role/schema, migration history, plan and backup are NOT independently verif
 The owner's earlier manual SQL findings are input, not a passed automated check.
 Do not request approval to proceed with migration until these gates are resolved.
 
-Once authorized access is restored, run owner-drive-preflight.sql using the actual
-backend connection without logging its URL. It returns catalog metadata only.
+Once the owner runs the read-only owner-drive-preflight.sql in Supabase SQL Editor,
+it checks privileges for the named uyym_backend role rather than the SQL Editor's
+current_user and returns catalog metadata only. No connection URL is needed.
 Verify the operator migration history separately. Verify all six tables are absent
 before applying 009; if only some exist, investigate instead of rerunning SQL.
 Never run backend-role.sql on an existing production role merely to add this feature.
