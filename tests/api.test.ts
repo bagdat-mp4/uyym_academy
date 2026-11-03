@@ -432,6 +432,50 @@ test('ADMIN TOTP is required before self-browser approval, and a consumed TOTP c
   assert.equal((await signed(b, 'GET', '/api/admin/device-requests')).statusCode, 200);
 });
 
+test('staging TOTP diagnostics identify a replay without logging submitted or session data',async()=>{
+ const a=await account('ADMIN'),b=await browser(),{encrypt,totp}=await import('../server/security.js');
+ const secret='JBSWY3DPEHPK3PXP',counter=Math.floor(Date.now()/30000);
+ await db.query('update private.app_users set admin_totp_secret_encrypted=$2,admin_totp_last_counter=$3 where id=$1',[a.id,encrypt(secret,process.env.ADMIN_ENCRYPTION_KEY!),counter]);
+ const first=await login(b,a);assert.equal(first.statusCode,200);assert.equal(first.json().user.totp_required,true);
+ const oldFlag=process.env.UYYM_UI_DRIVE_STAGING,oldWarn=console.warn,lines:string[]=[];
+ process.env.UYYM_UI_DRIVE_STAGING='1';console.warn=(line?:any)=>lines.push(String(line));
+ try{
+  const response=await request(b,'POST','/api/auth/totp',{code:totp(secret,counter)});
+  assert.equal(response.statusCode,403);
+ }finally{
+  console.warn=oldWarn;
+  if(oldFlag===undefined)delete process.env.UYYM_UI_DRIVE_STAGING;else process.env.UYYM_UI_DRIVE_STAGING=oldFlag;
+ }
+ assert.equal(lines.length,1);
+ assert.deepEqual(JSON.parse(lines[0]),{event:'staging_auth_check_failed',check:'totp_code_invalid_or_replayed'});
+ assert.ok(!lines[0].includes(secret));
+ assert.ok(!lines[0].includes(totp(secret,counter)));
+ assert.ok(!lines[0].includes([...b.cookies.values()].join('')));
+});
+
+test('staging TOTP diagnostics record the route rate limit using only a fixed check name',async()=>{
+ const a=await account('ADMIN'),b=await browser(),{encrypt,totp}=await import('../server/security.js');
+ const secret='JBSWY3DPEHPK3PXP',counter=Math.floor(Date.now()/30000),code=totp(secret,counter);
+ await db.query('update private.app_users set admin_totp_secret_encrypted=$2,admin_totp_last_counter=$3 where id=$1',[a.id,encrypt(secret,process.env.ADMIN_ENCRYPTION_KEY!),counter]);
+ assert.equal((await login(b,a)).statusCode,200);
+ const oldFlag=process.env.UYYM_UI_DRIVE_STAGING,oldWarn=console.warn,lines:string[]=[];
+ process.env.UYYM_UI_DRIVE_STAGING='1';console.warn=(line?:any)=>lines.push(String(line));
+ try{
+  for(let i=0;i<6;i++){
+   const response=await request(b,'POST','/api/auth/totp',{code});
+   assert.equal(response.statusCode,i<5?403:429);
+  }
+ }finally{
+  console.warn=oldWarn;
+  if(oldFlag===undefined)delete process.env.UYYM_UI_DRIVE_STAGING;else process.env.UYYM_UI_DRIVE_STAGING=oldFlag;
+ }
+ const events=lines.map(line=>JSON.parse(line));
+ assert.equal(events.filter(event=>event.check==='totp_code_invalid_or_replayed').length,5);
+ assert.equal(events.filter(event=>event.check==='totp_rate_limited').length,1);
+ assert.ok(events.every(event=>Object.keys(event).sort().join(',')==='check,event'));
+ assert.ok(lines.every(line=>!line.includes(secret)&&!line.includes(code)));
+});
+
 test('actual ADMIN approval endpoint replaces student browser and invalidates old cookie and playback grants', async () => {
   const owner = await administrator(), a = await account(), original = await browser();
   assert.equal((await login(original, a)).statusCode, 200);

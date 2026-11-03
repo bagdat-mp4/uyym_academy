@@ -2,11 +2,26 @@
 // Never import from server/main.ts or deploy this entrypoint. No Drive simulation.
 import {PGlite} from '@electric-sql/pglite';
 import {readFile,readdir} from 'node:fs/promises';
+import {openSync,writeSync} from 'node:fs';
+import {stagingDriveDiagnostic,setStagingDriveDiagnosticSink} from '../server/staging-drive-diagnostics.js';
 import {randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
+import {allowedStagingDriveRedirectUrl,allowedStagingDriveUrl,allowedStagingGoogleAuthUrl,STAGING_DATABASE_URL,STAGING_ORIGIN,STAGING_ROOT_NAME,validateDriveStagingInput} from './drive-staging-config.js';
 if(process.env.NODE_ENV==='production')throw new Error('Test provider cannot run in production');
-const testOrigin=process.env.UYYM_UI_ORIGIN||'http://localhost:5174';if(!['http://localhost:5174','http://localhost:18878'].includes(testOrigin))throw new Error('Fixture origin must stay local');
-Object.assign(process.env,{DOTENV_CONFIG_PATH:resolve('work/nonexistent-ui-fixture.env'),GOOGLE_APPLICATION_CREDENTIALS_BASE64:'',NODE_ENV:'test',PORT:'18878',APP_ORIGIN:testOrigin,COOKIE_SECURE:'false',DATABASE_URL:'postgresql://unused@127.0.0.1:1/postgres',SUPABASE_URL:'https://local-auth.invalid',SUPABASE_ANON_KEY:'TEST_ONLY',SUPABASE_SERVICE_ROLE_KEY:'TEST_ONLY',ADMIN_ENCRYPTION_KEY:'ab'.repeat(32)});
+const driveStaging=process.env.UYYM_UI_DRIVE_STAGING==='1';
+const testOrigin=driveStaging?STAGING_ORIGIN:(process.env.UYYM_UI_ORIGIN||'http://localhost:5174');if(!driveStaging&&!['http://localhost:5174','http://localhost:18878'].includes(testOrigin))throw new Error('Fixture origin must stay local');
+const fixtureOwnerId=randomUUID();
+let driveStagingValues:{ownerEmail:string;clientId:string;clientSecret:string;serviceAccountBase64:string;serviceAccountEmail:string}|undefined,serviceAccountEmail='';
+if(driveStaging){
+ const settings=validateDriveStagingInput({enabled:process.env.UYYM_UI_DRIVE_STAGING,nodeEnv:process.env.NODE_ENV,ownerEmail:process.env.UYYM_STAGING_OWNER_EMAIL,clientId:process.env.UYYM_STAGING_OAUTH_CLIENT_ID,clientSecret:process.env.UYYM_STAGING_OAUTH_CLIENT_SECRET,encryptionKey:process.env.UYYM_STAGING_OAUTH_ENCRYPTION_KEY,serviceAccountBase64:process.env.UYYM_STAGING_SERVICE_ACCOUNT_BASE64});
+ serviceAccountEmail=settings.serviceAccountEmail;
+ driveStagingValues=settings;
+}
+Object.assign(process.env,{DOTENV_CONFIG_PATH:resolve('work/nonexistent-ui-fixture.env'),GOOGLE_APPLICATION_CREDENTIALS_BASE64:driveStagingValues?.serviceAccountBase64||'',GOOGLE_APPLICATION_CREDENTIALS:'',NODE_ENV:'test',PORT:'18878',APP_ORIGIN:testOrigin,COOKIE_SECURE:'false',DATABASE_URL:STAGING_DATABASE_URL,SUPABASE_URL:'https://local-auth.invalid',SUPABASE_ANON_KEY:'TEST_ONLY',SUPABASE_SERVICE_ROLE_KEY:'TEST_ONLY',ADMIN_ENCRYPTION_KEY:'ab'.repeat(32),DRIVE_ALLOWED_FOLDER_IDS:'',DRIVE_OWNER_USER_ID:driveStaging?fixtureOwnerId:'',DRIVE_OWNER_EMAIL:driveStagingValues?.ownerEmail||'',DRIVE_OWNER_ROOT_FOLDER_NAME:driveStaging?STAGING_ROOT_NAME:'UYYM Academy private lessons',DRIVE_OWNER_ROOT_FOLDER_ID:driveStaging?process.env.UYYM_STAGING_ROOT_FOLDER_ID||'':'',DRIVE_OAUTH_CLIENT_ID:driveStagingValues?.clientId||'',DRIVE_OAUTH_CLIENT_SECRET:driveStagingValues?.clientSecret||'',DRIVE_OAUTH_ENCRYPTION_KEY:driveStaging?process.env.UYYM_STAGING_OAUTH_ENCRYPTION_KEY||'':'',DRIVE_ALLOWED_PERMISSION_EMAILS:driveStaging?`${driveStagingValues!.ownerEmail},${serviceAccountEmail}`:''});
+delete process.env.UYYM_STAGING_OAUTH_CLIENT_SECRET;
+delete process.env.UYYM_STAGING_OAUTH_ENCRYPTION_KEY;
+delete process.env.UYYM_STAGING_SERVICE_ACCOUNT_BASE64;
+driveStagingValues=undefined;
 const db=new PGlite();
 await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text);create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key,bucket_id text,name text);alter table storage.objects enable row level security;`);
 const dir=new URL('../supabase/migrations/',import.meta.url);for(const file of(await readdir(dir)).filter(x=>x.endsWith('.sql')).sort())await db.exec(await readFile(new URL(file,dir),'utf8'));
@@ -16,7 +31,7 @@ let queue=Promise.resolve();
 async function lease(){let release!:()=>void;const previous=queue;queue=new Promise<void>(r=>release=r);await previous;return release;}
 (pool as any).query=async(sql:string,params:unknown[]=[])=>{const release=await lease();try{return await query(sql,params);}finally{release();}};
 (pool as any).connect=async()=>{const release=await lease();return {query,release};};
-const users=new Map<string,any>();const id=randomUUID(),phone='+77070000001',password='UiFixture-Only-Password-2026';
+const users=new Map<string,any>();const id=fixtureOwnerId,phone='+77070000001',password='UiFixture-Only-Password-2026';
 const teacherId=randomUUID(),teacherPhone='+77070000004',teacherPassword='UiFixture-Teacher-Password-2026';
 const studentId=randomUUID(),studentPhone='+77070000002',studentPassword='UiFixture-Student-Password-2026';
 const {encrypt}=await import('../server/security.js');const secret='JBSWY3DPEHPK3PXP';
@@ -61,21 +76,49 @@ for(let candidate=1;candidate<=3;candidate++){
  await query("INSERT INTO private.app_users(id,phone,name,role,active,must_change_password) VALUES($1,$2,$3,'STUDENT',true,true)",[candidateId,candidatePhone,'LOCAL COHORT CANDIDATE '+candidate]);
 }
 
+const nativeFetch=globalThis.fetch.bind(globalThis);
 globalThis.fetch=async(input:any,init?:RequestInit)=>{
- const url=String(input),body=init?.body?JSON.parse(String(init.body)):{};
- if(url==='https://local-auth.invalid/auth/v1/token?grant_type=password'){
+ const url=String(input);
+ if(url.startsWith('https://local-auth.invalid/')){
+  const body=init?.body?JSON.parse(String(init.body)):{};
+  if(url==='https://local-auth.invalid/auth/v1/token?grant_type=password'){
   const user=[...users.values()].find(u=>u.phone===body.phone&&u.password===body.password);return user?Response.json({user:{id:user.id}}):new Response('{}',{status:400});
- }
- if(url==='https://local-auth.invalid/auth/v1/admin/users'&&init?.method==='POST'){
+  }
+  if(url==='https://local-auth.invalid/auth/v1/admin/users'&&init?.method==='POST'){
   if([...users.values()].some(u=>u.phone===body.phone))return new Response('{}',{status:422});
   const user={id:body.id,phone:body.phone,password:body.password,app_metadata:body.app_metadata};
   await (pool as any).query('INSERT INTO auth.users(id,phone) VALUES($1,$2)',[user.id,user.phone]);users.set(user.id,user);return Response.json({id:user.id,phone:user.phone,app_metadata:user.app_metadata});
+  }
+  const match=/^https:\/\/local-auth.invalid\/auth\/v1\/admin\/users\/([0-9a-f-]+)$/.exec(url);
+  if(match){const user=users.get(match[1]);if(!user)return new Response('{}',{status:404});if(init?.method==='PUT'){if(body.password)user.password=body.password;user.app_metadata={...user.app_metadata,...body.app_metadata};}return Response.json({id:user.id,phone:user.phone,app_metadata:user.app_metadata});}
+  throw new Error('Local Auth fixture rejected an unexpected request');
  }
- const match=/^https:\/\/local-auth.invalid\/auth\/v1\/admin\/users\/([0-9a-f-]+)$/.exec(url);
- if(match){const user=users.get(match[1]);if(!user)return new Response('{}',{status:404});if(init?.method==='PUT'){if(body.password)user.password=body.password;user.app_metadata={...user.app_metadata,...body.app_metadata};}return Response.json({id:user.id,phone:user.phone,app_metadata:user.app_metadata});}
- throw new Error('Test provider forbids other external HTTP');
+ if(driveStaging&&allowedStagingDriveUrl(url)){
+  let current=new URL(url);const method=(init?.method||'GET').toUpperCase(),headers=new Headers(init?.headers);
+  for(let redirects=0;redirects<=3;redirects++){
+   const response=await nativeFetch(current.href,{...init,headers,redirect:'manual'});
+   if(response.status<300||response.status>=400)return response;
+   const location=response.headers.get('location');if(method!=='GET'||!location||redirects===3)return response;
+   const next=new URL(location,current);if(!allowedStagingDriveRedirectUrl(next.href))throw new Error('Staging fixture rejected an external Google redirect');
+   if(next.origin!==current.origin)headers.delete('authorization');
+   current=next;
+  }
+ }
+ if(driveStaging&&allowedStagingGoogleAuthUrl(url,init?.method||'GET'))return await nativeFetch(url,{...init,redirect:'error'});
+ throw new Error('Staging fixture rejected external HTTP');
 };
 const {app}=await import('../server/index.js');
+if(driveStaging){
+ // Exclusive new file; never capture raw console output or credentials.
+ const diagnosticPath=resolve('../../outputs/drive-staging',`drive-diagnostics-${randomUUID()}.jsonl`);
+ const descriptor=openSync(diagnosticPath,'wx',0o600);let records=0;
+ setStagingDriveDiagnosticSink(line=>{if(records++<500)writeSync(descriptor,line+'\n');});
+ app.addHook('onError',async(req,_reply,error)=>{
+  stagingDriveDiagnostic('api',Number((error as any).statusCode)||500,error,req.routeOptions.url);
+ });
+ console.info('Sanitized staging diagnostics: '+diagnosticPath);
+}
+
 // Exercise an actual failed dynamic import and subsequent browser reload using
 // the production build. This flag exists only in this loopback test entrypoint.
 const failedChunk=process.env.UYYM_UI_FAIL_CHUNK==='chrome'?'WorkspaceChrome':'AdminPanel';
@@ -89,14 +132,17 @@ const samples:{route:string;status:number;ms:number}[]=[];
 const tracked=new Set(['/api/public','/api/auth/status','/api/courses','/api/courses/:id/content']);
 app.addHook('onResponse',async(req,reply)=>{const route=req.routeOptions.url;if(route&&tracked.has(route)){samples.push({route,status:reply.statusCode,ms:Math.round(reply.elapsedTime)});if(samples.length>100)samples.shift();}});
 app.get('/__ui/metrics',async()=>({local_fixture:true,samples}));
-// UI-only fixtures represent previously approved student/teacher profiles.
-// Production device approval is tested by the security suites, not this hook.
-app.addHook('onResponse',async req=>{
- if(req.url!=='/api/auth/login'||req.method!=='POST')return;
- const phone=(req.body as any)?.phone;
- const fixtureId=phone===studentPhone?studentId:phone===teacherPhone?teacherId:phone===users.get(id)?.phone?id:null;
- if(fixtureId)await (pool as any).query("UPDATE private.device_bindings SET status='approved',approved_at=now(),approved_by=$2 WHERE user_id=$1 AND status='pending'",[fixtureId,id]);
-});
+if(driveStaging){
+ const {totp}=await import('../server/security.js');
+ app.get('/__ui/staging-login',async(_req,reply)=>{
+  reply.header('cache-control','no-store');
+  return {synthetic_only:true,admin:{phone,password,totp:totp(secret,Math.floor(Date.now()/30000))},teacher:{phone:teacherPhone,password:teacherPassword},student:{phone:studentPhone,password:studentPassword}};
+ });
+}
+// Staging accounts use the same approved-browser flow as production. Login creates
+// a pending device request; an ADMIN must approve teacher/student requests through
+// the normal authenticated management route. The owner may approve their own
+// browser only through the existing TOTP flow.
 // Optional before/after evidence from an independently built, trusted Git ref.
 // Enumerated JS/CSS only; this local test entrypoint is never deployed.
 if(process.env.UYYM_UI_BASELINE==='1'){
@@ -105,5 +151,6 @@ if(process.env.UYYM_UI_BASELINE==='1'){
  for(const file of await readdir(resolve(baseline,'assets')))if(/^[A-Za-z0-9_-]+\.(js|css)$/.test(file))app.get(`/__ui/before/assets/${file}`,async(_req,reply)=>reply.type(file.endsWith('.js')?'text/javascript':'text/css').send(await readFile(resolve(baseline,'assets',file))));
 }
 await app.listen({host:'127.0.0.1',port:18878});
-console.info(`LOCAL TEST ONLY: embedded SQL + simulated Auth; Drive UNVERIFIED. UI ${testOrigin}/#account`);
+console.info(driveStaging?`LOCAL STAGING ONLY: in-memory PGlite, synthetic Auth, real Google Drive; no Supabase or production DB. UI ${testOrigin}/#account`:`LOCAL TEST ONLY: embedded SQL + simulated Auth; Drive UNVERIFIED. UI ${testOrigin}/#account`);
+if(driveStaging)setTimeout(async()=>{await app.close();await db.close();process.exit(0);},2*60*60*1000);
 process.on('SIGINT',async()=>{await app.close();await db.close();process.exit(0);});

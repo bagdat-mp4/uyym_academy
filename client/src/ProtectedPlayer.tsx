@@ -7,11 +7,20 @@ import {UnsupportedPlayerError} from './player-error';
 import VideoStatusOverlay,{type PlayerState} from './VideoStatusOverlay';
 
 type MediaPart = { index: number; start: number; duration: number; bytes: number };
-type Playback = { grant_id: string; mime: string; watermark: string; duration_seconds: number; parts: MediaPart[] };
+type Playback = { grant_id: string; source?: 'native'|'fragments'; size_bytes?:number; mime: string; watermark: string; duration_seconds: number; parts: MediaPart[] };
 const MAX_BYTES = 1024 * 1024;
 const MAX_AHEAD = 30;
 type MediaSourceConstructor = { new(): MediaSource; isTypeSupported(type: string): boolean };
 type ManagedSource = MediaSource & { streaming?: boolean };
+async function nativeMediaWorker(){
+  if(!('serviceWorker' in navigator)||!window.isSecureContext)throw new UnsupportedPlayerError();
+  await navigator.serviceWorker.register('/native-video-sw.js',{scope:'/'});
+  if(navigator.serviceWorker.controller)return;
+  await Promise.race([
+    new Promise<void>(resolve=>navigator.serviceWorker.addEventListener('controllerchange',()=>resolve(),{once:true})),
+    new Promise<never>((_,reject)=>setTimeout(()=>reject(new UnsupportedPlayerError()),10000))
+  ]);
+}
 
 function updateBuffer(buffer: SourceBuffer, operation: () => void, signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -120,9 +129,6 @@ export default function ProtectedPlayer({ lesson, lang, role }: { lesson: Lesson
     const startStreaming = () => { streaming = true; };
     const endStreaming = () => { streaming = false; };
     const start = async () => {
-      const nativeSource = window.MediaSource as MediaSourceConstructor | undefined;
-      const managedSource = (window as unknown as { ManagedMediaSource?: MediaSourceConstructor }).ManagedMediaSource;
-      if (!nativeSource && !managedSource) throw new UnsupportedPlayerError();
       const grant = await observation.measure('playback',()=>api<Playback>(`/api/lessons/${lesson.id}/playback`, { method: 'POST', body: {}, proof: 'playback', signal: controller.signal,playerTiming:diagnostics }));
       const beat = () => api(`/api/playback/${grant.grant_id}/heartbeat`, { method: 'POST', body: {}, proof: 'heartbeat', signal: controller.signal }).catch(fail);
       // Keep the grant fresh while MediaSource opens and Drive validates the
@@ -130,6 +136,26 @@ export default function ProtectedPlayer({ lesson, lang, role }: { lesson: Lesson
       await beat();
       if (controller.signal.aborted) return;
       heartbeat = setInterval(() => void beat(), 15000);
+      setWatermark(grant.watermark);
+      if(grant.source==='native'){
+        if(!Number.isSafeInteger(grant.size_bytes)||!grant.size_bytes)throw new Error(t('Бейне көлемі жарамсыз.','Размер видео недействителен.'));
+        await nativeMediaWorker();
+        if(controller.signal.aborted)return;
+        element.disableRemotePlayback=true;
+        element.preload='auto';
+        element.src=`/api/native-media/${lesson.id}?grant=${encodeURIComponent(grant.grant_id)}&size=${grant.size_bytes}`;
+        element.load();
+        await new Promise<void>((resolve,reject)=>{
+          const timeout=setTimeout(()=>{clear();reject(new Error(t('Бейнені дайындау уақыты аяқталды. Қайта көріңіз.','Время подготовки видео истекло. Повторите попытку.')));},30000);
+          const clear=()=>{clearTimeout(timeout);element.removeEventListener('loadeddata',loaded);element.removeEventListener('error',failed);};
+          const loaded=()=>{clear();resolve();};const failed=()=>{clear();reject(new Error(t('Бейне форматы ойнатқышпен үйлеспейді.','Формат видео несовместим с плеером.')));};
+          element.addEventListener('loadeddata',loaded,{once:true});element.addEventListener('error',failed,{once:true});
+        });
+        if(!controller.signal.aborted){setState('ready');void element.play().catch(()=>{});}return;
+      }
+      const nativeSource = window.MediaSource as MediaSourceConstructor | undefined;
+      const managedSource = (window as unknown as { ManagedMediaSource?: MediaSourceConstructor }).ManagedMediaSource;
+      if (!nativeSource && !managedSource) throw new UnsupportedPlayerError();
       const Source = nativeSource?.isTypeSupported(grant.mime) ? nativeSource : managedSource?.isTypeSupported(grant.mime) ? managedSource : undefined;
       if (!Source) throw new UnsupportedPlayerError();
       const initial = grant.parts.find(part => part.index === -1);
@@ -137,7 +163,6 @@ export default function ProtectedPlayer({ lesson, lang, role }: { lesson: Lesson
       if (!initial || !fragments.length || grant.parts.some(part => part.bytes > MAX_BYTES || part.bytes <= 0 || (part.index >= 0 && (part.duration <= 0 || part.duration > MAX_AHEAD)))) {
         throw new Error(t('Бейне қорғалған бөліктерге дұрыс дайындалмаған. Әкімшіге хабарласыңыз.','Видео не подготовлено для безопасной выдачи частей. Обратитесь к администратору.'));
       }
-      setWatermark(grant.watermark);
       source = new Source();
       if (Source === managedSource) {
         streaming = (source as ManagedSource).streaming !== false;

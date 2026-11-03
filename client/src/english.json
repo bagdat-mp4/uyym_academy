@@ -655,5 +655,11 @@
   "Использовать автоматический срок": "Use automatic dates",
   "Правовая информация": "Legal information",
   "Политика конфиденциальности": "Privacy Policy",
-  "Условия использования": "Terms of Service"
+  "Условия использования": "Terms of Service",
+  "Загрузка видео": "Video uploads",
+  "Не удалось завершить подключение Google Drive.": "Could not finish connecting Google Drive.",
+  "Drive владельца подключён.": "Owner Drive connected.",
+  "Размер видео недействителен.": "Invalid video size.",
+  "Время подготовки видео истекло. Повторите попытку.": "Video preparation timed out. Try again.",
+  "Формат видео несовместим с плеером.": "The video format is incompatible with this player."
 }
