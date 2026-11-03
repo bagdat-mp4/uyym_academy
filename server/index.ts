@@ -1,3 +1,4 @@
+import {stagingDriveDiagnostic} from './staging-drive-diagnostics.js';
 import Fastify from 'fastify';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
@@ -11,7 +12,9 @@ import {HttpError,hash,opaque,publicJwk,normalizePhone,challengePayload,decrypt,
 import {authenticate,setPassword} from './supabase.js';
 import {context,csrf,setCookie,clearCookie,proof,requireLearning,lessonAllowed,admin,deniedBrowser} from './auth.js';
 import {validateDriveFile,streamPart,streamSourceRange} from './drive.js';
+import {verifyOwnerFile} from './owner-drive.js';
 import {PlayerTiming} from './player-timing.js';
+import {logStagingAuthFailure} from './staging-auth-diagnostics.js';
 import {registerAccountRoutes} from './accounts.js';
 import {registerAcademicRoutes} from './academic.js';
 import {freshManagement} from './management.js';
@@ -34,6 +37,9 @@ export const app=Fastify({logger:false,bodyLimit:40*1024*1024,trustProxy:config.
 await app.register(cookie);
 await app.register(helmet,{contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'","'unsafe-inline'"],imgSrc:["'self'","data:"],connectSrc:["'self'"],mediaSrc:["'self'","blob:"],objectSrc:["'none'"],frameAncestors:["'none'"]}},hsts:config.secure?{maxAge:31536000,includeSubDomains:true}:false});
 await app.register(rateLimit,{max:3000,timeWindow:'1 minute'});
+app.addHook('onResponse',async(req,reply)=>{
+ if(req.method==='POST'&&req.routeOptions.url==='/api/auth/totp'&&reply.statusCode===429)logStagingAuthFailure('totp_rate_limited');
+});
 app.addHook('onRequest',async(req,reply)=>{
  if(req.url.startsWith('/api/'))reply.header('Cache-Control','private, no-store').header('Pragma','no-cache');
  // Let unmatched API requests reach Fastify's not-found handler instead of
@@ -46,6 +52,7 @@ app.addHook('onRequest',async(req,reply)=>{
 });
 app.setErrorHandler((error,req,reply)=>{
  const status=error instanceof HttpError?error.statusCode:error instanceof z.ZodError?400:((error as any)?.statusCode===429?429:500);
+ if(status===503)stagingDriveDiagnostic('api',status,error,req.routeOptions?.url);
  const ru=String(req.headers['accept-language']||'').startsWith('ru');
  const en=String(req.headers['accept-language']||'').startsWith('en');
  const kkMessage=status===500?'Сервис уақытша қолжетімсіз':error instanceof z.ZodError?'Деректерді тексеріңіз':status===429?'Көп әрекет жасалды. Кейін қайталаңыз':(error as Error).message;
@@ -107,15 +114,21 @@ app.post('/api/auth/change-password',async(req)=>{
  return {ok:true};
 });
 app.post('/api/auth/totp',{config:{rateLimit:{max:5,timeWindow:'5 minutes'}}},async(req,reply)=>{
- const ctx=await context(req);csrf(req,ctx);const {code}=z.object({code:z.string().regex(/^\d{6}$/)}).parse(req.body);
- if(ctx.kind!=='ticket'||ctx.user.role!=='ADMIN'||ctx.user.must_change_password)throw new HttpError(403,'Рұқсат жоқ');
+ let ctx;
+ try {ctx=await context(req);} catch(error) {if(error instanceof HttpError&&error.statusCode===401)logStagingAuthFailure('totp_context_missing_or_expired');throw error;}
+ try {csrf(req,ctx);} catch(error) {if(error instanceof HttpError&&error.statusCode===403)logStagingAuthFailure('totp_csrf_rejected');throw error;}
+ const {code}=z.object({code:z.string().regex(/^\d{6}$/)}).parse(req.body);
+ if(ctx.kind!=='ticket'){logStagingAuthFailure('totp_login_ticket_required');throw new HttpError(403,'Рұқсат жоқ');}
+ if(ctx.user.role!=='ADMIN'){logStagingAuthFailure('totp_admin_role_required');throw new HttpError(403,'Рұқсат жоқ');}
+ if(ctx.user.must_change_password){logStagingAuthFailure('totp_password_change_required');throw new HttpError(403,'Рұқсат жоқ');}
  const attempt=(await pool.query(`INSERT INTO private.security_rate_limits(key_hash,window_start,attempts) VALUES($1,now(),1) ON CONFLICT(key_hash) DO UPDATE SET window_start=CASE WHEN private.security_rate_limits.window_start<now()-interval '5 minutes' THEN now() ELSE private.security_rate_limits.window_start END,attempts=CASE WHEN private.security_rate_limits.window_start<now()-interval '5 minutes' THEN 1 ELSE private.security_rate_limits.attempts+1 END RETURNING attempts`,[hash(`totp:${ctx.user_id}`)])).rows[0];if(attempt.attempts>5)throw new HttpError(429,'Кейін қайталаңыз');
  let replacementToken:string|undefined;
  await transaction(async db=>{
   const u=(await db.query('SELECT * FROM private.app_users WHERE id=$1 FOR UPDATE',[ctx.user_id])).rows[0];
-  if(String(u.auth_epoch)!==String(ctx.auth_epoch)||!(await db.query('SELECT 1 FROM private.login_tickets WHERE id=$1 AND revoked_at IS NULL AND expires_at>now()',[ctx.id])).rowCount)throw new HttpError(401,'Сессия аяқталды');
-  if(!u.admin_totp_secret_encrypted)throw new HttpError(403,'Әкімші TOTP параметрлерін тексеріңіз');
-  const c=verifyTotp(decrypt(u.admin_totp_secret_encrypted,config.encryptionKey),code,Number(u.admin_totp_last_counter??-1));if(c===null)throw new HttpError(403,'TOTP коды жарамсыз');
+  if(String(u.auth_epoch)!==String(ctx.auth_epoch)){logStagingAuthFailure('totp_auth_epoch_changed');throw new HttpError(401,'Сессия аяқталды');}
+  if(!(await db.query('SELECT 1 FROM private.login_tickets WHERE id=$1 AND revoked_at IS NULL AND expires_at>now()',[ctx.id])).rowCount){logStagingAuthFailure('totp_login_ticket_expired_or_revoked');throw new HttpError(401,'Сессия аяқталды');}
+  if(!u.admin_totp_secret_encrypted){logStagingAuthFailure('totp_authenticator_missing');throw new HttpError(403,'Әкімші TOTP параметрлерін тексеріңіз');}
+  const c=verifyTotp(decrypt(u.admin_totp_secret_encrypted,config.encryptionKey),code,Number(u.admin_totp_last_counter??-1));if(c===null){logStagingAuthFailure('totp_code_invalid_or_replayed');throw new HttpError(403,'TOTP коды жарамсыз');}
   await db.query('UPDATE private.app_users SET admin_totp_last_counter=$2 WHERE id=$1',[ctx.user_id,c]);
   // The owner's independent TOTP authorizes ONLY their own browser. Students are never auto-approved.
   if(ctx.device.status==='pending') {
@@ -124,7 +137,7 @@ app.post('/api/auth/totp',{config:{rateLimit:{max:5,timeWindow:'5 minutes'}}},as
    await db.query('INSERT INTO private.login_tickets(user_id,device_id,token_hash,csrf_token,auth_epoch,mfa_verified,expires_at) VALUES($1,$2,$3,$4,$5,true,now()+interval \'15 minutes\')',[ctx.user_id,ctx.device_id,hash(replacementToken),opaque(),epoch]);
    await audit(db,ctx.user_id,'admin.browser.authorized_by_totp','device',ctx.device_id);
   } else if(ctx.device.status==='approved') await db.query('UPDATE private.login_tickets SET mfa_verified=true WHERE id=$1',[ctx.id]);
-  else throw new HttpError(403,'Браузерді қайта тіркеңіз');
+  else {logStagingAuthFailure('totp_browser_not_approvable');throw new HttpError(403,'Браузерді қайта тіркеңіз');}
  });
  if(replacementToken){setCookie(reply,'ticket',replacementToken,900);return status(reqWithCookie(req,'ticket',replacementToken));}
  return status(req);
@@ -221,6 +234,7 @@ app.get('/api/native-chunk/:id',async(req,reply)=>{
  const uploaded=l?.drive_file_id?(await pool.query("SELECT 1 FROM private.teacher_video_uploads WHERE lesson_id=$1 AND status='completed' AND drive_file_id=$2",[id,l.drive_file_id])).rowCount:false;
  const size=Number(l?.video_size);
  if(!uploaded||!l.drive_folder_id||!Number.isSafeInteger(size)||size<1||query.end<query.start||query.end>=size||query.end-query.start>=1048576)throw new HttpError(404,'Видео қолжетімсіз');
+ await verifyOwnerFile(l.drive_file_id,l.drive_folder_id,size);
  await validateDriveFile(l.drive_file_id,l.drive_folder_id,'owner_source',size);
  const fresh=await context(req);await playback(fresh,query.grant);
  const stream=await streamSourceRange(l.drive_file_id,query.start,query.end,size);

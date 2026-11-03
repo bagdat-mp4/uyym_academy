@@ -20,7 +20,7 @@ async function assigned(db:any,teacherId:string,courseId:string,groupId:string|n
  if(!user?.active||user.role!=='TEACHER')fail('FORBIDDEN');
  const permission=(await db.query('SELECT enabled FROM private.teacher_video_upload_access WHERE teacher_id=$1',[teacherId])).rows[0];
  if(!permission?.enabled)fail('FORBIDDEN');
- const course=(await db.query('SELECT id,slug,weeks FROM private.courses WHERE id=$1 AND active',[courseId])).rows[0];if(!course)fail('NOT_FOUND',404);
+ const course=(await db.query('SELECT id,slug,title,weeks FROM private.courses WHERE id=$1 AND active',[courseId])).rows[0];if(!course)fail('NOT_FOUND',404);
  if(groupId&&!(await db.query('SELECT 1 FROM private.groups WHERE id=$1 AND course_id=$2 AND active',[groupId,courseId])).rowCount)fail('NOT_FOUND',404);
  const scope=(await db.query(`SELECT 1 FROM private.teacher_assignments WHERE teacher_id=$1 AND course_id=$2 AND (group_id IS NULL OR group_id=$3) LIMIT 1`,[teacherId,courseId,groupId])).rowCount;
  if(!scope)fail('NOT_FOUND',404);return course;
@@ -38,7 +38,7 @@ async function logUpload(db:any,uploadId:string,actorId:string,action:string,off
  await db.query('INSERT INTO private.teacher_video_upload_events(upload_id,actor_id,action,offset_bytes) VALUES($1,$2,$3,$4)',[uploadId,actorId,action,offset]);
 }
 async function finish(db:any,row:any,fileId:string,req:FastifyRequest,ctx:any){
- await verifyOwnerFile(fileId,row.folder_id,Number(row.file_size));
+ await verifyOwnerFile(fileId,row.folder_id,Number(row.file_size),db);
  await validateDriveFile(fileId,row.folder_id,'owner_source',Number(row.file_size));
  // Provider calls can outlive a session or course assignment. Revalidate after
  // those waits before attaching the file or recording a successful completion.
@@ -104,7 +104,7 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
   const ctx=await readAccess(req,['TEACHER']),data=startBody.parse(req.body);
   const course=await assigned(pool,ctx.user_id,data.course_id,data.group_id);
   if(data.week>Number(course.weeks))fail('INVALID_DATA',400);
-  const folder=await courseWeekFolder(course.id,course.slug,data.week);
+  const folder=await courseWeekFolder(course.id,course.slug,course.title,data.week);
   const remoteName=`${new Date().toISOString().slice(0,10)}-${randomUUID()}.mp4`;
   const session=await startResumable(folder,remoteName,data.size);
   return transaction(async db=>{
@@ -135,7 +135,7 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
     await logUpload(db,id,ctx.user_id,'failed',Number(row.next_offset));await audit(db,ctx.user_id,'teacher.video.failed','lesson',row.lesson_id,{reason:'upload_session_expired'});
     return {offset:Number(row.next_offset),status:'failed',lesson_id:row.lesson_id};
    }
-   let result;try{result=await queryUpload(decryptOAuth(row.session_uri_encrypted),Number(row.file_size));}
+   let result;try{result=await queryUpload(decryptOAuth(row.session_uri_encrypted),Number(row.file_size),db);}
    catch(error){if(!(error instanceof HttpError&&error.statusCode===409))throw error;
     await db.query("UPDATE private.teacher_video_uploads SET status='failed',session_uri_encrypted='',updated_at=now() WHERE id=$1",[id]);
     await logUpload(db,id,ctx.user_id,'failed',Number(row.next_offset));await audit(db,ctx.user_id,'teacher.video.failed','lesson',row.lesson_id,{reason:'upload_session_expired'});
@@ -157,7 +157,7 @@ export async function registerVideoUploadRoutes(app:FastifyInstance){
    const size=Number(row.file_size),end=data.offset+bytes.length;
    if(row.status!=='uploading'||new Date(row.expires_at).getTime()<=Date.now()||data.offset!==Number(row.next_offset)||end>size||end<size&&bytes.length%262144!==0)fail('CONFLICT',409);
    if(data.offset===0&&bytes.subarray(4,8).toString('ascii')!=='ftyp')fail('INVALID_DATA',400);
-   let result;try{result=await uploadChunk(decryptOAuth(row.session_uri_encrypted),size,bytes,data.offset);}
+   let result;try{result=await uploadChunk(decryptOAuth(row.session_uri_encrypted),size,bytes,data.offset,db);}
    catch(error){if(!(error instanceof HttpError&&error.statusCode===409))throw error;
     await db.query("UPDATE private.teacher_video_uploads SET status='failed',session_uri_encrypted='',updated_at=now() WHERE id=$1",[id]);
     await logUpload(db,id,ctx.user_id,'failed',Number(row.next_offset));await audit(db,ctx.user_id,'teacher.video.failed','lesson',row.lesson_id,{reason:'upload_session_expired'});

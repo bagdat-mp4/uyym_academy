@@ -39,7 +39,11 @@ export async function api<T>(path: string, options: { method?: string; body?: un
     if (!response.ok) {
       let payload: { error?: string; message?: string; code?: string } = {};
       try { payload = await response.json(); } catch { /* Generic error deliberately contains no server diagnostics. */ }
-      if (response.status === 401) window.dispatchEvent(new CustomEvent('uyym-session-expired'));
+      // Older servers map every 503 to a configuration error, including transient Drive failures.
+      if(response.status===503&&payload.error==='Внешние сервисы ещё не подключены. Обратитесь к администратору')payload.error='Сервис временно недоступен. Не удалось выполнить запрос.';
+      // A rejected login is an authentication error, not an expired session.
+      // Only protected requests should move the UI into its expired-session state.
+      if (response.status === 401 && path !== '/api/auth/login') window.dispatchEvent(new CustomEvent('uyym-session-expired'));
       throw new ApiError(payload.message ?? payload.error ?? (currentLanguage()==='en'?'The request could not be completed. Please try again.':'Сұрауды орындау мүмкін болмады. Қайта көріңіз.'), response.status, payload.code);
     }
     if (options.binary) return await response.arrayBuffer() as T;

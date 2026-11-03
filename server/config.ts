@@ -14,6 +14,8 @@ export const config = {
  permissionEmails: (process.env.DRIVE_ALLOWED_PERMISSION_EMAILS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean),
  driveOwnerUserId: process.env.DRIVE_OWNER_USER_ID || '',
  driveOwnerEmail: (process.env.DRIVE_OWNER_EMAIL || '').trim().toLowerCase(),
+ driveOwnerRootFolderName: process.env.DRIVE_OWNER_ROOT_FOLDER_NAME || 'UYYM Academy private lessons',
+ driveOwnerRootFolderId: process.env.DRIVE_OWNER_ROOT_FOLDER_ID || '',
  driveOAuthClientId: process.env.DRIVE_OAUTH_CLIENT_ID || '',
  driveOAuthClientSecret: process.env.DRIVE_OAUTH_CLIENT_SECRET || '',
  driveOAuthEncryptionKey: process.env.DRIVE_OAUTH_ENCRYPTION_KEY || '',

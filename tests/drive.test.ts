@@ -29,9 +29,9 @@ before(async()=>{
    ]});
   }
   if(kind==='media'){
-   const range=mode==='source-range'?'bytes=4-7':`bytes=0-${size-1}`;
+   const range=mode==='source-range'?'bytes=4-7':mode.startsWith('owner-')?'bytes=0-0':`bytes=0-${size-1}`;
    assert.equal(new Headers(init?.headers).get('Range'),range);
-   return new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(mode==='source-range'?4:mode==='oversized'?size+1:mode==='truncated'?size-1:size));c.close();},cancel(){cancelled=true;}}),{status:mode==='whole-file'?200:206,headers:{'content-range':mode==='source-range'?`bytes 4-7/${size}`:`bytes 0-${size-1}/${size}`}});
+   return new Response(new ReadableStream({start(c){c.enqueue(new Uint8Array(mode==='source-range'?4:mode.startsWith('owner-')?1:mode==='oversized'?size+1:mode==='truncated'?size-1:size));c.close();},cancel(){cancelled=true;}}),{status:mode==='whole-file'?200:206,headers:{'content-range':mode==='source-range'?`bytes 4-7/${size}`:mode.startsWith('owner-')?`bytes 0-0/${size}`:`bytes 0-${size-1}/${size}`}});
   }
   if(id===folder)return Response.json({mimeType:'application/vnd.google-apps.folder',trashed:mode==='trashed'});
   if(mode.startsWith('owner-')){
@@ -63,13 +63,13 @@ test('changed/public/foreign/unchecked Drive data fails closed without fetching 
  mode='valid';calls=[];await assert.rejects(drive.validateDriveFile(file,'UNLISTED_FOLDER','part',size));assert.equal(calls.length,0);
 });
 
-test('owner_source checks the Drive owner identity, not reader-relative ownedByMe, and still requires the exact reader ACL',async()=>{
+test('owner_source checks reader metadata and one media byte without enumerating ACL',async()=>{
  mode='owner-valid';calls=[];tokens=0;
  assert.deepEqual(await drive.validateDriveFile(file,folder,'owner_source',size),{size,mime:'video/mp4'});
  assert.equal(tokens,1,'owner identity must be read through the configured backend reader credential');
- assert.equal(calls.length,4,'file/folder metadata and ACL are still freshly checked');
+ assert.deepEqual(calls.sort(),['file:media','file:metadata','folder:metadata'],'owner-managed reader checks metadata and one media byte');
 
- for(mode of ['owner-wrong-owner','owner-writer','owner-wrong-mime','owner-missing-owner']){
+ for(mode of ['owner-wrong-owner','owner-wrong-mime','owner-missing-owner']){
   calls=[];
   if(mode==='owner-missing-owner'){
    const currentFetch=globalThis.fetch;
